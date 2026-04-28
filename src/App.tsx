@@ -615,7 +615,7 @@ export default function App() {
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0 shadow-xl border-slate-200" align="start">
-                        <Command className="border-none font-sans">
+                        <Command className="border-none">
                           <CommandInput 
                             placeholder="Buscar linha..." 
                             className="bg-transparent text-sm"
@@ -623,7 +623,7 @@ export default function App() {
                           <CommandList className="max-h-[250px] overflow-y-auto mt-1">
                             <CommandEmpty className="py-6 text-center text-xs text-slate-500">Nenhuma linha encontrada.</CommandEmpty>
                             <CommandGroup>
-                              {Array.from({ length: 30 }, (_, i) => {
+                              {Array.from({ length: 16 }, (_, i) => {
                                 const lineVal = String(i + 1);
                                 return (
                                   <CommandItem
