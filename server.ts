@@ -1,5 +1,5 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
+// Removed top-level vite import
 import { google } from 'googleapis';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -21,7 +21,7 @@ const getAuthClient = () => {
   const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
   if (!clientEmail || !privateKey) {
-    throw new Error("Missing Google credentials in environment variables");
+    throw new Error("Missing GOOGLE_SERVICE_ACCOUNT_EMAIL or GOOGLE_PRIVATE_KEY in environment variables");
   }
 
   const auth = new google.auth.GoogleAuth({
@@ -36,7 +36,37 @@ const getAuthClient = () => {
 };
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID || '1z8BWaxGUuUOtHRSM4FnPBr4km9ecHaCksQZw2bymVAw';
-const SHEET_RANGE = process.env.GOOGLE_SHEET_NAME || 'A:I';
+const DEFAULT_SHEET_NAME = 'Respostas ao formulário 4';
+
+const getFullRange = (range: string) => {
+  if (range.includes('!')) return range;
+  const sheetName = process.env.GOOGLE_SHEET_NAME || DEFAULT_SHEET_NAME;
+  // If sheet name has spaces and isn't quoted, quote it
+  const quotedName = (sheetName.includes(' ') && !sheetName.startsWith("'")) 
+    ? `'${sheetName}'` 
+    : sheetName;
+  return `${quotedName}!${range}`;
+};
+
+const SHEET_RANGE = getFullRange('A:I');
+
+// Endpoint to check if configuration is set correctly (WITHOUT leaking the private key)
+app.get('/api/config-check', (req, res) => {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const keyExists = !!process.env.GOOGLE_PRIVATE_KEY;
+  const sheetId = process.env.GOOGLE_SPREADSHEET_ID;
+  const sheetName = process.env.GOOGLE_SHEET_NAME;
+
+  res.json({
+    env: {
+      GOOGLE_SERVICE_ACCOUNT_EMAIL: email ? 'Set (Check permissions on Sheet)' : 'NOT SET',
+      GOOGLE_PRIVATE_KEY: keyExists ? 'Set' : 'NOT SET',
+      GOOGLE_SPREADSHEET_ID: sheetId || 'Using default',
+      GOOGLE_SHEET_NAME: sheetName || 'Using default (A:I)'
+    },
+    status: (email && keyExists) ? 'Configured' : 'Incomplete'
+  });
+});
 
 app.post('/api/append', async (req, res) => {
   try {
@@ -51,17 +81,17 @@ app.post('/api/append', async (req, res) => {
       carimbo, op, litragem, produto, linha, turno, quantidade, horaInicial, horaFinal
     ]];
 
-    await sheets.spreadsheets.values.append({
+    const response = await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: SHEET_RANGE,
       valueInputOption: 'USER_ENTERED',
       requestBody: { values },
     });
 
-    res.status(200).json({ success: true, message: 'Row added to Google Sheets' });
+    res.status(200).json({ success: true, message: 'Row added', data: response.data });
   } catch (error: any) {
     console.error("Failed to append to spreadsheet:", error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message, details: error.response?.data });
   }
 });
 
@@ -80,6 +110,7 @@ app.post('/api/update', async (req, res) => {
     let rowIndex = -1;
     if (rows) {
       for (let i = 0; i < rows.length; i++) {
+        // Compare carimbo (col A) and OP (col B)
         if (rows[i][0] === oldCarimbo && String(rows[i][1]) === String(oldOp)) {
           rowIndex = i;
           break;
@@ -88,7 +119,7 @@ app.post('/api/update', async (req, res) => {
     }
 
     if (rowIndex === -1) {
-      return res.status(404).json({ success: false, message: 'Row not found in Sheet' });
+      return res.status(404).json({ success: false, message: 'Row not found' });
     }
 
     const values = [[
@@ -96,8 +127,7 @@ app.post('/api/update', async (req, res) => {
       newData.turno, newData.quantidade, newData.horaInicial, newData.horaFinal
     ]];
 
-    const baseSheetName = SHEET_RANGE.split('!')[0] || '';
-    const range = `${baseSheetName}!A${rowIndex + 1}:I${rowIndex + 1}`;
+    const range = getFullRange(`A${rowIndex + 1}:I${rowIndex + 1}`);
     
     await sheets.spreadsheets.values.update({
       spreadsheetId: SPREADSHEET_ID,
@@ -136,13 +166,22 @@ app.post('/api/delete', async (req, res) => {
     }
 
     if (rowIndex === -1) {
-      return res.status(404).json({ success: false, message: 'Row not found in Sheet' });
+      return res.status(404).json({ success: false, message: 'Row not found' });
     }
 
-    const sheetInfo = await sheets.spreadsheets.get({
+    const spreadsheet = await sheets.spreadsheets.get({
       spreadsheetId: SPREADSHEET_ID,
     });
-    const sheetId = sheetInfo.data.sheets?.[0]?.properties?.sheetId || 0;
+    
+    // Find the sheetId based on SHEET_RANGE or default to the first one
+    let targetSheetId = 0;
+    if (SHEET_RANGE.includes('!')) {
+      const sheetName = SHEET_RANGE.split('!')[0];
+      const sheet = spreadsheet.data.sheets?.find(s => s.properties?.title === sheetName);
+      if (sheet) targetSheetId = sheet.properties?.sheetId || 0;
+    } else {
+      targetSheetId = spreadsheet.data.sheets?.[0]?.properties?.sheetId || 0;
+    }
 
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId: SPREADSHEET_ID,
@@ -150,7 +189,7 @@ app.post('/api/delete', async (req, res) => {
         requests: [{
           deleteDimension: {
             range: {
-              sheetId: sheetId,
+              sheetId: targetSheetId,
               dimension: "ROWS",
               startIndex: rowIndex,
               endIndex: rowIndex + 1
@@ -167,35 +206,33 @@ app.post('/api/delete', async (req, res) => {
   }
 });
 
-// Middleware for Vite / Static files
-async function initMiddlewares() {
-  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+// Serve frontend in production
+if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+  const distPath = path.join(__dirname, 'dist');
+  app.use(express.static(distPath));
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) return; // Don't serve HTML for API errors
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+} else {
+  // Local development with Vite using dynamic import
+  const initVite = async () => {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(__dirname, 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
+  };
+  initVite();
 }
 
-// Start if not Vercel
-if (!process.env.VERCEL) {
+// Start listener only if not serverless
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 3000;
-  initMiddlewares().then(() => {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server running on http://0.0.0.0:${PORT}`);
-    });
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://localhost:${PORT}`);
   });
-} else {
-  // On Vercel, we need to init middlewares too for static serving if it's a monolithic function
-  // But usually Vercel routes are handled by vercel.json
-  initMiddlewares();
 }
 
 export default app;
