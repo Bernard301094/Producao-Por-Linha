@@ -41,7 +41,65 @@ export interface FinishedOperation {
   reportString: string;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Sheets API helpers ────────────────────────────────────────────────────
+
+// Base URL: on Vercel the API routes are served from the same origin.
+// In development the Express server runs on port 3000.
+const API_BASE =
+  typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : '';
+
+async function sheetsAppend(op: Operation, quantidade: string, horaFinal: string): Promise<void> {
+  const carimbo = new Date().toLocaleString('pt-BR');
+  await fetch(`${API_BASE}/api/append`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      carimbo,
+      op: op.opNumber,
+      litragem: op.litragem,
+      produto: op.produto,
+      linha: op.linha,
+      turno: op.turno,
+      quantidade,
+      horaInicial: op.horaInicial,
+      horaFinal,
+    }),
+  });
+}
+
+async function sheetsUpdate(
+  oldCarimbo: string,
+  oldOp: string,
+  newData: {
+    carimbo: string;
+    op: string;
+    litragem: string;
+    produto: string;
+    linha: string;
+    turno: string;
+    quantidade: string;
+    horaInicial: string;
+    horaFinal: string;
+  }
+): Promise<void> {
+  await fetch(`${API_BASE}/api/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ oldCarimbo, oldOp, newData }),
+  });
+}
+
+async function sheetsDelete(carimbo: string, op: string): Promise<void> {
+  await fetch(`${API_BASE}/api/delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ carimbo, op }),
+  });
+}
+
+// ─── Internal helpers ────────────────────────────────────────────────────
 
 function opToReportString(op: FinishedOperation): string {
   return [
@@ -68,7 +126,6 @@ export const getOperations = async (): Promise<Operation[]> => {
 };
 
 export const addOperation = async (op: Operation): Promise<void> => {
-  // localId is stored as the same value as the document id for compatibility
   await setDoc(doc(db, 'pendingOperations', op.id), { ...op, localId: op.id });
 };
 
@@ -83,7 +140,7 @@ export const updateOperation = async (
   await updateDoc(doc(db, 'pendingOperations', id), data as Record<string, unknown>);
 };
 
-// ─── Finished Operations (reports/{date}_{turno}) ────────────────────────────
+// ─── Finished Operations (Firestore + Google Sheets) ────────────────────────
 
 export const markOperationFinished = async (
   id: string,
@@ -107,6 +164,7 @@ export const markOperationFinished = async (
   };
   const reportStr = opToReportString(finished);
 
+  // 1. Firestore: move from pendingOperations to reports
   await runTransaction(db, async (tx) => {
     const reportSnap = await tx.get(reportRef);
     if (reportSnap.exists()) {
@@ -116,6 +174,13 @@ export const markOperationFinished = async (
     }
     tx.delete(pendingRef);
   });
+
+  // 2. Google Sheets: append row (non-blocking — don't throw if sheets fails)
+  try {
+    await sheetsAppend(op, quantidade, horaFinal);
+  } catch (err) {
+    console.warn('Sheets append failed (non-critical):', err);
+  }
 };
 
 export const removeFinishedOperation = async (
@@ -129,8 +194,20 @@ export const removeFinishedOperation = async (
 
   const ops: string[] = snap.data().ops || [];
   const target = ops.find((s) => s === id || s.startsWith(id + '|'));
-  if (target) {
-    await updateDoc(reportRef, { ops: arrayRemove(target) });
+  if (!target) return;
+
+  // 1. Firestore
+  await updateDoc(reportRef, { ops: arrayRemove(target) });
+
+  // 2. Google Sheets: delete row identified by opNumber (parts[0])
+  // carimbo is not stored in the report string, so we identify by opNumber only.
+  // The server finds the row by matching op column.
+  try {
+    const parts = target.split('|');
+    // Pass empty carimbo — server falls back to matching by op number alone
+    await sheetsDelete('', parts[0] ?? '');
+  } catch (err) {
+    console.warn('Sheets delete failed (non-critical):', err);
   }
 };
 
@@ -146,7 +223,6 @@ export const updateFinishedOperation = async (
 
   const ops: string[] = snap.data().ops || [];
   const oldIndex = ops.findIndex((s) => s === id || s.startsWith(id + '|'));
-
   if (oldIndex === -1) throw new Error('Registro não encontrado no relatório.');
 
   const oldParts = ops[oldIndex].split('|');
@@ -165,9 +241,28 @@ export const updateFinishedOperation = async (
   };
   const newStr = opToReportString(merged);
 
+  // 1. Firestore
   const updatedOps = [...ops];
   updatedOps[oldIndex] = newStr;
   await updateDoc(reportRef, { ops: updatedOps });
+
+  // 2. Google Sheets: update row
+  try {
+    const oldOpNumber = oldParts[0] ?? '';
+    await sheetsUpdate('', oldOpNumber, {
+      carimbo: new Date().toLocaleString('pt-BR'),
+      op: merged.opNumber,
+      litragem: merged.litragem,
+      produto: merged.produto,
+      linha: merged.linha,
+      turno: merged.turno,
+      quantidade: merged.quantidade,
+      horaInicial: merged.horaInicial,
+      horaFinal: merged.horaFinal,
+    });
+  } catch (err) {
+    console.warn('Sheets update failed (non-critical):', err);
+  }
 };
 
 export const moveFinishedToPending = async (
@@ -197,10 +292,18 @@ export const moveFinishedToPending = async (
     carimboInicial: new Date().toISOString(),
   };
 
+  // 1. Firestore: remove from report, add to pending
   await runTransaction(db, async (tx) => {
     tx.update(reportRef, { ops: arrayRemove(target) });
     tx.set(doc(db, 'pendingOperations', op.id), op);
   });
+
+  // 2. Google Sheets: delete the row for this op
+  try {
+    await sheetsDelete('', parts[0] ?? '');
+  } catch (err) {
+    console.warn('Sheets delete on revert failed (non-critical):', err);
+  }
 };
 
 export const getReportForDateAndShift = async (
