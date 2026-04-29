@@ -6,6 +6,8 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 
+// ── Interfaces ───────────────────────────────────────────────────────────────
+
 export interface Operation {
   id: string;
   opNumber: string;
@@ -40,6 +42,8 @@ export enum OperationType {
   WRITE = 'write',
 }
 
+// ── Error Handling ───────────────────────────────────────────────────────────
+
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo = {
     error: error instanceof Error ? error.message : String(error),
@@ -50,16 +54,17 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
-// --- Helpers ---
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 const getCompactString = (op: FinishedOperation | any) =>
   `${op.opNumber}|${op.linha}|${op.produto}|${op.litragem}|${op.quantidade}|${op.horaInicial}|${op.horaFinal}`;
 
 const isReportString = (id: string) => id.includes('|');
 
 const parseCompactId = (s: string, turno: string): FinishedOperation => {
-  const [opNumber, linha, produto, litragem, cantidad, horaInicial, horaFinal] = s.split('|');
+  const [opNumber, linha, producto, litragem, cantidad, horaInicial, horaFinal] = s.split('|');
   return {
-    id: s, opNumber, linha, producto: produto, litragem, cantidad: cantidad,
+    id: s, opNumber, linha, producto, litragem, cantidad,
     horaInicial, horaFinal, turno, carimboInicial: '', reportString: s,
   } as any;
 };
@@ -70,7 +75,17 @@ const todayReportDocId = (turno: string) => {
   return `${d}_${turno}`;
 };
 
-// --- Mark Finished (Implementación corregida) ---
+const resolveFinishedOpDoc = async (id: string): Promise<{ docId: string; op: FinishedOperation } | null> => {
+  const directRef = doc(db, 'finishedOperations', id);
+  const directSnap = await getDoc(directRef);
+  if (directSnap.exists()) {
+    return { docId: id, op: { id, ...directSnap.data() } as FinishedOperation };
+  }
+  return null;
+};
+
+// ── Mark Finished (CORREGIDO) ──────────────────────────────────────────────────
+
 export const markOperationFinished = async (id: string, cantidad: string, horaFinal: string) => {
   const ops = await getOperations();
   const op = ops.find(o => o.id === id);
@@ -95,7 +110,7 @@ export const markOperationFinished = async (id: string, cantidad: string, horaFi
     const compactString = getCompactString(finishedOp);
     finishedOp.reportString = compactString;
 
-    // 1. INTENTAR GUARDAR EN LA PLANILLA PRIMERO Y ESPERAR RESPUESTA
+    // 1. PRIMERO: Intentar guardar en Google Sheets y esperar respuesta (AWAIT)
     const sheetRes = await fetch('/api/append', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -113,13 +128,11 @@ export const markOperationFinished = async (id: string, cantidad: string, horaFi
     });
 
     if (!sheetRes.ok) {
-      const errorText = await sheetRes.text();
-      // Si el error devuelve HTML de Vercel, simplificar el mensaje
-      const errorMsg = errorText.startsWith('<') ? "Error interno del servidor (500) en Vercel" : errorText;
-      throw new Error(errorMsg);
+      const errorData = await sheetRes.json().catch(() => ({ error: 'Error desconocido en servidor' }));
+      throw new Error(errorData.error || 'Error al conectar con la planilla');
     }
 
-    // 2. SI LA PLANILLA FUE EXITOSA, ACTUALIZAR FIREBASE
+    // 2. SEGUNDO: Solo si Sheets funcionó, actualizamos Firebase
     const reportRef = doc(db, 'reports', docId);
     await setDoc(reportRef, { ops: arrayUnion(compactString) }, { merge: true });
     await removeOperation(id);
@@ -127,12 +140,33 @@ export const markOperationFinished = async (id: string, cantidad: string, horaFi
     
     return true;
   } catch (error: any) {
-    console.error('Error al concluir operación:', error);
-    throw new Error(error.message || 'Error desconocido al procesar');
+    // Este error se mostrará en la interfaz
+    console.error('Error en markOperationFinished:', error);
+    throw error;
   }
 };
 
-// --- Resto de funciones del API ---
+// ── Resto de Operaciones (Sincronizadas con Sheets) ──────────────────────────
+
+export const addFinishedOperation = async (op: FinishedOperation): Promise<string> => {
+  const { id, ...data } = op;
+  try {
+    const docRef = await addDoc(collection(db, 'finishedOperations'), { ...data, localId: id });
+    return docRef.id;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, 'finishedOperations');
+    return '';
+  }
+};
+
+export const removeOperation = async (id: string) => {
+  try {
+    await deleteDoc(doc(db, 'pendingOperations', id));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `pendingOperations/${id}`);
+  }
+};
+
 export const getOperations = async (): Promise<Operation[]> => {
   try {
     const snapshot = await getDocs(query(collection(db, 'pendingOperations')));
@@ -155,22 +189,11 @@ export const addOperation = async (op: Operation) => {
   }
 };
 
-export const removeOperation = async (id: string) => {
+export const updateOperation = async (id: string, updates: Partial<Operation>) => {
   try {
-    await deleteDoc(doc(db, 'pendingOperations', id));
+    await setDoc(doc(db, 'pendingOperations', id), updates, { merge: true });
   } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, `pendingOperations/${id}`);
-  }
-};
-
-export const addFinishedOperation = async (op: FinishedOperation): Promise<string> => {
-  const { id, ...data } = op;
-  try {
-    const docRef = await addDoc(collection(db, 'finishedOperations'), { ...data, localId: id });
-    return docRef.id;
-  } catch (error) {
-    handleFirestoreError(error, OperationType.CREATE, 'finishedOperations');
-    return '';
+    handleFirestoreError(error, OperationType.UPDATE, 'pendingOperations');
   }
 };
 
@@ -192,7 +215,7 @@ export const getProducts = async () => {
 export const addProduct = async (produto: string, litragem: string) => {
   if (initialProducts.find(p => p.produto === produto)) return;
   try {
-    const q = query(collection(db, 'products'), where('produto', '==', produto));
+    const q = query(collection(db, 'products'), where('produto', '==', producto));
     const snapshot = await getDocs(q);
     if (snapshot.empty) await setDoc(doc(collection(db, 'products')), { producto, litragem });
   } catch(error) {
