@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile } from './api';
 import { db } from './firebase';
 import { collection, query, onSnapshot, doc } from 'firebase/firestore';
 
@@ -39,11 +39,10 @@ function getSuggestedShift(now: Date, horaInicial: string): string {
 }
 
 // Parsea un string compacto "opNumber|linha|produto|litragem|quantidade|horaInicial|horaFinal"
-// en un objeto FinishedOperation parcial para mostrar en pantalla
 function parseReportString(s: string, turno: string): FinishedOperation {
   const [opNumber, linha, produto, litragem, quantidade, horaInicial, horaFinal] = s.split('|');
   return {
-    id: s, // usamos el propio string como id único para el key
+    id: s,
     opNumber: opNumber || '',
     linha: linha || '',
     produto: produto || '',
@@ -202,7 +201,6 @@ export default function App() {
     : getSuggestedShift(new Date(), format(new Date(), 'HH:mm'));
 
   useEffect(() => {
-    // Listener en tiempo real para OPs pendientes
     const unsubPending = onSnapshot(query(collection(db, 'pendingOperations')), (snapshot) => {
       setOperations(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Operation)));
     });
@@ -254,20 +252,37 @@ export default function App() {
     if (loginProfile === 'Supervisor') loadHistory();
   }, [supervisorDate, supervisorShift, loginProfile]);
 
-  const handleLogin = () => {
+  // Login: consulta Firebase primero; si no existe el doc usa el password hardcodeado como fallback
+  const handleLogin = async () => {
     if (!selectedProfile) return;
     setLoginLoading(true);
-    const correctPassword = PROFILES[selectedProfile];
-    if (passwordInput.trim() === correctPassword) {
-      localStorage.setItem('loginProfile', selectedProfile);
-      setLoginProfile(selectedProfile);
-      if (selectedProfile !== 'Supervisor') setValue('turno', selectedProfile.replace('Turno ', ''));
-      setPasswordInput('');
-      setSelectedProfile(null);
-    } else {
-      toast.error('Senha incorreta. Tente novamente.');
+    try {
+      const profileData = await getAuthProfile(selectedProfile);
+      const correctPassword = profileData?.password || PROFILES[selectedProfile];
+      if (passwordInput.trim() === correctPassword) {
+        localStorage.setItem('loginProfile', selectedProfile);
+        setLoginProfile(selectedProfile);
+        if (selectedProfile !== 'Supervisor') setValue('turno', selectedProfile.replace('Turno ', ''));
+        setPasswordInput('');
+        setSelectedProfile(null);
+      } else {
+        toast.error('Senha incorreta. Tente novamente.');
+      }
+    } catch (err: any) {
+      // Si falla Firestore, fallback al hardcode
+      const correctPassword = PROFILES[selectedProfile];
+      if (passwordInput.trim() === correctPassword) {
+        localStorage.setItem('loginProfile', selectedProfile);
+        setLoginProfile(selectedProfile);
+        if (selectedProfile !== 'Supervisor') setValue('turno', selectedProfile.replace('Turno ', ''));
+        setPasswordInput('');
+        setSelectedProfile(null);
+      } else {
+        toast.error('Senha incorreta. Tente novamente.');
+      }
+    } finally {
+      setLoginLoading(false);
     }
-    setLoginLoading(false);
   };
 
   const handleLogout = () => {
@@ -312,7 +327,6 @@ export default function App() {
     } finally { setLoading(false); }
   };
 
-  // finishedOps ya viene filtrado por turno y fecha desde el listener del report
   const myFinishedOps = finishedOps;
   const myPendingOps = operations.filter(op => op.turno === currentTurnForView);
 
@@ -346,7 +360,7 @@ export default function App() {
     }
   };
 
-  // ─── Tela de Login ────────────────────────────────────────────────────────────
+  // ─── Tela de Login ────────────────────────────────────────────────────────
   if (!loginProfile) {
     return (
       <>
