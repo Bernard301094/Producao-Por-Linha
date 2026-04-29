@@ -22,7 +22,7 @@ export function getAuthClient() {
 
   if (!clientEmail || !privateKey) {
     throw new Error(
-      'Faltan variables de entorno: GOOGLE_SERVICE_ACCOUNT_EMAIL o GOOGLE_PRIVATE_KEY'
+      'Variáveis de ambiente ausentes: GOOGLE_SERVICE_ACCOUNT_EMAIL ou GOOGLE_PRIVATE_KEY'
     );
   }
 
