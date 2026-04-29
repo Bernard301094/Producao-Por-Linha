@@ -24,6 +24,7 @@ export interface Operation {
   turno: string;
   horaInicial: string;
   carimboInicial: string;
+  localId?: string;
 }
 
 export interface FinishedOperation {
@@ -67,7 +68,8 @@ export const getOperations = async (): Promise<Operation[]> => {
 };
 
 export const addOperation = async (op: Operation): Promise<void> => {
-  await setDoc(doc(db, 'pendingOperations', op.id), op);
+  // localId is stored as the same value as the document id for compatibility
+  await setDoc(doc(db, 'pendingOperations', op.id), { ...op, localId: op.id });
 };
 
 export const removeOperation = async (id: string): Promise<void> => {
@@ -126,7 +128,6 @@ export const removeFinishedOperation = async (
   if (!snap.exists()) return;
 
   const ops: string[] = snap.data().ops || [];
-  // id is the reportString for finished ops
   const target = ops.find((s) => s === id || s.startsWith(id + '|'));
   if (target) {
     await updateDoc(reportRef, { ops: arrayRemove(target) });
@@ -148,7 +149,6 @@ export const updateFinishedOperation = async (
 
   if (oldIndex === -1) throw new Error('Registro não encontrado no relatório.');
 
-  // Rebuild finished op from old string + new data
   const oldParts = ops[oldIndex].split('|');
   const merged: FinishedOperation = {
     id,
@@ -184,8 +184,10 @@ export const moveFinishedToPending = async (
   if (!target) throw new Error('Registro não encontrado no relatório.');
 
   const parts = target.split('|');
+  const newId = crypto.randomUUID();
   const op: Operation = {
-    id: crypto.randomUUID(),
+    id: newId,
+    localId: newId,
     opNumber: parts[0] ?? '',
     linha: parts[1] ?? '',
     produto: parts[2] ?? '',
@@ -254,8 +256,9 @@ export const addProduct = async (produto: string, litragem: string): Promise<voi
 
 // ─── Auth Profile ─────────────────────────────────────────────────────────────
 
-export const getAuthProfile = async (profile?: string): Promise<{ email?: string; displayName?: string; uid?: string; password?: string } | null> => {
-  // If a profile name is given, try to fetch a custom password from Firestore
+export const getAuthProfile = async (
+  profile?: string
+): Promise<{ email?: string; displayName?: string; uid?: string; password?: string } | null> => {
   if (profile) {
     try {
       const snap = await getDoc(doc(db, 'config', 'profiles'));
@@ -264,11 +267,9 @@ export const getAuthProfile = async (profile?: string): Promise<{ email?: string
         if (data[profile]) return data[profile];
       }
     } catch {
-      // fallback to Firebase Auth below
+      // fallback below
     }
   }
-
-  // Otherwise return current Firebase Auth user
   const { getAuth } = await import('firebase/auth');
   const auth = getAuth();
   const user = auth.currentUser;
@@ -280,7 +281,10 @@ export const getAuthProfile = async (profile?: string): Promise<{ email?: string
   };
 };
 
-export const updateAuthProfile = async (data: { displayName?: string; password?: string }): Promise<void> => {
+export const updateAuthProfile = async (data: {
+  displayName?: string;
+  password?: string;
+}): Promise<void> => {
   const { getAuth, updateProfile, updatePassword } = await import('firebase/auth');
   const auth = getAuth();
   const user = auth.currentUser;

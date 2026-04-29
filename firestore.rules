@@ -5,10 +5,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$'); }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
 
     function isValidPendingOperation(data) {
-      return data.keys().hasAll(['opNumber', 'litragem', 'produto', 'linha', 'turno', 'horaInicial', 'carimboInicial', 'localId']);
+      return data.keys().hasAll(['opNumber', 'litragem', 'produto', 'linha', 'turno', 'horaInicial', 'carimboInicial']);
     }
 
     match /pendingOperations/{opId} {
@@ -17,7 +17,6 @@ service cloud.firestore {
       allow update, delete: if true;
     }
 
-    // Regla añadida para solucionar el error de permisos
     match /finishedOperations/{opId} {
       allow read, list, create, update, delete: if true;
     }
@@ -27,6 +26,10 @@ service cloud.firestore {
     }
 
     match /reports/{reportId} {
+      allow read, list, create, update, delete: if true;
+    }
+
+    match /config/{configId} {
       allow read, list, create, update, delete: if true;
     }
 
