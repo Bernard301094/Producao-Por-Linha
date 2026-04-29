@@ -44,7 +44,7 @@ import { SupervisorPanel } from './components/SupervisorPanel';
 import { LoginModule } from './components/LoginModule';
 import { ChangePasswordDialog } from './components/ChangePasswordDialog';
 import { Toaster, toast } from 'sonner';
-import { Factory, LogIn, LogOut, Trash2, Eye, EyeOff, FileDown, Check, ChevronsUpDown, Search, Clock, Package, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Factory, LogIn, LogOut, Trash2, Eye, EyeOff, FileDown, Check, ChevronsUpDown, Search, Clock, Package, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -93,6 +93,10 @@ export default function App() {
 
   const [mobileTab, setMobileTab] = useState<'pendentes' | 'nova' | 'concluidas'>('nova');
   const [openLineSelect, setOpenLineSelect] = useState(false);
+
+  // Search filters for each column
+  const [searchPending, setSearchPending] = useState('');
+  const [searchFinished, setSearchFinished] = useState('');
 
   const [operations, setOperations] = useState<Operation[]>([]);
   const [finishedOps, setFinishedOps] = useState<FinishedOperation[]>([]);
@@ -303,7 +307,29 @@ export default function App() {
   const myPendingOps = operations.filter(op => op.turno === currentTurnForView);
   const myFinishedOps = finishedOps.filter(op => op.turno === currentTurnForView);
 
+  // Filtered lists based on search query
+  const matchesSearch = (op: { opNumber: string; linha: string; produto: string }, q: string) => {
+    if (!q.trim()) return true;
+    const lower = q.toLowerCase();
+    return (
+      op.opNumber.toLowerCase().includes(lower) ||
+      op.linha.toLowerCase().includes(lower) ||
+      op.produto.toLowerCase().includes(lower)
+    );
+  };
+
+  const visiblePendingOps = useMemo(
+    () => myPendingOps.filter(op => matchesSearch(op, searchPending)),
+    [myPendingOps, searchPending]
+  );
+
+  const visibleFinishedOps = useMemo(
+    () => myFinishedOps.filter(op => matchesSearch(op, searchFinished)),
+    [myFinishedOps, searchFinished]
+  );
+
   const totalUnidades = myFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0);
+  const visibleTotalUnidades = visibleFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0);
 
   const confirmDelete = async () => {
     if (!deletingOp) return;
@@ -412,13 +438,12 @@ export default function App() {
           </div>
         </div>
 
-        {/* Center: turno badge */}
-        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-          <span className="hidden sm:inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-200">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        {/* Center: turno badge — always visible on all screen sizes */}
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 text-[10px] sm:text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-full border border-slate-200 whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
             {loginProfile} — {format(new Date(), 'dd/MM/yyyy')}
           </span>
-          <span className="sm:hidden text-xs font-bold text-slate-600">{loginProfile}</span>
         </div>
 
         <div className="flex items-center gap-1">
@@ -460,19 +485,33 @@ export default function App() {
         } flex-col w-full md:w-[240px] md:min-w-[240px] md:max-w-[240px] lg:w-[260px] lg:min-w-[260px] lg:max-w-[260px] xl:w-[280px] xl:min-w-[280px] xl:max-w-[280px] bg-white border-b md:border-b-0 md:border-r border-slate-200 overflow-hidden`}>
           
           {/* Col header */}
-          <div className="px-3 md:px-4 py-3.5 border-b border-slate-100 bg-slate-50 shrink-0">
-            <div className="flex items-center justify-between">
+          <div className="px-3 md:px-4 py-3 border-b border-slate-100 bg-slate-50 shrink-0">
+            <div className="flex items-center justify-between mb-2.5">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-4 rounded-full bg-blue-500"></div>
                 <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Em Andamento</span>
               </div>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                myPendingOps.length > 0
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-slate-100 text-slate-500'
+                myPendingOps.length > 0 ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
               }`}>
-                {myPendingOps.length} {myPendingOps.length === 1 ? 'ativa' : 'ativas'}
+                {visiblePendingOps.length}/{myPendingOps.length}
               </span>
+            </div>
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={searchPending}
+                onChange={e => setSearchPending(e.target.value)}
+                placeholder="Linha, OP, produto..."
+                className="w-full h-8 pl-7 pr-7 text-xs bg-white border border-slate-200 rounded-md text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {searchPending && (
+                <button onClick={() => setSearchPending('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -485,11 +524,15 @@ export default function App() {
                 </div>
                 <p className="text-xs text-slate-400 font-medium leading-relaxed">Nenhuma linha ativa no momento</p>
               </div>
+            ) : visiblePendingOps.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full py-12 px-6 text-center gap-2">
+                <Search className="w-8 h-8 text-slate-300" />
+                <p className="text-xs text-slate-400 font-medium">Nenhum resultado para <span className="font-bold text-slate-500">"{searchPending}"</span></p>
+              </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {myPendingOps.map(op => (
+                {visiblePendingOps.map(op => (
                   <div key={op.id} className="p-3 md:p-4 hover:bg-blue-50/40 transition-colors group">
-                    {/* Line number badge + OP */}
                     <div className="flex items-center justify-between mb-2.5">
                       <div className="flex items-center gap-2">
                         <span className="w-7 h-7 rounded-md bg-blue-600 text-white text-[11px] font-black flex items-center justify-center shrink-0">
@@ -502,16 +545,12 @@ export default function App() {
                         {op.horaInicial}
                       </div>
                     </div>
-
-                    {/* Product name */}
                     <p className="text-xs md:text-sm font-semibold text-slate-800 leading-tight mb-3 line-clamp-2">{op.produto}</p>
                     {op.litragem && (
                       <span className="inline-block text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded mb-3">
                         {op.litragem}
                       </span>
                     )}
-
-                    {/* Actions */}
                     <div className="flex gap-1.5">
                       <button
                         onClick={() => openEdit(op)}
@@ -527,12 +566,8 @@ export default function App() {
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                       <Dialog open={finishingId === op.id} onOpenChange={(open) => {
-                        if(open) {
-                          setFinishingId(op.id);
-                          setFinishTime(format(new Date(), 'HH:mm'));
-                        } else {
-                          setFinishingId(null);
-                        }
+                        if(open) { setFinishingId(op.id); setFinishTime(format(new Date(), 'HH:mm')); }
+                        else { setFinishingId(null); }
                       }}>
                         <DialogTrigger render={
                           <button className="flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm">
@@ -542,31 +577,16 @@ export default function App() {
                         <DialogContent className="max-w-md w-[95vw] sm:w-full">
                           <DialogHeader>
                             <DialogTitle>Finalizar OP {op.opNumber}</DialogTitle>
-                            <DialogDescription>
-                              Informe a quantidade apontada e o horário de término.
-                            </DialogDescription>
+                            <DialogDescription>Informe a quantidade apontada e o horário de término.</DialogDescription>
                           </DialogHeader>
                           <div className="space-y-4 py-4">
                              <div>
                                <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Quantidade Apontada (Unidades)</Label>
-                               <Input 
-                                 type="text" 
-                                 inputMode="numeric"
-                                 pattern="[0-9]*"
-                                 value={finishQtd} 
-                                 onChange={e => setFinishQtd(e.target.value.replace(/[^0-9]/g, ''))} 
-                                 placeholder="Ex: 599"
-                                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm font-mono text-slate-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                               />
+                               <Input type="text" inputMode="numeric" pattern="[0-9]*" value={finishQtd} onChange={e => setFinishQtd(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Ex: 599" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm font-mono text-slate-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                              </div>
                              <div>
                                <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Hora Final</Label>
-                               <Input 
-                                 type="time" 
-                                 value={finishTime} 
-                                 onChange={e => setFinishTime(e.target.value)} 
-                                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm font-mono text-slate-700"
-                               />
+                               <Input type="time" value={finishTime} onChange={e => setFinishTime(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm font-mono text-slate-700" />
                              </div>
                           </div>
                           <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-2">
@@ -590,7 +610,6 @@ export default function App() {
           mobileTab === 'pendentes' ? 'hidden md:flex' : mobileTab === 'concluidas' ? 'hidden md:flex' : 'flex'
         } flex-col flex-1 bg-slate-100 overflow-y-auto`}>
           
-          {/* Section header */}
           <div className="px-4 md:px-6 xl:px-8 pt-5 md:pt-6 pb-4 shrink-0">
             <nav className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1.5">Coleta de Dados / Registro Ativo</nav>
             <h2 className="text-xl md:text-2xl font-light text-slate-700 tracking-tight">
@@ -598,11 +617,9 @@ export default function App() {
             </h2>
           </div>
 
-          {/* Form card */}
           <div className="flex-1 flex items-start justify-center px-4 md:px-6 xl:px-8 pb-8">
             <div className="w-full max-w-lg bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
               
-              {/* Form header strip */}
               <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-4 md:px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -620,10 +637,7 @@ export default function App() {
                     <Input
                       id="opNumber"
                       {...register('opNumber', { onChange: (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })}
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      placeholder="Ex: 48370"
+                      type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370"
                       className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono text-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500"
                     />
                     {errors.opNumber && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.opNumber.message}</p>}
@@ -631,9 +645,7 @@ export default function App() {
                   <div>
                     <Label htmlFor="horaInicial" className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Hora Inicial</Label>
                     <Input
-                      id="horaInicial"
-                      type="time"
-                      {...register('horaInicial')}
+                      id="horaInicial" type="time" {...register('horaInicial')}
                       className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono text-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500"
                     />
                     {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.horaInicial.message}</p>}
@@ -643,9 +655,7 @@ export default function App() {
                 <div className="relative">
                   <Label htmlFor="produto" className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Produto</Label>
                   <input
-                    id="produto"
-                    {...register('produto')}
-                    autoComplete="off"
+                    id="produto" {...register('produto')} autoComplete="off"
                     onFocus={() => setShowProductSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowProductSuggestions(false), 200)}
                     placeholder="Ex: ALUMAX 5L"
@@ -654,15 +664,8 @@ export default function App() {
                   {showProductSuggestions && filteredProducts.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-56 overflow-y-auto p-1">
                       {filteredProducts.map(p => (
-                        <div
-                          key={p.produto}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setValue('produto', p.produto);
-                            setShowProductSuggestions(false);
-                          }}
-                          className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-md flex items-center justify-between gap-2"
-                        >
+                        <div key={p.produto} onMouseDown={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); }}
+                          className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-md flex items-center justify-between gap-2">
                           <span>{p.produto}</span>
                           {p.litragem && <span className="text-[10px] text-slate-400 font-mono shrink-0">{p.litragem}</span>}
                         </div>
@@ -675,15 +678,10 @@ export default function App() {
                 <div>
                   <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Linha de Produção</Label>
                   <Popover open={openLineSelect} onOpenChange={setOpenLineSelect}>
-                    <PopoverTrigger
-                      type="button"
-                      role="combobox"
-                      aria-expanded={openLineSelect}
+                    <PopoverTrigger type="button" role="combobox" aria-expanded={openLineSelect}
                       className={cn(
                         "flex items-center justify-between w-full h-11 px-3 border-2 transition-all duration-200 text-sm font-semibold rounded-lg outline-none focus:ring-2 focus:ring-blue-500",
-                        watch('linha')
-                          ? 'border-blue-500 bg-blue-50/50 text-blue-700'
-                          : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'
+                        watch('linha') ? 'border-blue-500 bg-blue-50/50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'
                       )}
                     >
                       {watch('linha') ? `Linha ${watch('linha')}` : 'Selecione a Linha'}
@@ -698,15 +696,9 @@ export default function App() {
                             {Array.from({ length: 16 }, (_, i) => {
                               const lineVal = String(i + 1);
                               return (
-                                <CommandItem
-                                  key={lineVal}
-                                  value={`Linha ${lineVal}`}
-                                  onSelect={() => {
-                                    setValue('linha', lineVal, { shouldValidate: true });
-                                    setOpenLineSelect(false);
-                                  }}
-                                  className="flex items-center justify-between py-2.5 px-3 cursor-pointer aria-selected:bg-blue-600 aria-selected:text-white"
-                                >
+                                <CommandItem key={lineVal} value={`Linha ${lineVal}`}
+                                  onSelect={() => { setValue('linha', lineVal, { shouldValidate: true }); setOpenLineSelect(false); }}
+                                  className="flex items-center justify-between py-2.5 px-3 cursor-pointer aria-selected:bg-blue-600 aria-selected:text-white">
                                   <span className="font-bold uppercase tracking-tight">Linha {lineVal}</span>
                                   <Check className={cn("h-4 w-4", watch('linha') === lineVal ? 'opacity-100' : 'opacity-0')} />
                                 </CommandItem>
@@ -720,7 +712,6 @@ export default function App() {
                   {errors.linha && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.linha.message}</p>}
                 </div>
 
-                {/* Hidden turno */}
                 <div className="hidden">
                   <Select onValueChange={(v) => setValue('turno', v)} value={watch('turno') || ''} disabled={!!loginProfile && loginProfile !== 'Supervisor'}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -734,10 +725,7 @@ export default function App() {
                 </div>
 
                 <div className="pt-2">
-                  <Button
-                    type="submit"
-                    className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-xs rounded-lg shadow-md transition-all active:scale-[0.99]"
-                  >
+                  <Button type="submit" className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-xs rounded-lg shadow-md transition-all active:scale-[0.99]">
                     Iniciar Produção
                   </Button>
                 </div>
@@ -758,17 +746,13 @@ export default function App() {
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Concluídas Hoje</span>
               </div>
-              <button
-                onClick={generatePDF}
+              <button onClick={generatePDF}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider transition-colors border border-white/10"
-                title="Gerar PDF"
-              >
+                title="Gerar PDF">
                 <FileDown className="w-3.5 h-3.5" />
                 PDF
               </button>
             </div>
-
-            {/* KPIs row */}
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-white/10 rounded-lg px-3 py-2.5">
                 <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Registros</p>
@@ -781,6 +765,30 @@ export default function App() {
             </div>
           </div>
 
+          {/* Search bar for finished ops */}
+          <div className="px-3 md:px-4 py-2.5 border-b border-slate-100 bg-slate-50 shrink-0">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={searchFinished}
+                onChange={e => setSearchFinished(e.target.value)}
+                placeholder="Linha, OP, produto..."
+                className="w-full h-8 pl-7 pr-7 text-xs bg-white border border-slate-200 rounded-md text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+              {searchFinished && (
+                <button onClick={() => setSearchFinished('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {searchFinished && (
+              <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
+                {visibleFinishedOps.length} resultado{visibleFinishedOps.length !== 1 ? 's' : ''} • {visibleTotalUnidades.toLocaleString('pt-BR')} un.
+              </p>
+            )}
+          </div>
+
           {/* List */}
           <div className="flex-1 overflow-y-auto">
             {myFinishedOps.length === 0 ? (
@@ -790,9 +798,14 @@ export default function App() {
                 </div>
                 <p className="text-xs text-slate-400 font-medium leading-relaxed">Nenhum registro concluído na sessão atual</p>
               </div>
+            ) : visibleFinishedOps.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full py-12 px-6 text-center gap-2">
+                <Search className="w-8 h-8 text-slate-300" />
+                <p className="text-xs text-slate-400 font-medium">Nenhum resultado para <span className="font-bold text-slate-500">"{searchFinished}"</span></p>
+              </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {myFinishedOps.map((op, i) => (
+                {visibleFinishedOps.map((op, i) => (
                   <div key={i} className="px-3 md:px-4 py-3.5 hover:bg-slate-50 transition-colors group">
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="flex-1 min-w-0">
@@ -811,18 +824,12 @@ export default function App() {
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => openEdit(op)}
-                          className="p-1.5 rounded border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors bg-white shadow-sm"
-                          title="Editar"
-                        >
+                        <button onClick={() => openEdit(op)}
+                          className="p-1.5 rounded border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors bg-white shadow-sm" title="Editar">
                           <Eye className="w-3 h-3" />
                         </button>
-                        <button
-                          onClick={() => setDeletingOp(op)}
-                          className="p-1.5 rounded border border-red-100 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors bg-white shadow-sm"
-                          title="Excluir"
-                        >
+                        <button onClick={() => setDeletingOp(op)}
+                          className="p-1.5 rounded border border-red-100 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors bg-white shadow-sm" title="Excluir">
                           <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
@@ -833,13 +840,11 @@ export default function App() {
             )}
           </div>
 
-          {/* Mobile PDF FAB — only on small screens */}
+          {/* Mobile PDF FAB */}
           {mobileTab === 'concluidas' && (
-            <button
-              onClick={generatePDF}
+            <button onClick={generatePDF}
               className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl z-50 active:scale-95 transition-transform border-4 border-white"
-              title="Gerar PDF"
-            >
+              title="Gerar PDF">
               <FileDown className="w-6 h-6" />
             </button>
           )}
@@ -888,9 +893,7 @@ export default function App() {
              <div>
                 <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Produto</Label>
                 <div className="relative">
-                   <input
-                      {...registerEdit('produto')}
-                      autoComplete="off"
+                   <input {...registerEdit('produto')} autoComplete="off"
                       onFocus={() => setShowEditProductSuggestions(true)}
                       onBlur={() => setTimeout(() => setShowEditProductSuggestions(false), 200)}
                       className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -898,15 +901,8 @@ export default function App() {
                    {showEditProductSuggestions && filteredEditProducts.length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto p-1">
                          {filteredEditProducts.map(p => (
-                            <div
-                               key={p.produto}
-                               onMouseDown={(e) => {
-                                  e.preventDefault();
-                                  setValueEdit('produto', p.produto);
-                                  setShowEditProductSuggestions(false);
-                               }}
-                               className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-sm"
-                            >
+                            <div key={p.produto} onMouseDown={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); }}
+                               className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-sm">
                                {p.produto}
                             </div>
                          ))}
