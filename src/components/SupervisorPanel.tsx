@@ -20,8 +20,7 @@ interface SupervisorPanelProps {
   supervisorShift: string;
   setSupervisorShift: (s: string) => void;
   historyReports: any[];
-  operations: any[];
-  PROFILES: Record<string, string>;
+  loadHistory: () => void;
   onLogout: () => void;
 }
 
@@ -50,7 +49,6 @@ function CustomDatePicker({ value, onChange }: { value: string; onChange: (v: st
 
   return (
     <div ref={ref} className="relative">
-      {/* Trigger */}
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -65,10 +63,8 @@ function CustomDatePicker({ value, onChange }: { value: string; onChange: (v: st
         </span>
       </button>
 
-      {/* Popover */}
       {open && (
         <div className="absolute z-50 mt-2 right-0 sm:left-0 w-72 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
-          {/* Header navegación */}
           <div className="flex items-center justify-between px-4 py-3 bg-blue-600">
             <button
               type="button"
@@ -89,14 +85,12 @@ function CustomDatePicker({ value, onChange }: { value: string; onChange: (v: st
             </button>
           </div>
 
-          {/* Días de la semana */}
           <div className="grid grid-cols-7 bg-blue-50 border-b border-blue-100">
             {weekDays.map(d => (
               <div key={d} className="py-2 text-center text-[10px] font-black text-blue-400 uppercase tracking-wider">{d}</div>
             ))}
           </div>
 
-          {/* Grid de días */}
           <div className="grid grid-cols-7 p-2 gap-0.5">
             {days.map(day => {
               const isSelected = selected ? isSameDay(day, selected) : false;
@@ -124,7 +118,6 @@ function CustomDatePicker({ value, onChange }: { value: string; onChange: (v: st
             })}
           </div>
 
-          {/* Footer — botón Hoy */}
           <div className="px-3 pb-3">
             <button
               type="button"
@@ -146,11 +139,19 @@ function CustomDatePicker({ value, onChange }: { value: string; onChange: (v: st
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export function SupervisorPanel({ supervisorDate, setSupervisorDate, supervisorShift, setSupervisorShift, historyReports, operations, PROFILES, onLogout }: SupervisorPanelProps) {
+const PROFILES: Record<string, string> = {
+  'Turno A': 'TurnoA@Vonixx2026',
+  'Turno B': 'TurnoB@Vonixx2026',
+  'Turno C': 'TurnoC@Vonixx2026',
+  'Turno D': 'TurnoD@Vonixx2026',
+  'Supervisor': 'PCP@Vonixx2026'
+};
+
+export default function SupervisorPanel({ supervisorDate, setSupervisorDate, supervisorShift, setSupervisorShift, historyReports, loadHistory, onLogout }: SupervisorPanelProps) {
 
   const generateSupervisorPDF = async () => {
     if (historyReports.length === 0) {
-      toast.info('Nenhum registro no histórico para exportar.');
+      toast.message('Nenhum registro no histórico para exportar.');
       return;
     }
     const doc = new jsPDF();
@@ -204,34 +205,12 @@ export function SupervisorPanel({ supervisorDate, setSupervisorDate, supervisorS
       </header>
 
       <main className="flex-1 p-4 sm:p-8 overflow-y-auto w-full max-w-6xl mx-auto">
-        {operations.length > 0 && (
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xs font-bold text-blue-500 uppercase tracking-widest">Operações em Andamento ({operations.length})</h3>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {operations.map((op: any) => (
-                <div key={op.id} className="bg-white border border-blue-100 rounded-lg p-4 shadow-sm border-l-4 border-l-blue-500">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-[10px] font-mono text-slate-400">#{op.opNumber}</span>
-                    <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold uppercase tracking-tighter">Turno {op.turno}</span>
-                  </div>
-                  <h4 className="text-sm font-semibold text-slate-800 leading-tight mb-1">{op.produto}</h4>
-                  <p className="text-[10px] text-slate-500 uppercase font-medium">Linha {op.linha} • Início: {op.horaInicial} • {op.litragem}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="flex flex-col md:flex-row justify-between items-center md:items-center gap-4 mb-6 sm:mb-8 text-center md:text-left">
           <div>
             <nav className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-1 sm:mb-2">Histórico de Produção</nav>
             <h2 className="text-2xl sm:text-3xl font-light text-slate-800 tracking-tight">Painel <span className="font-bold">Supervisor</span></h2>
           </div>
           <div className="flex flex-wrap justify-center md:justify-end gap-2 sm:gap-3 items-end w-full md:w-auto">
-
-            {/* ── Selector de Fecha ── */}
             <div className="flex-1 sm:flex-none min-w-[148px] text-left">
               <Label className="flex items-center gap-1 text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">
                 <CalendarDays className="w-3 h-3" /> Data
@@ -239,7 +218,6 @@ export function SupervisorPanel({ supervisorDate, setSupervisorDate, supervisorS
               <CustomDatePicker value={supervisorDate} onChange={setSupervisorDate} />
             </div>
 
-            {/* ── Selector de Turno ── */}
             <div className="flex-none w-[120px] sm:w-auto text-left">
               <Label className="flex items-center gap-1 text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">
                 <Clock4 className="w-3 h-3" /> Turno
@@ -268,6 +246,9 @@ export function SupervisorPanel({ supervisorDate, setSupervisorDate, supervisorS
               </Select>
             </div>
 
+            <Button onClick={loadHistory} variant="outline" className="h-10 font-bold uppercase tracking-wider text-xs px-4">
+              Atualizar
+            </Button>
             <Button onClick={generateSupervisorPDF} className="h-10 bg-emerald-600 text-white hover:bg-emerald-700 font-bold uppercase tracking-wider text-xs px-4 sm:px-6 w-full sm:w-auto shrink-0">Gerar PDF</Button>
           </div>
         </div>
