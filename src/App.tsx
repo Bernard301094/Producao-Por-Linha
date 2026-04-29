@@ -4,9 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import { getOperations, addOperation, removeOperation, markOperationFinished, getFinishedOperations, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift } from './api';
-import { auth, db } from './firebase';
+import { db } from './firebase';
 import { collection, query, onSnapshot } from 'firebase/firestore';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
 // Componentes UI e Ícones
 import { Button } from '../components/ui/button';
@@ -18,7 +17,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { cn } from './lib/utils';
 import { toast, Toaster } from 'sonner';
-import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, FileDown, Shield } from 'lucide-react';
+import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, FileDown, Shield, Eye, EyeOff } from 'lucide-react';
 
 // Utilitários e Componentes Locais
 import { saveAndSharePDF } from './lib/pdfUtils';
@@ -66,6 +65,10 @@ export default function App() {
   }
 
   const [loginProfile, setLoginProfile] = useState<string | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
   const [supervisorDate, setSupervisorDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [supervisorShift, setSupervisorShift] = useState('A');
   const [historyReports, setHistoryReports] = useState<any[]>([]);
@@ -86,7 +89,6 @@ export default function App() {
   const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setValueEdit, watch: watchEdit } = useForm<StartOpFormValues & { quantidade?: string; horaFinal?: string }>({});
   const watchEditProduto = watchEdit('produto');
 
-  // Referencias para manejar el clic fuera de las sugerencias en móviles
   const novaOpRef = useRef<HTMLDivElement>(null);
   const editOpRef = useRef<HTMLDivElement>(null);
 
@@ -205,6 +207,29 @@ export default function App() {
     if (loginProfile === 'Supervisor') loadHistory();
   }, [supervisorDate, supervisorShift, loginProfile]);
 
+  const handleLogin = () => {
+    if (!selectedProfile) return;
+    setLoginLoading(true);
+    const correctPassword = PROFILES[selectedProfile];
+    if (passwordInput.trim() === correctPassword) {
+      localStorage.setItem('loginProfile', selectedProfile);
+      setLoginProfile(selectedProfile);
+      if (selectedProfile !== 'Supervisor') setValue('turno', selectedProfile.replace('Turno ', ''));
+      setPasswordInput('');
+      setSelectedProfile(null);
+    } else {
+      toast.error('Senha incorreta. Tente novamente.');
+    }
+    setLoginLoading(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('loginProfile');
+    setLoginProfile(null);
+    setSelectedProfile(null);
+    setPasswordInput('');
+  };
+
   const onStartOp = async (data: StartOpFormValues) => {
     setLoading(true);
     try {
@@ -240,12 +265,6 @@ export default function App() {
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar.');
     } finally { setLoading(false); }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja cancelar esta operação?')) {
-      await removeOperation(id); toast.message('Operação removida.'); loadOps();
-    }
   };
 
   const currentTurnForView = loginProfile && loginProfile !== 'Supervisor'
@@ -286,6 +305,7 @@ export default function App() {
     }
   };
 
+  // ─── Tela de Login ────────────────────────────────────────────────────────────
   if (!loginProfile) {
     return (
       <>
@@ -299,42 +319,84 @@ export default function App() {
               <h1 className="text-2xl font-black text-white tracking-tight">Produção por Linha</h1>
               <p className="text-slate-400 text-sm mt-1">Vonixx — Controle de OPs</p>
             </div>
+
             <div className="bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-700">
-              <div className="space-y-4">
-                {Object.entries(PROFILES).map(([profile, password]) => (
+              {!selectedProfile ? (
+                // Passo 1: selecionar perfil
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 text-center">Selecione seu perfil</p>
+                  {Object.keys(PROFILES).map((profile) => (
+                    <button
+                      key={profile}
+                      onClick={() => { setSelectedProfile(profile); setPasswordInput(''); setShowPassword(false); }}
+                      className={cn(
+                        'w-full py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200',
+                        profile === 'Supervisor'
+                          ? 'bg-amber-500 hover:bg-amber-400 text-amber-950'
+                          : 'bg-slate-700 hover:bg-blue-600 text-white hover:shadow-lg'
+                      )}
+                    >
+                      {profile === 'Supervisor'
+                        ? <span className="flex items-center justify-center gap-2"><Shield className="w-4 h-4" />{profile}</span>
+                        : profile}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                // Passo 2: inserir senha
+                <div className="space-y-4">
                   <button
-                    key={profile}
-                    onClick={async () => {
-                      setLoading(true);
-                      try {
-                        const emailMap: Record<string, string> = {
-                          'Turno A': 'turnoa@vonixx.com',
-                          'Turno B': 'turnob@vonixx.com',
-                          'Turno C': 'turnoc@vonixx.com',
-                          'Turno D': 'turnod@vonixx.com',
-                          'Supervisor': 'supervisor@vonixx.com'
-                        };
-                        await signInWithEmailAndPassword(auth, emailMap[profile], password);
-                        localStorage.setItem('loginProfile', profile);
-                        setLoginProfile(profile);
-                        if (profile !== 'Supervisor') setValue('turno', profile.replace('Turno ', ''));
-                      } catch {
-                        toast.error('Erro ao entrar.');
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
+                    onClick={() => { setSelectedProfile(null); setPasswordInput(''); }}
+                    className="flex items-center gap-1.5 text-slate-400 hover:text-white text-xs font-semibold transition-colors mb-2"
+                  >
+                    ← Voltar
+                  </button>
+                  <div className="text-center mb-2">
+                    <div className={cn(
+                      'inline-flex items-center justify-center w-12 h-12 rounded-xl mb-2',
+                      selectedProfile === 'Supervisor' ? 'bg-amber-500/20' : 'bg-blue-600/20'
+                    )}>
+                      {selectedProfile === 'Supervisor'
+                        ? <Shield className="w-6 h-6 text-amber-400" />
+                        : <Package className="w-6 h-6 text-blue-400" />}
+                    </div>
+                    <p className="text-white font-black text-base">{selectedProfile}</p>
+                  </div>
+                  <div>
+                    <Label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Senha</Label>
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        value={passwordInput}
+                        onChange={e => setPasswordInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }}
+                        placeholder="Digite a senha..."
+                        autoFocus
+                        className="w-full h-11 bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleLogin}
+                    disabled={loginLoading || !passwordInput}
                     className={cn(
-                      'w-full py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200',
-                      profile === 'Supervisor'
+                      'w-full h-11 font-black text-sm',
+                      selectedProfile === 'Supervisor'
                         ? 'bg-amber-500 hover:bg-amber-400 text-amber-950'
-                        : 'bg-slate-700 hover:bg-blue-600 text-white hover:shadow-lg'
+                        : 'bg-blue-600 hover:bg-blue-500 text-white'
                     )}
                   >
-                    {profile === 'Supervisor' ? <span className="flex items-center justify-center gap-2"><Shield className="w-4 h-4" />{profile}</span> : profile}
-                  </button>
-                ))}
-              </div>
+                    {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Entrar'}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -342,6 +404,7 @@ export default function App() {
     );
   }
 
+  // ─── Painel Supervisor ────────────────────────────────────────────────────────
   if (loginProfile === 'Supervisor') {
     return (
       <>
@@ -354,11 +417,7 @@ export default function App() {
             setSupervisorShift={setSupervisorShift}
             historyReports={historyReports}
             loadHistory={loadHistory}
-            onLogout={() => {
-              signOut(auth);
-              localStorage.removeItem('loginProfile');
-              setLoginProfile(null);
-            }}
+            onLogout={handleLogout}
           />
         </div>
       </>
@@ -397,7 +456,7 @@ export default function App() {
                 <FileDown className="w-3.5 h-3.5" />
                 Exportar PDF
               </button>
-              <button onClick={() => { signOut(auth); localStorage.removeItem('loginProfile'); setLoginProfile(null); }} className="flex items-center gap-1.5 text-slate-500 hover:text-red-500 text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
+              <button onClick={handleLogout} className="flex items-center gap-1.5 text-slate-500 hover:text-red-500 text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-red-50 transition-colors">
                 <LogOut className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Sair</span>
               </button>
@@ -440,13 +499,7 @@ export default function App() {
                 </div>
               </div>
               <div className="px-3 py-2 border-b border-slate-100">
-                <input
-                  type="text"
-                  value={searchPending}
-                  onChange={e => setSearchPending(e.target.value)}
-                  placeholder="Buscar OP, produto, linha..."
-                  className="w-full h-8 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                />
+                <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Buscar OP, produto, linha..." className="w-full h-8 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-400" />
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {visiblePendingOps.length === 0 ? (
@@ -601,13 +654,7 @@ export default function App() {
                 </div>
               </div>
               <div className="px-3 py-2 border-b border-slate-100">
-                <input
-                  type="text"
-                  value={searchFinished}
-                  onChange={e => setSearchFinished(e.target.value)}
-                  placeholder="Buscar OP, produto, linha..."
-                  className="w-full h-8 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                />
+                <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Buscar OP, produto, linha..." className="w-full h-8 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-400" />
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {visibleFinishedOps.length === 0 ? (
@@ -733,7 +780,6 @@ export default function App() {
           )}
         </DialogContent>
       </Dialog>
-
     </>
   );
 }
