@@ -32,6 +32,16 @@ service cloud.firestore {
       allow delete: if true;
     }
 
+    // --- REGLAS AÑADIDAS PARA SOLUCIONAR EL ERROR ---
+    match /finishedOperations/{opId} {
+      allow read: if true;
+      allow list: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
+    }
+    // -------------------------------------------------
+
     function isValidProduct(data) {
        return data.keys().hasAll(['produto', 'litragem'])
          && data.produto is string && data.produto.size() > 0 && data.produto.size() <= 200
@@ -60,6 +70,7 @@ service cloud.firestore {
       allow update: if isValidId(reportId) && isValidReport(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['ops']);
       allow delete: if true;
     }
+
     function isValidAuthProfile(data) {
        return data.keys().hasAll(['password', 'lastPasswordChange'])
          && data.password is string && data.password.size() > 0 && data.password.size() <= 200
@@ -71,7 +82,8 @@ service cloud.firestore {
       allow list: if true;
       allow create: if true && isValidAuthProfile(incoming());
       allow update: if true && isValidAuthProfile(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['password', 'lastPasswordChange']);
-      allow delete: if false; // Profiles shouldn't be deleted by client
+      allow delete: if false;
+      // Profiles shouldn't be deleted by client
     }
   }
 }
