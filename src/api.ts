@@ -21,7 +21,7 @@ export interface FinishedOperation extends Operation {
 }
 
 import { initialProducts } from './produtos';
-import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, query, where, onSnapshot, updateDoc, arrayUnion, arrayRemove, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, query, where, onSnapshot, arrayUnion, arrayRemove, addDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 export interface AuthProfile {
@@ -33,9 +33,7 @@ export const getAuthProfile = async (profileId: string): Promise<AuthProfile | n
   try {
     const docRef = doc(db, 'authProfiles', profileId);
     const snapshot = await getDoc(docRef);
-    if (snapshot.exists()) {
-      return snapshot.data() as AuthProfile;
-    }
+    if (snapshot.exists()) return snapshot.data() as AuthProfile;
   } catch(error) {
     handleFirestoreError(error, OperationType.GET, `authProfiles/${profileId}`);
   }
@@ -114,8 +112,7 @@ export const getProducts = async () => {
     console.error('Error fetching products from db', err);
   }
   const allProducts = [...initialProducts, ...dbProducts];
-  const uniqueProducts = Array.from(new Map(allProducts.map(item => [item.produto, item])).values());
-  return uniqueProducts;
+  return Array.from(new Map(allProducts.map(item => [item.produto, item])).values());
 };
 
 export const addProduct = async (produto: string, litragem: string) => {
@@ -123,9 +120,7 @@ export const addProduct = async (produto: string, litragem: string) => {
   try {
     const q = query(collection(db, 'products'), where('produto', '==', produto));
     const snapshot = await getDocs(q);
-    if (snapshot.empty) {
-      await setDoc(doc(collection(db, 'products')), { produto, litragem });
-    }
+    if (snapshot.empty) await setDoc(doc(collection(db, 'products')), { produto, litragem });
   } catch(error) {
     handleFirestoreError(error, OperationType.CREATE, 'products');
   }
@@ -176,66 +171,113 @@ export const updateOperation = async (id: string, updates: Partial<Operation>) =
 const getCompactString = (op: FinishedOperation | any) =>
   `${op.opNumber}|${op.linha}|${op.produto}|${op.litragem}|${op.quantidade}|${op.horaInicial}|${op.horaFinal}`;
 
+/** Devuelve true si el id es un report string compacto (contiene "|") */
+const isReportString = (id: string) => id.includes('|');
+
 /**
- * Busca el documento en finishedOperations correspondiente a una op concluida.
- * Si el id pasado no existe como doc de Firestore (es un string compacto del report),
- * busca por campo reportString.
+ * Reconstruye una FinishedOperation parcial a partir de un string compacto.
+ * No tiene carimbo ni reportDocId — esos se derivan en cada operación.
+ */
+const parseCompactId = (s: string, turno: string): FinishedOperation => {
+  const [opNumber, linha, produto, litragem, quantidade, horaInicial, horaFinal] = s.split('|');
+  return {
+    id: s, opNumber, linha, produto, litragem, quantidade,
+    horaInicial, horaFinal, turno, carimboInicial: '', reportString: s,
+  };
+};
+
+/** Deriva el reportDocId a partir del turno y la fecha de hoy */
+const todayReportDocId = (turno: string) => {
+  const t = new Date();
+  const d = [t.getFullYear(), String(t.getMonth()+1).padStart(2,'0'), String(t.getDate()).padStart(2,'0')].join('-');
+  return `${d}_${turno}`;
+};
+
+/**
+ * Resuelve el doc real en finishedOperations.
+ * Solo se usa cuando el id ES un Firestore doc ID (no contiene "|").
  */
 const resolveFinishedOpDoc = async (id: string): Promise<{ docId: string; op: FinishedOperation } | null> => {
-  // Intento 1: el id es un doc real de Firestore
   const directRef = doc(db, 'finishedOperations', id);
   const directSnap = await getDoc(directRef);
   if (directSnap.exists()) {
     return { docId: id, op: { id, ...directSnap.data() } as FinishedOperation };
   }
-
-  // Intento 2: el id es el reportString compacto → buscar por campo
-  try {
-    const q = query(collection(db, 'finishedOperations'), where('reportString', '==', id));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      const d = snap.docs[0];
-      return { docId: d.id, op: { id: d.id, ...d.data() } as FinishedOperation };
-    }
-  } catch (e) {
-    console.error('resolveFinishedOpDoc query failed', e);
-  }
-
   return null;
 };
 
-// ── Update / Remove Finished ──────────────────────────────────────────────────
+// ── Update Finished ───────────────────────────────────────────────────────────
 
-export const updateFinishedOperation = async (id: string, updates: Partial<FinishedOperation>) => {
+export const updateFinishedOperation = async (
+  id: string,
+  updates: Partial<FinishedOperation>,
+  turno?: string
+) => {
   try {
-    const resolved = await resolveFinishedOpDoc(id);
-    if (!resolved) {
-      console.warn('updateFinishedOperation: doc not found for id', id);
+    if (isReportString(id)) {
+      // La op viene del report string — no tiene doc en finishedOperations.
+      // Solo actualizamos el array en reports/{docId} y Google Sheets.
+      const t = turno || id.split('|')[5]; // fallback: extraer del string si no se pasa
+      const reportDocId = todayReportDocId(t || 'A');
+
+      const oldOp = parseCompactId(id, t || 'A');
+      const newOp: FinishedOperation = { ...oldOp, ...updates };
+      const oldCompact = id;
+      const newCompact = getCompactString(newOp);
+
+      if (oldCompact !== newCompact) {
+        const reportRef = doc(db, 'reports', reportDocId);
+        await setDoc(reportRef, { ops: arrayRemove(oldCompact) }, { merge: true });
+        await setDoc(reportRef, { ops: arrayUnion(newCompact) }, { merge: true });
+      }
+
+      // Sheets: buscar por opNumber (no tenemos carimbo, buscamos solo por OP)
+      // Enviamos oldOp para que el servidor busque la fila por opNumber
+      try {
+        await fetch('/api/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            oldCarimbo: '',   // sin carimbo — el servidor busca por opNumber
+            oldOp: oldOp.opNumber,
+            newData: {
+              carimbo: '',
+              op: newOp.opNumber,
+              litragem: newOp.litragem,
+              produto: newOp.produto,
+              linha: newOp.linha,
+              turno: newOp.turno,
+              quantidade: newOp.quantidade,
+              horaInicial: newOp.horaInicial,
+              horaFinal: newOp.horaFinal,
+            }
+          })
+        });
+      } catch (e) {
+        console.error('Failed to sync update to sheets (report string path)', e);
+      }
       return;
     }
+
+    // Camino normal: el id es un Firestore doc ID real
+    const resolved = await resolveFinishedOpDoc(id);
+    if (!resolved) { console.warn('updateFinishedOperation: doc not found', id); return; }
     const { docId, op: oldOp } = resolved;
 
     const newOp = { ...oldOp, ...updates };
-    const newCompactString = getCompactString(newOp);
-    const oldCompactString = oldOp.reportString || getCompactString(oldOp);
-    newOp.reportString = newCompactString;
+    const newCompact = getCompactString(newOp);
+    const oldCompact = oldOp.reportString || getCompactString(oldOp);
+    newOp.reportString = newCompact;
 
-    const docRef = doc(db, 'finishedOperations', docId);
-    await setDoc(docRef, { ...updates, reportString: newCompactString }, { merge: true });
+    await setDoc(doc(db, 'finishedOperations', docId), { ...updates, reportString: newCompact }, { merge: true });
 
-    // Sincronizar doc reports en Firestore
     const reportDocId = newOp.reportDocId || oldOp.reportDocId;
-    if (reportDocId && oldCompactString !== newCompactString) {
-      try {
-        const reportRef = doc(db, 'reports', reportDocId);
-        await setDoc(reportRef, { ops: arrayRemove(oldCompactString) }, { merge: true });
-        await setDoc(reportRef, { ops: arrayUnion(newCompactString) }, { merge: true });
-      } catch(error) {
-        console.error('Failed to sync edit to Firestore reports', error);
-      }
+    if (reportDocId && oldCompact !== newCompact) {
+      const reportRef = doc(db, 'reports', reportDocId);
+      await setDoc(reportRef, { ops: arrayRemove(oldCompact) }, { merge: true });
+      await setDoc(reportRef, { ops: arrayUnion(newCompact) }, { merge: true });
     }
 
-    // Sincronizar Google Sheets
     const carimbo = newOp.carimbo || oldOp.carimbo;
     if (carimbo) {
       try {
@@ -254,7 +296,7 @@ export const updateFinishedOperation = async (id: string, updates: Partial<Finis
               turno: newOp.turno,
               quantidade: newOp.quantidade,
               horaInicial: newOp.horaInicial,
-              horaFinal: newOp.horaFinal
+              horaFinal: newOp.horaFinal,
             }
           })
         });
@@ -267,8 +309,36 @@ export const updateFinishedOperation = async (id: string, updates: Partial<Finis
   }
 };
 
-export const removeFinishedOperation = async (id: string) => {
+// ── Remove Finished ───────────────────────────────────────────────────────────
+
+export const removeFinishedOperation = async (id: string, turno?: string) => {
   try {
+    if (isReportString(id)) {
+      const t = turno || 'A';
+      const reportDocId = todayReportDocId(t);
+      const oldOp = parseCompactId(id, t);
+
+      const reportRef = doc(db, 'reports', reportDocId);
+      await setDoc(reportRef, { ops: arrayRemove(id) }, { merge: true });
+
+      // Sheets: intentar eliminar por opNumber
+      try {
+        const res = await fetch('/api/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ carimbo: '', op: oldOp.opNumber })
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Erro no servidor ao excluir do Sheets');
+        }
+      } catch (e: any) {
+        console.error('Failed to sync delete to sheets (report string):', e);
+        throw e;
+      }
+      return;
+    }
+
     const resolved = await resolveFinishedOpDoc(id);
     if (!resolved) return;
     const { docId, op } = resolved;
@@ -276,31 +346,21 @@ export const removeFinishedOperation = async (id: string) => {
     await deleteDoc(doc(db, 'finishedOperations', docId));
 
     if (op.carimbo) {
-      try {
-        const res = await fetch('/api/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ carimbo: op.carimbo, op: op.opNumber })
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || 'Erro no servidor ao excluir do Sheets');
-        }
-      } catch (e: any) {
-        console.error('Failed to sync delete to sheets:', e);
-        throw e;
+      const res = await fetch('/api/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ carimbo: op.carimbo, op: op.opNumber })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Erro no servidor ao excluir do Sheets');
       }
     }
 
     const stringToRemove = op.reportString || getCompactString(op);
-    const reportDocId = op.reportDocId;
-    if (reportDocId) {
-      try {
-        const reportRef = doc(db, 'reports', reportDocId);
-        await setDoc(reportRef, { ops: arrayRemove(stringToRemove) }, { merge: true });
-      } catch(error) {
-        console.error('Failed to remove from Firestore reports', error);
-      }
+    if (op.reportDocId) {
+      const reportRef = doc(db, 'reports', op.reportDocId);
+      await setDoc(reportRef, { ops: arrayRemove(stringToRemove) }, { merge: true });
     }
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `finishedOperations/${id}`);
@@ -309,8 +369,32 @@ export const removeFinishedOperation = async (id: string) => {
 
 // ── Move Finished back to Pending ─────────────────────────────────────────────
 
-export const moveFinishedToPending = async (id: string) => {
+export const moveFinishedToPending = async (id: string, turno?: string) => {
   try {
+    if (isReportString(id)) {
+      const t = turno || 'A';
+      const reportDocId = todayReportDocId(t);
+      const op = parseCompactId(id, t);
+
+      const reportRef = doc(db, 'reports', reportDocId);
+      await setDoc(reportRef, { ops: arrayRemove(id) }, { merge: true });
+
+      // Sheets: intentar eliminar por opNumber
+      try {
+        await fetch('/api/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ carimbo: '', op: op.opNumber })
+        });
+      } catch (e) {
+        console.error('Failed to remove from sheets on revert (report string)', e);
+      }
+
+      const { quantidade, horaFinal, reportString, carimbo, ...pendingData } = op;
+      await addOperation({ ...pendingData, carimboInicial: new Date().toISOString() });
+      return;
+    }
+
     const resolved = await resolveFinishedOpDoc(id);
     if (!resolved) return;
     const { docId, op } = resolved;
@@ -319,12 +403,8 @@ export const moveFinishedToPending = async (id: string) => {
 
     const stringToRemove = op.reportString || getCompactString(op);
     if (op.reportDocId) {
-      try {
-        const reportRef = doc(db, 'reports', op.reportDocId);
-        await setDoc(reportRef, { ops: arrayRemove(stringToRemove) }, { merge: true });
-      } catch(error) {
-        console.error('Failed to remove from Firestore reports', error);
-      }
+      const reportRef = doc(db, 'reports', op.reportDocId);
+      await setDoc(reportRef, { ops: arrayRemove(stringToRemove) }, { merge: true });
     }
 
     if (op.carimbo) {
@@ -340,11 +420,7 @@ export const moveFinishedToPending = async (id: string) => {
     }
 
     const { quantidade, horaFinal, reportDocId, reportString, carimbo, ...pendingData } = op;
-    const newPendingOp: Operation = {
-      ...pendingData,
-      carimboInicial: op.carimboInicial || new Date().toISOString(),
-    };
-    await addOperation(newPendingOp);
+    await addOperation({ ...pendingData, carimboInicial: op.carimboInicial || new Date().toISOString() });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `finishedOperations/${id}`);
   }
@@ -358,7 +434,7 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
   if (!op) return null;
 
   const today = new Date();
-  const dateStr = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
+  const dateStr = [today.getFullYear(), String(today.getMonth()+1).padStart(2,'0'), String(today.getDate()).padStart(2,'0')].join('-');
   const docId = `${dateStr}_${op.turno}`;
   const formatedCarimbo = format(new Date(), 'dd/MM/yyyy HH:mm:ss');
 
@@ -366,46 +442,28 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
     const formattedLinha = op.linha ? (isNaN(Number(op.linha)) ? op.linha : `Linha ${op.linha}`) : '';
 
     const finishedOp: FinishedOperation = {
-      ...op,
-      linha: formattedLinha,
-      quantidade,
-      horaFinal,
-      reportDocId: docId,
-      carimbo: formatedCarimbo
+      ...op, linha: formattedLinha, quantidade, horaFinal,
+      reportDocId: docId, carimbo: formatedCarimbo
     };
-
     const compactString = getCompactString(finishedOp);
     finishedOp.reportString = compactString;
-
-    const payload = {
-      carimbo: formatedCarimbo,
-      op: op.opNumber,
-      litragem: op.litragem,
-      produto: op.produto,
-      linha: formattedLinha,
-      turno: op.turno,
-      quantidade,
-      horaInicial: op.horaInicial,
-      horaFinal
-    };
 
     fetch('/api/append', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).then(async (sheetRes) => {
-      if (!sheetRes.ok) {
-        const errJson = await sheetRes.json();
-        console.error('Erro ao comunicar com a planilha:', errJson.error);
-      }
-    }).catch(e => console.error('Erro de rede ao salvar na planilha', e));
+      body: JSON.stringify({
+        carimbo: formatedCarimbo, op: op.opNumber, litragem: op.litragem,
+        produto: op.produto, linha: formattedLinha, turno: op.turno,
+        quantidade, horaInicial: op.horaInicial, horaFinal
+      })
+    }).then(async (r) => {
+      if (!r.ok) console.error('Erro planilha:', await r.json());
+    }).catch(e => console.error('Erro de rede planilha', e));
 
     const reportRef = doc(db, 'reports', docId);
     await setDoc(reportRef, { ops: arrayUnion(compactString) }, { merge: true });
-
     await removeOperation(id);
     await addFinishedOperation(finishedOp);
-
     return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `reports/${docId}`);
@@ -418,9 +476,7 @@ export const getReportForDateAndShift = async (dateStr: string, shift: string): 
   const docId = `${dateStr}_${shift}`;
   try {
     const snapshot = await getDoc(doc(db, 'reports', docId));
-    if (snapshot.exists()) {
-      return snapshot.data().ops || [];
-    }
+    if (snapshot.exists()) return snapshot.data().ops || [];
   } catch(error) {
     handleFirestoreError(error, OperationType.GET, `reports/${docId}`);
   }
