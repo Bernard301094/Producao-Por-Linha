@@ -36,9 +36,36 @@ jobs:
       - name: Fix gradle-wrapper.jar
         run: |
           curl -fsSL "https://raw.githubusercontent.com/gradle/gradle/v8.14.3/gradle/wrapper/gradle-wrapper.jar" \
-            -o android/gradle/wrapper/gradle-wrapper.jar || \
-          curl -fsSL "https://github.com/gradle/gradle/raw/v8.14.3/gradle/wrapper/gradle-wrapper.jar" \
             -o android/gradle/wrapper/gradle-wrapper.jar
+
+      - name: Regenerate launcher icons
+        run: |
+          sudo apt-get install -y imagemagick
+          BASE="android/app/src/main/res"
+          generate_icon() {
+            SIZE=$1; DEST=$2
+            mkdir -p "$(dirname "$DEST")"
+            convert -size ${SIZE}x${SIZE} xc:#1a73e8 \
+              -fill white -gravity center \
+              -font DejaVu-Sans-Bold -pointsize $((SIZE/3)) \
+              -annotate 0 'P' \
+              "$DEST"
+          }
+          generate_icon 48  "$BASE/mipmap-mdpi/ic_launcher.png"
+          generate_icon 48  "$BASE/mipmap-mdpi/ic_launcher_round.png"
+          generate_icon 48  "$BASE/mipmap-mdpi/ic_launcher_foreground.png"
+          generate_icon 72  "$BASE/mipmap-hdpi/ic_launcher.png"
+          generate_icon 72  "$BASE/mipmap-hdpi/ic_launcher_round.png"
+          generate_icon 72  "$BASE/mipmap-hdpi/ic_launcher_foreground.png"
+          generate_icon 96  "$BASE/mipmap-xhdpi/ic_launcher.png"
+          generate_icon 96  "$BASE/mipmap-xhdpi/ic_launcher_round.png"
+          generate_icon 96  "$BASE/mipmap-xhdpi/ic_launcher_foreground.png"
+          generate_icon 144 "$BASE/mipmap-xxhdpi/ic_launcher.png"
+          generate_icon 144 "$BASE/mipmap-xxhdpi/ic_launcher_round.png"
+          generate_icon 144 "$BASE/mipmap-xxhdpi/ic_launcher_foreground.png"
+          generate_icon 192 "$BASE/mipmap-xxxhdpi/ic_launcher.png"
+          generate_icon 192 "$BASE/mipmap-xxxhdpi/ic_launcher_round.png"
+          generate_icon 192 "$BASE/mipmap-xxxhdpi/ic_launcher_foreground.png"
 
       - name: Decode Keystore
         env:
