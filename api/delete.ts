@@ -67,16 +67,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ success: true, message: 'Row not found in spreadsheet, assuming already deleted' });
     }
 
-    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
-    const sheetNameToCheck = (process.env.GOOGLE_SHEET_NAME || DEFAULT_SHEET_NAME).replace(/^'(.+)'$/, '$1');
-    const sheet = spreadsheet.data.sheets?.find(s => s.properties?.title === sheetNameToCheck);
-    const targetSheetId = sheet?.properties?.sheetId ?? spreadsheet.data.sheets?.[0]?.properties?.sheetId ?? 0;
+    const rangeToClear = getFullRange(`A${rowIndex + 1}:I${rowIndex + 1}`);
 
-    await sheets.spreadsheets.batchUpdate({
+    await sheets.spreadsheets.values.clear({
       spreadsheetId: SPREADSHEET_ID,
-      requestBody: {
-        requests: [{ deleteDimension: { range: { sheetId: targetSheetId, dimension: 'ROWS', startIndex: rowIndex, endIndex: rowIndex + 1 } } }]
-      },
+      range: rangeToClear,
     });
 
     return res.status(200).json({ success: true });

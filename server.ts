@@ -259,45 +259,11 @@ app.post('/api/delete', async (req, res) => {
       return res.status(200).json({ success: true, message: 'Row not found in spreadsheet, assuming already deleted' });
     }
 
-    const spreadsheet = await sheets.spreadsheets.get({
+    const rangeToClear = getFullRange(`A${rowIndex + 1}:I${rowIndex + 1}`);
+
+    await sheets.spreadsheets.values.clear({
       spreadsheetId: SPREADSHEET_ID,
-    });
-    
-    // Find the sheetId based on SHEET_RANGE or DEFAULT_SHEET_NAME
-    let targetSheetId = 0;
-    let sheetNameToCheck = DEFAULT_SHEET_NAME;
-
-    if (process.env.GOOGLE_SHEET_NAME) {
-      sheetNameToCheck = process.env.GOOGLE_SHEET_NAME;
-    } else if (SHEET_RANGE.includes('!')) {
-      sheetNameToCheck = SHEET_RANGE.split('!')[0];
-    }
-
-    // Clean quotes from name: 'Sheet Name' -> Sheet Name
-    const cleanSheetName = sheetNameToCheck.replace(/^'(.+)'$/, '$1');
-    
-    const sheet = spreadsheet.data.sheets?.find(s => s.properties?.title === cleanSheetName);
-    if (sheet) {
-      targetSheetId = sheet.properties?.sheetId || 0;
-    } else {
-      // Fallback to first sheet if not found by name
-      targetSheetId = spreadsheet.data.sheets?.[0]?.properties?.sheetId || 0;
-    }
-
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SPREADSHEET_ID,
-      requestBody: {
-        requests: [{
-          deleteDimension: {
-            range: {
-              sheetId: targetSheetId,
-              dimension: "ROWS",
-              startIndex: rowIndex,
-              endIndex: rowIndex + 1
-            }
-          }
-        }]
-      }
+      range: rangeToClear,
     });
 
     res.status(200).json({ success: true, message: 'Row deleted' });
