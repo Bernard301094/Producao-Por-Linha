@@ -170,38 +170,62 @@ export const updateOperation = async (id: string, updates: Partial<Operation>) =
   }
 };
 
+const getCompactString = (op: FinishedOperation | any) => {
+  return `${op.opNumber}|${op.linha}|${op.produto}|${op.litragem}|${op.quantidade}|${op.horaInicial}|${op.horaFinal}`;
+};
+
 export const updateFinishedOperation = async (id: string, updates: Partial<FinishedOperation>) => {
-  // First, get the finished operations
   const ops = await getFinishedOperations();
   const index = ops.findIndex(o => o.id === id || o.localId === id);
   if (index !== -1) {
      const oldOp = ops[index];
      const newOp = { ...oldOp, ...updates };
+     
+     // Update reportString if fields changed
+     const newCompactString = getCompactString(newOp);
+     const oldCompactString = oldOp.reportString || getCompactString(oldOp);
+     
+     newOp.reportString = newCompactString;
      ops[index] = newOp;
      await localforage.setItem('finished_ops', ops);
 
-     // Try modifying the Google Sheet row if carimbo is available
+     // 1. Update Firestore Report
+     if (oldOp.reportDocId && oldCompactString !== newCompactString) {
+        try {
+           const reportRef = doc(db, 'reports', oldOp.reportDocId);
+           await setDoc(reportRef, {
+              ops: arrayRemove(oldCompactString)
+           }, { merge: true });
+           await setDoc(reportRef, {
+              ops: arrayUnion(newCompactString)
+           }, { merge: true });
+        } catch(error) {
+           console.error("Failed to sync edit to Firestore reports", error);
+        }
+     }
+
+     // 2. Sync to Google Sheets
      if (oldOp.carimbo) {
         try {
-           fetch('/api/update', {
+           await fetch('/api/update', {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
              body: JSON.stringify({
                 oldCarimbo: oldOp.carimbo,
                 oldOp: oldOp.opNumber,
                 newData: {
-                   carimbo: oldOp.carimbo, // keep same carimbo
+                   carimbo: oldOp.carimbo,
                    op: newOp.opNumber,
                    litragem: newOp.litragem,
                    produto: newOp.produto,
-                   linha: newOp.linha ? `Linha ${String(newOp.linha).replace(/\\D/g, '').padStart(2, '0')}` : newOp.linha,
+                   linha: newOp.linha,
                    turno: newOp.turno,
                    quantidade: newOp.quantidade,
                    horaInicial: newOp.horaInicial,
                    horaFinal: newOp.horaFinal
                 }
              })
-           }).catch(console.error);
+           });
         } catch (e) {
            console.error("Failed to sync update to sheets", e);
         }
@@ -217,29 +241,37 @@ export const removeFinishedOperation = async (id: string) => {
      ops.splice(index, 1);
      await localforage.setItem('finished_ops', ops);
 
+     // 1. Delete from Sheets
      if (op.carimbo) {
         try {
-           fetch('/api/delete', {
+           const res = await fetch('/api/delete', {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
              body: JSON.stringify({
                 carimbo: op.carimbo,
                 op: op.opNumber
              })
-           }).catch(console.error);
-        } catch (e) {
-           console.error("Failed to sync delete to sheets", e);
+           });
+           if (!res.ok) {
+             const data = await res.json();
+             throw new Error(data.error || 'Erro no servidor ao excluir do Sheets');
+           }
+        } catch (e: any) {
+           console.error("Failed to sync delete to sheets:", e);
+           throw e; // Rethrow to show toast in UI
         }
      }
 
-     if (op.reportDocId && op.reportString) {
+     // 2. Remove from Firestore Report
+     const stringToRemove = op.reportString || getCompactString(op);
+     if (op.reportDocId) {
         try {
            const reportRef = doc(db, 'reports', op.reportDocId);
            await setDoc(reportRef, {
-              ops: arrayRemove(op.reportString)
+              ops: arrayRemove(stringToRemove)
            }, { merge: true });
         } catch(error) {
-           handleFirestoreError(error, OperationType.UPDATE, `reports/${op.reportDocId}`);
+           console.error("Failed to remove from Firestore reports", error);
         }
      }
   }
@@ -252,22 +284,34 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
   
   const op = ops[index];
   
-  const compactString = `${op.opNumber}|${op.linha}|${op.produto}|${op.litragem}|${quantidade}|${op.horaInicial}|${horaFinal}`;
-  
-  // Date in YYYY-MM-DD (Local Time)
+  // Date and IDs
   const today = new Date();
   const dateStr = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
   const docId = `${dateStr}_${op.turno}`;
+  const formatedCarimbo = format(new Date(), 'dd/MM/yyyy HH:mm:ss');
 
   try {
-    // 1. Call Backend to save to Google Sheets (non-blocking for the rest of the flow)
-    const formatedCarimbo = format(new Date(), 'dd/MM/yyyy HH:mm:ss');
+    const formattedLinha = op.linha ? (isNaN(Number(op.linha)) ? op.linha : `Linha ${op.linha}`) : '';
+    
+    const finishedOp: FinishedOperation = {
+      ...op,
+      linha: formattedLinha,
+      quantidade,
+      horaFinal,
+      reportDocId: docId,
+      carimbo: formatedCarimbo
+    };
+    
+    const compactString = getCompactString(finishedOp);
+    finishedOp.reportString = compactString;
+
+    // 1. Call Backend to save to Google Sheets
     const payload = {
       carimbo: formatedCarimbo,
       op: op.opNumber,
       litragem: op.litragem,
       produto: op.produto,
-      linha: op.linha ? `Linha ${String(op.linha).replace(/[^0-9]/g, '').padStart(2, '0')}` : '',
+      linha: formattedLinha,
       turno: op.turno,
       quantidade: quantidade,
       horaInicial: op.horaInicial,
