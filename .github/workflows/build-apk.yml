@@ -33,6 +33,13 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Fix gradle-wrapper.jar
+        run: |
+          curl -fsSL "https://raw.githubusercontent.com/gradle/gradle/v8.14.3/gradle/wrapper/gradle-wrapper.jar" \
+            -o android/gradle/wrapper/gradle-wrapper.jar || \
+          curl -fsSL "https://github.com/gradle/gradle/raw/v8.14.3/gradle/wrapper/gradle-wrapper.jar" \
+            -o android/gradle/wrapper/gradle-wrapper.jar
+
       - name: Decode Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
