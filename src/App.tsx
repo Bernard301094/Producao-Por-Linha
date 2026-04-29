@@ -1,11 +1,28 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import { getOperations, addOperation, removeOperation, markOperationFinished, getFinishedOperations, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift } from './api';
-import { auth, googleProvider, db } from './firebase';
+import { auth, db } from './firebase'; // Removido googleProvider caso não esteja usando neste arquivo
 import { collection, query, onSnapshot } from 'firebase/firestore';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+
+// Componentes UI e Ícones
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../components/ui/command';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { cn } from './lib/utils';
+import toast, { Toaster } from 'react-hot-toast';
+import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, FileDown, Shield } from 'lucide-react';
+
+// Utilitários e Componentes Locais
+import { saveAndSharePDF } from './lib/pdfUtils';
+import SupervisorPanel from './components/SupervisorPanel';
 
 const PROFILES: Record<string, string> = {
   'Turno A': 'TurnoA@Vonixx2026',
@@ -22,19 +39,6 @@ function getSuggestedShift(now: Date, horaInicial: string): string {
   return 'C';
 }
 
-import React from 'react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../components/ui/command';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { cn } from './lib/utils';
-import toast, { Toaster } from 'react-hot-toast';
-import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, FileDown, Shield } from 'lucide-react';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-
 const startOpSchema = z.object({
   opNumber: z.string().min(1, 'Obrigatório'),
   produto: z.string().min(1, 'Obrigatório'),
@@ -44,8 +48,6 @@ const startOpSchema = z.object({
 });
 
 type StartOpFormValues = z.infer<typeof startOpSchema>;
-
-import { saveAndSharePDF } from './lib/pdfUtils';
 
 export default function App() {
   function extractLitragem(produto: string): string {
@@ -324,7 +326,7 @@ export default function App() {
       <>
         <Toaster position="top-center" />
         <div className="min-h-screen bg-slate-50">
-          <import('./components/SupervisorPanel').default
+          <SupervisorPanel
             supervisorDate={supervisorDate}
             setSupervisorDate={setSupervisorDate}
             supervisorShift={supervisorShift}
