@@ -268,37 +268,34 @@ export default function App() {
     if (myFinishedOps.length === 0) { toast.info('Nenhum registro para exportar.'); return; }
 
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const PW = 210;   // page width
-    const ML = 14;    // margin left
-    const MR = 14;    // margin right
-    const CW = PW - ML - MR;  // content width
+    const PW = 210;
+    const ML = 14;
+    const MR = 14;
+    const CW = PW - ML - MR;
     const now = new Date();
     const dateStr   = format(now, 'dd/MM/yyyy');
     const timeStr   = format(now, 'HH:mm');
     const turnoLabel = loginProfile && loginProfile !== 'Supervisor' ? loginProfile : `Turno ${currentTurnForView}`;
     const totalQtd  = myFinishedOps.reduce((a, o) => a + (parseInt(o.quantidade) || 0), 0);
 
-    // ── PALETTE ──────────────────────────────────────────────────
     const C = {
-      dark:      [15,  23,  42] as [number,number,number],   // slate-900
-      primary:   [37,  99, 235] as [number,number,number],   // blue-600
-      emerald:   [5,  150, 105] as [number,number,number],   // emerald-600
-      amber:     [217,119,  6] as [number,number,number],    // amber-600
+      dark:      [15,  23,  42] as [number,number,number],
+      primary:   [37,  99, 235] as [number,number,number],
+      emerald:   [5,  150, 105] as [number,number,number],
+      amber:     [217,119,  6] as [number,number,number],
       white:     [255,255,255] as [number,number,number],
-      light:     [248,250,252] as [number,number,number],    // slate-50
-      border:    [226,232,240] as [number,number,number],    // slate-200
-      muted:     [100,116,139] as [number,number,number],    // slate-500
-      text:      [30,  41,  59] as [number,number,number],   // slate-800
-      rowAlt:    [241,245,249] as [number,number,number],    // slate-100
+      light:     [248,250,252] as [number,number,number],
+      border:    [226,232,240] as [number,number,number],
+      muted:     [100,116,139] as [number,number,number],
+      text:      [30,  41,  59] as [number,number,number],
+      rowAlt:    [241,245,249] as [number,number,number],
     };
 
     let y = 0;
 
-    // ── 1. HEADER BAR ────────────────────────────────────────────
     doc.setFillColor(...C.dark);
     doc.rect(0, 0, PW, 28, 'F');
 
-    // Logo square
     doc.setFillColor(...C.primary);
     doc.roundedRect(ML, 7, 14, 14, 2, 2, 'F');
     doc.setTextColor(...C.white);
@@ -306,28 +303,25 @@ export default function App() {
     doc.setFont('helvetica', 'bold');
     doc.text('SB', ML + 7, 16, { align: 'center' });
 
-    // Title
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text('SheetBridge', ML + 18, 13);
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(148, 163, 184); // slate-400
+    doc.setTextColor(148, 163, 184);
     doc.text('RELATÓRIO DE PRODUÇÃO', ML + 18, 19);
 
-    // Turno badge (right side)
     const badgeText = `${turnoLabel}  •  ${dateStr}  ${timeStr}`;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...C.white);
     const badgeW = doc.getTextWidth(badgeText) + 10;
-    doc.setFillColor(37, 99, 235); // blue-600
+    doc.setFillColor(37, 99, 235);
     doc.roundedRect(PW - MR - badgeW, 9, badgeW, 10, 2, 2, 'F');
     doc.text(badgeText, PW - MR - badgeW / 2, 15.5, { align: 'center' });
 
     y = 36;
 
-    // ── 2. KPI CARDS ─────────────────────────────────────────────
     const cardW = (CW - 8) / 3;
     const cards = [
       { label: 'OPS CONCLUÍDAS', value: String(myFinishedOps.length), accent: C.primary },
@@ -336,18 +330,14 @@ export default function App() {
     ];
     cards.forEach((card, i) => {
       const cx = ML + i * (cardW + 4);
-      // card bg
       doc.setFillColor(...C.light);
       doc.roundedRect(cx, y, cardW, 20, 2, 2, 'F');
-      // accent left bar
       doc.setFillColor(...card.accent);
       doc.roundedRect(cx, y, 3, 20, 1, 1, 'F');
-      // label
       doc.setFontSize(6.5);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...C.muted);
       doc.text(card.label, cx + 7, y + 7);
-      // value
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...C.text);
@@ -356,22 +346,18 @@ export default function App() {
 
     y += 27;
 
-    // ── 3. SECTION LABEL ─────────────────────────────────────────
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...C.muted);
     doc.text('OPERAÇÕES CONCLUÍDAS', ML, y);
-    // divider line
     doc.setDrawColor(...C.border);
     doc.setLineWidth(0.3);
     doc.line(ML + 48, y - 1, ML + CW, y - 1);
     y += 4;
 
-    // ── 4. TABLE ─────────────────────────────────────────────────
     const cols = ['OP', 'Linha', 'Produto', 'Litragem', 'Qtd', 'Início', 'Fim'];
     const colWidths = [20, 14, 62, 24, 18, 18, 18];
 
-    // Header row
     doc.setFillColor(...C.dark);
     doc.rect(ML, y, CW, 8, 'F');
     let cx = ML;
@@ -384,15 +370,12 @@ export default function App() {
     });
     y += 8;
 
-    // Data rows
     myFinishedOps.forEach((op, idx) => {
       const rowH = 7.5;
-      // alternating background
       if (idx % 2 === 0) {
         doc.setFillColor(...C.rowAlt);
         doc.rect(ML, y, CW, rowH, 'F');
       }
-      // linha accent dot
       doc.setFillColor(...C.primary);
       doc.circle(ML + 7, y + rowH / 2, 1.2, 'F');
 
@@ -411,7 +394,6 @@ export default function App() {
         doc.setFontSize(7.5);
         doc.setFont('helvetica', i === 0 ? 'bold' : 'normal');
         doc.setTextColor(...C.text);
-        // quantity col → emerald bold
         if (i === 4) {
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(...C.emerald);
@@ -420,17 +402,14 @@ export default function App() {
         cx += colWidths[i];
       });
 
-      // bottom border for each row
       doc.setDrawColor(...C.border);
       doc.setLineWidth(0.2);
       doc.line(ML, y + rowH, ML + CW, y + rowH);
       y += rowH;
 
-      // page break check
       if (y > 265) {
         doc.addPage();
         y = 20;
-        // repeat header
         doc.setFillColor(...C.dark);
         doc.rect(ML, y, CW, 8, 'F');
         let cx2 = ML;
@@ -445,7 +424,6 @@ export default function App() {
       }
     });
 
-    // ── 5. TOTALS ROW ─────────────────────────────────────────────
     y += 2;
     doc.setFillColor(...C.dark);
     doc.rect(ML, y, CW, 8, 'F');
@@ -453,7 +431,7 @@ export default function App() {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...C.white);
     doc.text('TOTAL', ML + 4, y + 5.5);
-    doc.setTextColor(52, 211, 153); // emerald-400
+    doc.setTextColor(52, 211, 153);
     doc.text(
       totalQtd.toLocaleString('pt-BR') + ' un.',
       ML + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] / 2,
@@ -462,7 +440,6 @@ export default function App() {
     );
     y += 14;
 
-    // ── 6. FOOTER ────────────────────────────────────────────────
     const pageCount = (doc as any).internal.getNumberOfPages();
     for (let p = 1; p <= pageCount; p++) {
       doc.setPage(p);
@@ -719,7 +696,8 @@ export default function App() {
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Concluídas Hoje</span>
               </div>
-              <button onClick={generatePDF} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider transition-colors border border-white/10" title="Gerar PDF">
+              {/* Botão PDF apenas em desktop (md+) */}
+              <button onClick={generatePDF} className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider transition-colors border border-white/10" title="Gerar PDF">
                 <FileDown className="w-3.5 h-3.5" />PDF
               </button>
             </div>
@@ -779,14 +757,18 @@ export default function App() {
               </div>
             )}
           </div>
-          {mobileTab === 'concluidas' && (
-            <button onClick={generatePDF} className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl z-50 active:scale-95 transition-transform border-4 border-white" title="Gerar PDF">
-              <FileDown className="w-6 h-6" />
-            </button>
-          )}
         </aside>
 
       </main>
+
+      {/* ── FAB PDF — visible en mobile Y tablet (hasta md) ── */}
+      <button
+        onClick={generatePDF}
+        className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl z-50 active:scale-95 transition-transform border-4 border-white"
+        title="Gerar PDF"
+      >
+        <FileDown className="w-6 h-6" />
+      </button>
 
       {/* ── DIALOGS ── */}
       <Dialog open={!!deletingOp} onOpenChange={(open) => !open && setDeletingOp(null)}>
