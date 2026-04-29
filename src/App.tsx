@@ -154,22 +154,28 @@ export default function App() {
         t && t.length === 5 ? `${t}:00` : t;
 
       if ('quantidade' in editingOp) {
-        // Op concluida: normalizar linha igual que markOperationFinished
         const linhaRaw = data.linha || '';
         const formattedLinha = linhaRaw
           ? isNaN(Number(linhaRaw)) ? linhaRaw : `Linha ${linhaRaw}`
-          : editingOp.linha; // mantener tal cual si no cambió
+          : editingOp.linha;
 
-        await updateFinishedOperation(editingOp.id, {
-          opNumber: data.opNumber,
-          produto: data.produto,
-          litragem: derivedLitragem,
-          linha: formattedLinha,
-          turno: data.turno,
-          horaInicial: normalizeTime(data.horaInicial),
-          quantidade: data.quantidade,
-          horaFinal: normalizeTime(data.horaFinal),
-        });
+        // Pasar turno del op para que api.ts derive el reportDocId correcto
+        const turno = editingOp.turno || currentTurnForView;
+
+        await updateFinishedOperation(
+          editingOp.id,
+          {
+            opNumber: data.opNumber,
+            produto: data.produto,
+            litragem: derivedLitragem,
+            linha: formattedLinha,
+            turno: data.turno || turno,
+            horaInicial: normalizeTime(data.horaInicial),
+            quantidade: data.quantidade,
+            horaFinal: normalizeTime(data.horaFinal),
+          },
+          turno
+        );
         toast.success('OP concluída actualizada.');
       } else {
         await updateOperation(editingOp.id, {
@@ -352,7 +358,8 @@ export default function App() {
     if (!revertingOp) return;
     setLoading(true);
     try {
-      await moveFinishedToPending(revertingOp.id);
+      // Pasar turno para que api.ts derive el reportDocId correcto
+      await moveFinishedToPending(revertingOp.id, revertingOp.turno || currentTurnForView);
       toast.success('OP movida de volta para Pendentes.');
     } catch (err: any) {
       toast.error('Erro ao reverter: ' + err.message);
@@ -381,7 +388,8 @@ export default function App() {
     setLoading(true);
     try {
       if ('quantidade' in deletingOp) {
-        await removeFinishedOperation(deletingOp.id);
+        // Pasar turno para que api.ts derive el reportDocId correcto
+        await removeFinishedOperation(deletingOp.id, deletingOp.turno || currentTurnForView);
         toast.success('Registro removido.');
       } else {
         await removeOperation(deletingOp.id);
