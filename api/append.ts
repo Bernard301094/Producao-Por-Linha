@@ -1,20 +1,35 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { google } from 'googleapis';
-import { getAuthClient, SPREADSHEET_ID, SHEET_RANGE } from './_sheets';
+import { getAuthClient, SPREADSHEET_ID, getFullRange } from './_sheets';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
   try {
     const auth = getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
-    const { carimbo, op, litragem, produto, linha, turno, quantidade, horaInicial, horaFinal } = req.body;
+
+    const {
+      carimbo,
+      op,
+      litragem,
+      produto,
+      linha,
+      turno,
+      cantidad,
+      horaInicial,
+      horaFinal,
+    } = req.body;
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: SHEET_RANGE,
+      range: getFullRange('A:I'),
       valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [[carimbo, op, litragem, produto, linha, turno, quantidade, horaInicial, horaFinal]] },
+      requestBody: {
+        values: [[carimbo, op, litragem, produto, linha, turno, cantidad, horaInicial, horaFinal]],
+      },
     });
 
     return res.status(200).json({ success: true });
