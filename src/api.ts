@@ -1,15 +1,15 @@
 import { format } from 'date-fns';
 
 export interface Operation {
-  id: string; // Document ID in Firestore / Local ID
+  id: string;
   opNumber: string;
   litragem: string;
   produto: string;
   linha: string;
   turno: string;
-  horaInicial: string; // HH:mm format
-  carimboInicial: string; // Date string for the timestamp
-  localId?: string; // Optional local id tracking
+  horaInicial: string;
+  carimboInicial: string;
+  localId?: string;
 }
 
 export interface FinishedOperation extends Operation {
@@ -20,9 +20,8 @@ export interface FinishedOperation extends Operation {
   carimbo?: string;
 }
 
-import localforage from 'localforage';
 import { initialProducts } from './produtos';
-import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, query, where, onSnapshot, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, query, where, onSnapshot, updateDoc, arrayUnion, arrayRemove, addDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 export interface AuthProfile {
@@ -52,11 +51,6 @@ export const updateAuthProfile = async (profileId: string, profile: AuthProfile)
   }
 };
 
-localforage.config({
-  name: 'SheetOpsStore',
-  storeName: 'operations'
-});
-
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -71,44 +65,61 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     error: error instanceof Error ? error.message : String(error),
     operationType,
     path
-  }
+  };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
 
+// ── Finished Operations (Firestore) ──────────────────────────────────────────
+
 export const getFinishedOperations = async (): Promise<FinishedOperation[]> => {
-  const ops = await localforage.getItem<FinishedOperation[]>('finished_ops');
-  return ops || [];
+  try {
+    const snapshot = await getDocs(collection(db, 'finishedOperations'));
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as FinishedOperation));
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, 'finishedOperations');
+    return [];
+  }
 };
 
-export const addFinishedOperation = async (op: FinishedOperation) => {
-  const ops = await getFinishedOperations();
-  ops.push(op);
-  await localforage.setItem('finished_ops', ops);
+export const subscribeFinishedOperations = (callback: (ops: FinishedOperation[]) => void): (() => void) => {
+  const q = query(collection(db, 'finishedOperations'));
+  return onSnapshot(q, (snapshot) => {
+    callback(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as FinishedOperation)));
+  });
 };
+
+export const addFinishedOperation = async (op: FinishedOperation): Promise<string> => {
+  const { id, ...data } = op;
+  try {
+    const docRef = await addDoc(collection(db, 'finishedOperations'), { ...data, localId: id });
+    return docRef.id;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.CREATE, 'finishedOperations');
+    return '';
+  }
+};
+
+// ── Products ──────────────────────────────────────────────────────────────────
 
 export const getProducts = async () => {
   let dbProducts: {produto: string, litragem: string}[] = [];
   try {
-     const snapshot = await getDocs(collection(db, 'products'));
-     snapshot.forEach(doc => {
-       const data = doc.data();
-       dbProducts.push({ produto: data.produto, litragem: data.litragem });
-     });
+    const snapshot = await getDocs(collection(db, 'products'));
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      dbProducts.push({ produto: data.produto, litragem: data.litragem });
+    });
   } catch (err) {
-     console.error('Error fetching products from db', err);
+    console.error('Error fetching products from db', err);
   }
-
-  // Combine initialProducts and dbProducts, avoiding duplicates
   const allProducts = [...initialProducts, ...dbProducts];
   const uniqueProducts = Array.from(new Map(allProducts.map(item => [item.produto, item])).values());
   return uniqueProducts;
 };
 
 export const addProduct = async (produto: string, litragem: string) => {
-  // Check if it already exists in initialProducts
   if (initialProducts.find(p => p.produto === produto)) return;
-  
   try {
     const q = query(collection(db, 'products'), where('produto', '==', produto));
     const snapshot = await getDocs(q);
@@ -120,30 +131,21 @@ export const addProduct = async (produto: string, litragem: string) => {
   }
 };
 
+// ── Pending Operations ────────────────────────────────────────────────────────
+
 export const getOperations = async (): Promise<Operation[]> => {
-  const q = query(collection(db, 'pendingOperations'));
-  
   try {
-     const snapshot = await getDocs(q);
-     const ops: Operation[] = [];
-     snapshot.forEach(doc => {
-       ops.push({ id: doc.id, ...doc.data() } as Operation);
-     });
-     return ops;
+    const snapshot = await getDocs(query(collection(db, 'pendingOperations')));
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Operation));
   } catch (error) {
-     handleFirestoreError(error, OperationType.GET, 'pendingOperations');
-     return [];
+    handleFirestoreError(error, OperationType.GET, 'pendingOperations');
+    return [];
   }
 };
 
 export const addOperation = async (op: Operation) => {
   const { id, ...operationData } = op;
-  const payload = {
-    ...operationData,
-    localId: id // Just for some uniqueness or original ID tracking
-  };
-  // remove the old generic id property before saving as we'll use doc(db) id
-  
+  const payload = { ...operationData, localId: id };
   try {
     const docRef = doc(collection(db, 'pendingOperations'));
     await setDoc(docRef, payload);
@@ -163,128 +165,120 @@ export const removeOperation = async (id: string) => {
 
 export const updateOperation = async (id: string, updates: Partial<Operation>) => {
   try {
-    const docRef = doc(db, 'pendingOperations', id);
-    await setDoc(docRef, updates, { merge: true });
+    await setDoc(doc(db, 'pendingOperations', id), updates, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, 'pendingOperations');
   }
 };
 
-const getCompactString = (op: FinishedOperation | any) => {
-  return `${op.opNumber}|${op.linha}|${op.produto}|${op.litragem}|${op.quantidade}|${op.horaInicial}|${op.horaFinal}`;
-};
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const getCompactString = (op: FinishedOperation | any) =>
+  `${op.opNumber}|${op.linha}|${op.produto}|${op.litragem}|${op.quantidade}|${op.horaInicial}|${op.horaFinal}`;
+
+// ── Update / Remove Finished ──────────────────────────────────────────────────
 
 export const updateFinishedOperation = async (id: string, updates: Partial<FinishedOperation>) => {
-  const ops = await getFinishedOperations();
-  const index = ops.findIndex(o => o.id === id || o.localId === id);
-  if (index !== -1) {
-     const oldOp = ops[index];
-     const newOp = { ...oldOp, ...updates };
-     
-     // Update reportString if fields changed
-     const newCompactString = getCompactString(newOp);
-     const oldCompactString = oldOp.reportString || getCompactString(oldOp);
-     
-     newOp.reportString = newCompactString;
-     ops[index] = newOp;
-     await localforage.setItem('finished_ops', ops);
+  try {
+    const docRef = doc(db, 'finishedOperations', id);
+    const snapshot = await getDoc(docRef);
+    if (!snapshot.exists()) return;
 
-     // 1. Update Firestore Report
-     if (oldOp.reportDocId && oldCompactString !== newCompactString) {
-        try {
-           const reportRef = doc(db, 'reports', oldOp.reportDocId);
-           await setDoc(reportRef, {
-              ops: arrayRemove(oldCompactString)
-           }, { merge: true });
-           await setDoc(reportRef, {
-              ops: arrayUnion(newCompactString)
-           }, { merge: true });
-        } catch(error) {
-           console.error("Failed to sync edit to Firestore reports", error);
-        }
-     }
+    const oldOp = { id, ...snapshot.data() } as FinishedOperation;
+    const newOp = { ...oldOp, ...updates };
+    const newCompactString = getCompactString(newOp);
+    const oldCompactString = oldOp.reportString || getCompactString(oldOp);
+    newOp.reportString = newCompactString;
 
-     // 2. Sync to Google Sheets
-     if (oldOp.carimbo) {
-        try {
-           await fetch('/api/update', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({
-                oldCarimbo: oldOp.carimbo,
-                oldOp: oldOp.opNumber,
-                newData: {
-                   carimbo: oldOp.carimbo,
-                   op: newOp.opNumber,
-                   litragem: newOp.litragem,
-                   produto: newOp.produto,
-                   linha: newOp.linha,
-                   turno: newOp.turno,
-                   quantidade: newOp.quantidade,
-                   horaInicial: newOp.horaInicial,
-                   horaFinal: newOp.horaFinal
-                }
-             })
-           });
-        } catch (e) {
-           console.error("Failed to sync update to sheets", e);
-        }
-     }
+    await setDoc(docRef, { ...updates, reportString: newCompactString }, { merge: true });
+
+    if (oldOp.reportDocId && oldCompactString !== newCompactString) {
+      try {
+        const reportRef = doc(db, 'reports', oldOp.reportDocId);
+        await setDoc(reportRef, { ops: arrayRemove(oldCompactString) }, { merge: true });
+        await setDoc(reportRef, { ops: arrayUnion(newCompactString) }, { merge: true });
+      } catch(error) {
+        console.error('Failed to sync edit to Firestore reports', error);
+      }
+    }
+
+    if (oldOp.carimbo) {
+      try {
+        await fetch('/api/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            oldCarimbo: oldOp.carimbo,
+            oldOp: oldOp.opNumber,
+            newData: {
+              carimbo: oldOp.carimbo,
+              op: newOp.opNumber,
+              litragem: newOp.litragem,
+              produto: newOp.produto,
+              linha: newOp.linha,
+              turno: newOp.turno,
+              quantidade: newOp.quantidade,
+              horaInicial: newOp.horaInicial,
+              horaFinal: newOp.horaFinal
+            }
+          })
+        });
+      } catch (e) {
+        console.error('Failed to sync update to sheets', e);
+      }
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `finishedOperations/${id}`);
   }
 };
 
 export const removeFinishedOperation = async (id: string) => {
-  const ops = await getFinishedOperations();
-  const index = ops.findIndex(o => o.id === id || o.localId === id);
-  if (index !== -1) {
-     const op = ops[index];
-     ops.splice(index, 1);
-     await localforage.setItem('finished_ops', ops);
+  try {
+    const docRef = doc(db, 'finishedOperations', id);
+    const snapshot = await getDoc(docRef);
+    if (!snapshot.exists()) return;
 
-     // 1. Delete from Sheets
-     if (op.carimbo) {
-        try {
-           const res = await fetch('/api/delete', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({
-                carimbo: op.carimbo,
-                op: op.opNumber
-             })
-           });
-           if (!res.ok) {
-             const data = await res.json();
-             throw new Error(data.error || 'Erro no servidor ao excluir do Sheets');
-           }
-        } catch (e: any) {
-           console.error("Failed to sync delete to sheets:", e);
-           throw e; // Rethrow to show toast in UI
-        }
-     }
+    const op = { id, ...snapshot.data() } as FinishedOperation;
+    await deleteDoc(docRef);
 
-     // 2. Remove from Firestore Report
-     const stringToRemove = op.reportString || getCompactString(op);
-     if (op.reportDocId) {
-        try {
-           const reportRef = doc(db, 'reports', op.reportDocId);
-           await setDoc(reportRef, {
-              ops: arrayRemove(stringToRemove)
-           }, { merge: true });
-        } catch(error) {
-           console.error("Failed to remove from Firestore reports", error);
+    if (op.carimbo) {
+      try {
+        const res = await fetch('/api/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ carimbo: op.carimbo, op: op.opNumber })
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Erro no servidor ao excluir do Sheets');
         }
-     }
+      } catch (e: any) {
+        console.error('Failed to sync delete to sheets:', e);
+        throw e;
+      }
+    }
+
+    const stringToRemove = op.reportString || getCompactString(op);
+    if (op.reportDocId) {
+      try {
+        const reportRef = doc(db, 'reports', op.reportDocId);
+        await setDoc(reportRef, { ops: arrayRemove(stringToRemove) }, { merge: true });
+      } catch(error) {
+        console.error('Failed to remove from Firestore reports', error);
+      }
+    }
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, `finishedOperations/${id}`);
   }
 };
 
+// ── Mark Finished ─────────────────────────────────────────────────────────────
+
 export const markOperationFinished = async (id: string, quantidade: string, horaFinal: string) => {
   const ops = await getOperations();
-  const index = ops.findIndex(o => o.id === id);
-  if (index === -1) return null;
-  
-  const op = ops[index];
-  
-  // Date and IDs
+  const op = ops.find(o => o.id === id);
+  if (!op) return null;
+
   const today = new Date();
   const dateStr = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
   const docId = `${dateStr}_${op.turno}`;
@@ -292,7 +286,7 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
 
   try {
     const formattedLinha = op.linha ? (isNaN(Number(op.linha)) ? op.linha : `Linha ${op.linha}`) : '';
-    
+
     const finishedOp: FinishedOperation = {
       ...op,
       linha: formattedLinha,
@@ -301,11 +295,10 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
       reportDocId: docId,
       carimbo: formatedCarimbo
     };
-    
+
     const compactString = getCompactString(finishedOp);
     finishedOp.reportString = compactString;
 
-    // 1. Call Backend to save to Google Sheets
     const payload = {
       carimbo: formatedCarimbo,
       op: op.opNumber,
@@ -313,9 +306,9 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
       produto: op.produto,
       linha: formattedLinha,
       turno: op.turno,
-      quantidade: quantidade,
+      quantidade,
       horaInicial: op.horaInicial,
-      horaFinal: horaFinal
+      horaFinal
     };
 
     fetch('/api/append', {
@@ -330,41 +323,28 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
     }).catch(e => console.error('Erro de rede ao salvar na planilha', e));
 
     const reportRef = doc(db, 'reports', docId);
-    await setDoc(reportRef, {
-      ops: arrayUnion(compactString)
-    }, { merge: true });
+    await setDoc(reportRef, { ops: arrayUnion(compactString) }, { merge: true });
 
-    // Remove from in-progress only if it succeeds
     await removeOperation(id);
-    
-    // Save to localforage
-    await addFinishedOperation({
-      ...op,
-      quantidade,
-      horaFinal,
-      reportDocId: docId,
-      reportString: compactString,
-      carimbo: formatedCarimbo
-    });
-    
+    await addFinishedOperation(finishedOp);
+
     return true;
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `reports/${docId}`);
   }
 };
 
+// ── Reports ───────────────────────────────────────────────────────────────────
+
 export const getReportForDateAndShift = async (dateStr: string, shift: string): Promise<any[]> => {
   const docId = `${dateStr}_${shift}`;
   try {
-    const reportRef = doc(db, 'reports', docId);
-    const snapshot = await getDoc(reportRef);
+    const snapshot = await getDoc(doc(db, 'reports', docId));
     if (snapshot.exists()) {
-       const data = snapshot.data();
-       return data.ops || [];
+      return snapshot.data().ops || [];
     }
   } catch(error) {
     handleFirestoreError(error, OperationType.GET, `reports/${docId}`);
   }
   return [];
 };
-

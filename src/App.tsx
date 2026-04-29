@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, getFinishedOperations, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, subscribeFinishedOperations, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift } from './api';
 import { db } from './firebase';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 
@@ -132,14 +132,14 @@ export default function App() {
           horaInicial: data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial,
           quantidade: data.quantidade,
           horaFinal: data.horaFinal.length === 5 ? `${data.horaFinal}:00` : data.horaFinal
-        }).then(() => loadOps()));
-        toast.success('Editado (Local)');
+        }));
+        toast.success('Editado');
       } else {
         import('./api').then(api => api.updateOperation(editingOp.id, {
           opNumber: data.opNumber, produto: data.produto, litragem: derivedLitragem,
           linha: data.linha, turno: data.turno,
           horaInicial: data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial
-        }).then(() => loadOps()));
+        }));
         toast.success('OP Atualizada');
       }
       setEditingOp(null);
@@ -155,10 +155,9 @@ export default function App() {
     defaultValues: { opNumber: '', produto: '', linha: '', turno: '', horaInicial: '' }
   });
 
-  const loadOps = async () => {
-    const ops = await getOperations(); setOperations(ops);
-    const fOps = await getFinishedOperations(); setFinishedOps(fOps);
-    const prods = await getProducts(); setAvailableProducts(prods);
+  const loadProducts = async () => {
+    const prods = await getProducts();
+    setAvailableProducts(prods);
   };
 
   const watchHoraInicial = watch('horaInicial');
@@ -180,18 +179,29 @@ export default function App() {
   }, [watchHoraInicial, setValue]);
 
   useEffect(() => {
-    const q = query(collection(db, 'pendingOperations'));
-    const unsub = onSnapshot(q, (snapshot) => {
-      setOperations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Operation)));
+    // Real-time listener for pending operations
+    const unsubPending = onSnapshot(query(collection(db, 'pendingOperations')), (snapshot) => {
+      setOperations(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Operation)));
     });
-    loadOps();
+
+    // Real-time listener for finished operations
+    const unsubFinished = subscribeFinishedOperations((ops) => {
+      setFinishedOps(ops);
+    });
+
+    loadProducts();
     setValue('horaInicial', format(new Date(), 'HH:mm'));
+
     const storedProfile = localStorage.getItem('loginProfile');
     if (storedProfile) {
       setLoginProfile(storedProfile);
       if (storedProfile !== 'Supervisor') setValue('turno', storedProfile.replace('Turno ', ''));
     }
-    return () => unsub();
+
+    return () => {
+      unsubPending();
+      unsubFinished();
+    };
   }, [setValue]);
 
   const loadHistory = async () => {
@@ -246,7 +256,6 @@ export default function App() {
       toast.success('Operação iniciada!');
       reset({ ...data, opNumber: '', produto: '' });
       setValue('horaInicial', format(new Date(), 'HH:mm'));
-      loadOps();
     } catch (err: any) {
       toast.error('Erro: ' + err.message);
     } finally {
@@ -261,7 +270,6 @@ export default function App() {
       await markOperationFinished(id, finishQtd, finishTime.length === 5 ? `${finishTime}:00` : finishTime);
       toast.success('Salvo na planilha com sucesso!');
       setFinishingId(null); setFinishQtd('');
-      loadOps();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar.');
     } finally { setLoading(false); }
@@ -296,7 +304,6 @@ export default function App() {
         await removeOperation(deletingOp.id);
         toast.message('Operação removida.');
       }
-      loadOps();
     } catch (err: any) {
       toast.error('Erro ao remover: ' + err.message);
     } finally {
@@ -322,7 +329,6 @@ export default function App() {
 
             <div className="bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-700">
               {!selectedProfile ? (
-                // Passo 1: selecionar perfil
                 <div className="space-y-3">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 text-center">Selecione seu perfil</p>
                   {Object.keys(PROFILES).map((profile) => (
@@ -343,7 +349,6 @@ export default function App() {
                   ))}
                 </div>
               ) : (
-                // Passo 2: inserir senha
                 <div className="space-y-4">
                   <button
                     onClick={() => { setSelectedProfile(null); setPasswordInput(''); }}
