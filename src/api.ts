@@ -4,11 +4,8 @@ import {
   doc,
   setDoc,
   getDocs,
-  getDoc,
   deleteDoc,
   query,
-  where,
-  onSnapshot,
   arrayUnion,
   addDoc,
 } from 'firebase/firestore';
@@ -77,7 +74,7 @@ export const markOperationFinished = async (
 
     const finishedOp: FinishedOperation = {
       ...op,
-      linea: formattedLinha,
+      linha: formattedLinha,  // ← estandarizado a pt-BR (era: linea)
       cantidad,
       horaFinal,
       reportDocId: docId,
@@ -87,7 +84,7 @@ export const markOperationFinished = async (
     const compactString = getCompactString(finishedOp);
     finishedOp.reportString = compactString;
 
-    // 1. Sincronizar con Google Sheets (AWAIT crítico)
+    // 1. Sincronizar com Google Sheets
     const sheetRes = await fetch('/api/append', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -96,23 +93,22 @@ export const markOperationFinished = async (
         op: op.opNumber,
         litragem: op.litragem,
         produto: op.produto,
-        linea: formattedLinha,   // ← el backend espera 'linea'
+        linha: formattedLinha,  // ← estandarizado a pt-BR (era: linea)
         turno: op.turno,
-        cantidad,                // ← el backend espera 'cantidad'
+        cantidad,
         horaInicial: op.horaInicial,
         horaFinal,
       }),
     });
 
     if (!sheetRes.ok) {
-      // FIX #3: Muestra HTTP status si el body no es JSON válido
       const err = await sheetRes.json().catch(() => null);
       throw new Error(
-        err?.error || `Falla al guardar en Google Sheets (HTTP ${sheetRes.status})`
+        err?.error || `Falha ao salvar no Google Sheets (HTTP ${sheetRes.status})`
       );
     }
 
-    // 2. Si la planilla tuvo éxito, actualizar Firebase
+    // 2. Se a planilha teve sucesso, atualizar Firebase
     const reportRef = doc(db, 'reports', docId);
     await setDoc(reportRef, { ops: arrayUnion(compactString) }, { merge: true });
     await removeOperation(id);
@@ -120,7 +116,7 @@ export const markOperationFinished = async (
 
     return true;
   } catch (error: any) {
-    console.error('Error sincronizando operación:', error);
+    console.error('Erro ao sincronizar operação:', error);
     throw error;
   }
 };
