@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, moveFinishedToPending } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation } from './api';
 import { db } from './firebase';
 import { collection, query, onSnapshot, doc } from 'firebase/firestore';
 
@@ -131,7 +131,10 @@ export default function App() {
   const openEdit = (op: Operation | FinishedOperation) => {
     setEditingOp(op);
     resetEdit({
-      opNumber: op.opNumber, produto: op.produto, linha: op.linha, turno: op.turno,
+      opNumber: op.opNumber,
+      produto: op.produto,
+      linha: op.linha,
+      turno: op.turno,
       horaInicial: op.horaInicial,
       quantidade: (op as FinishedOperation).quantidade || '',
       horaFinal: (op as FinishedOperation).horaFinal || ''
@@ -142,24 +145,42 @@ export default function App() {
     if (!editingOp) return;
     setLoading(true);
     try {
-      const matchedProduct = availableProducts.find(p => p.produto.trim().toUpperCase() === data.produto.trim().toUpperCase());
+      const matchedProduct = availableProducts.find(
+        p => p.produto.trim().toUpperCase() === data.produto.trim().toUpperCase()
+      );
       const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto);
+
+      const normalizeTime = (t: string) =>
+        t && t.length === 5 ? `${t}:00` : t;
+
       if ('quantidade' in editingOp) {
-        import('./api').then(api => api.updateFinishedOperation(editingOp.id, {
-          opNumber: data.opNumber, produto: data.produto, litragem: derivedLitragem,
-          linha: data.linha, turno: data.turno,
-          horaInicial: data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial,
+        // Op concluida: normalizar linha igual que markOperationFinished
+        const linhaRaw = data.linha || '';
+        const formattedLinha = linhaRaw
+          ? isNaN(Number(linhaRaw)) ? linhaRaw : `Linha ${linhaRaw}`
+          : editingOp.linha; // mantener tal cual si no cambió
+
+        await updateFinishedOperation(editingOp.id, {
+          opNumber: data.opNumber,
+          produto: data.produto,
+          litragem: derivedLitragem,
+          linha: formattedLinha,
+          turno: data.turno,
+          horaInicial: normalizeTime(data.horaInicial),
           quantidade: data.quantidade,
-          horaFinal: data.horaFinal.length === 5 ? `${data.horaFinal}:00` : data.horaFinal
-        }));
-        toast.success('Editado');
+          horaFinal: normalizeTime(data.horaFinal),
+        });
+        toast.success('OP concluída actualizada.');
       } else {
-        import('./api').then(api => api.updateOperation(editingOp.id, {
-          opNumber: data.opNumber, produto: data.produto, litragem: derivedLitragem,
-          linha: data.linha, turno: data.turno,
-          horaInicial: data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial
-        }));
-        toast.success('OP Atualizada');
+        await updateOperation(editingOp.id, {
+          opNumber: data.opNumber,
+          produto: data.produto,
+          litragem: derivedLitragem,
+          linha: data.linha,
+          turno: data.turno,
+          horaInicial: normalizeTime(data.horaInicial),
+        });
+        toast.success('OP actualizada.');
       }
       setEditingOp(null);
     } catch (err: any) {
@@ -253,7 +274,7 @@ export default function App() {
     if (loginProfile === 'Supervisor') loadHistory();
   }, [supervisorDate, supervisorShift, loginProfile]);
 
-  // Login: consulta Firebase primero; si no existe el doc usa el password hardcodeado como fallback
+  // Login
   const handleLogin = async () => {
     if (!selectedProfile) return;
     setLoginLoading(true);
@@ -270,7 +291,6 @@ export default function App() {
         toast.error('Senha incorreta. Tente novamente.');
       }
     } catch (err: any) {
-      // Si falla Firestore, fallback al hardcode
       const correctPassword = PROFILES[selectedProfile];
       if (passwordInput.trim() === correctPassword) {
         localStorage.setItem('loginProfile', selectedProfile);
@@ -361,7 +381,7 @@ export default function App() {
     setLoading(true);
     try {
       if ('quantidade' in deletingOp) {
-        await import('./api').then(api => api.removeFinishedOperation(deletingOp.id));
+        await removeFinishedOperation(deletingOp.id);
         toast.success('Registro removido.');
       } else {
         await removeOperation(deletingOp.id);
@@ -765,7 +785,6 @@ export default function App() {
                           <p className="text-xs font-black text-emerald-600 mt-1">{parseInt(op.quantidade).toLocaleString()} UN</p>
                         )}
                       </div>
-                      {/* Actions for finished ops */}
                       <div className="flex flex-col gap-1 flex-shrink-0">
                         <button
                           onClick={() => openEdit(op)}
@@ -897,7 +916,9 @@ export default function App() {
               )}
               <DialogFooter className="gap-2 pt-2">
                 <Button variant="outline" type="button" onClick={() => setEditingOp(null)} className="w-full sm:w-auto">Cancelar</Button>
-                <Button type="submit" disabled={loading} className="bg-emerald-600 text-white w-full sm:w-auto">Salvar Correção</Button>
+                <Button type="submit" disabled={loading} className="bg-emerald-600 text-white w-full sm:w-auto">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Correção'}
+                </Button>
               </DialogFooter>
             </form>
           )}

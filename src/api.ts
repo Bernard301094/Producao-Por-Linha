@@ -176,25 +176,58 @@ export const updateOperation = async (id: string, updates: Partial<Operation>) =
 const getCompactString = (op: FinishedOperation | any) =>
   `${op.opNumber}|${op.linha}|${op.produto}|${op.litragem}|${op.quantidade}|${op.horaInicial}|${op.horaFinal}`;
 
+/**
+ * Busca el documento en finishedOperations correspondiente a una op concluida.
+ * Si el id pasado no existe como doc de Firestore (es un string compacto del report),
+ * busca por campo reportString.
+ */
+const resolveFinishedOpDoc = async (id: string): Promise<{ docId: string; op: FinishedOperation } | null> => {
+  // Intento 1: el id es un doc real de Firestore
+  const directRef = doc(db, 'finishedOperations', id);
+  const directSnap = await getDoc(directRef);
+  if (directSnap.exists()) {
+    return { docId: id, op: { id, ...directSnap.data() } as FinishedOperation };
+  }
+
+  // Intento 2: el id es el reportString compacto → buscar por campo
+  try {
+    const q = query(collection(db, 'finishedOperations'), where('reportString', '==', id));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      return { docId: d.id, op: { id: d.id, ...d.data() } as FinishedOperation };
+    }
+  } catch (e) {
+    console.error('resolveFinishedOpDoc query failed', e);
+  }
+
+  return null;
+};
+
 // ── Update / Remove Finished ──────────────────────────────────────────────────
 
 export const updateFinishedOperation = async (id: string, updates: Partial<FinishedOperation>) => {
   try {
-    const docRef = doc(db, 'finishedOperations', id);
-    const snapshot = await getDoc(docRef);
-    if (!snapshot.exists()) return;
+    const resolved = await resolveFinishedOpDoc(id);
+    if (!resolved) {
+      console.warn('updateFinishedOperation: doc not found for id', id);
+      return;
+    }
+    const { docId, op: oldOp } = resolved;
 
-    const oldOp = { id, ...snapshot.data() } as FinishedOperation;
     const newOp = { ...oldOp, ...updates };
     const newCompactString = getCompactString(newOp);
     const oldCompactString = oldOp.reportString || getCompactString(oldOp);
     newOp.reportString = newCompactString;
 
+    const docRef = doc(db, 'finishedOperations', docId);
     await setDoc(docRef, { ...updates, reportString: newCompactString }, { merge: true });
 
-    if (oldOp.reportDocId && oldCompactString !== newCompactString) {
+    // Sincronizar doc reports en Firestore
+    const reportDocId = newOp.reportDocId || oldOp.reportDocId;
+    if (reportDocId && oldCompactString !== newCompactString) {
       try {
-        const reportRef = doc(db, 'reports', oldOp.reportDocId);
+        const reportRef = doc(db, 'reports', reportDocId);
         await setDoc(reportRef, { ops: arrayRemove(oldCompactString) }, { merge: true });
         await setDoc(reportRef, { ops: arrayUnion(newCompactString) }, { merge: true });
       } catch(error) {
@@ -202,16 +235,18 @@ export const updateFinishedOperation = async (id: string, updates: Partial<Finis
       }
     }
 
-    if (oldOp.carimbo) {
+    // Sincronizar Google Sheets
+    const carimbo = newOp.carimbo || oldOp.carimbo;
+    if (carimbo) {
       try {
         await fetch('/api/update', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            oldCarimbo: oldOp.carimbo,
+            oldCarimbo: carimbo,
             oldOp: oldOp.opNumber,
             newData: {
-              carimbo: oldOp.carimbo,
+              carimbo,
               op: newOp.opNumber,
               litragem: newOp.litragem,
               produto: newOp.produto,
@@ -234,12 +269,11 @@ export const updateFinishedOperation = async (id: string, updates: Partial<Finis
 
 export const removeFinishedOperation = async (id: string) => {
   try {
-    const docRef = doc(db, 'finishedOperations', id);
-    const snapshot = await getDoc(docRef);
-    if (!snapshot.exists()) return;
+    const resolved = await resolveFinishedOpDoc(id);
+    if (!resolved) return;
+    const { docId, op } = resolved;
 
-    const op = { id, ...snapshot.data() } as FinishedOperation;
-    await deleteDoc(docRef);
+    await deleteDoc(doc(db, 'finishedOperations', docId));
 
     if (op.carimbo) {
       try {
@@ -259,9 +293,10 @@ export const removeFinishedOperation = async (id: string) => {
     }
 
     const stringToRemove = op.reportString || getCompactString(op);
-    if (op.reportDocId) {
+    const reportDocId = op.reportDocId;
+    if (reportDocId) {
       try {
-        const reportRef = doc(db, 'reports', op.reportDocId);
+        const reportRef = doc(db, 'reports', reportDocId);
         await setDoc(reportRef, { ops: arrayRemove(stringToRemove) }, { merge: true });
       } catch(error) {
         console.error('Failed to remove from Firestore reports', error);
@@ -276,16 +311,12 @@ export const removeFinishedOperation = async (id: string) => {
 
 export const moveFinishedToPending = async (id: string) => {
   try {
-    const docRef = doc(db, 'finishedOperations', id);
-    const snapshot = await getDoc(docRef);
-    if (!snapshot.exists()) return;
+    const resolved = await resolveFinishedOpDoc(id);
+    if (!resolved) return;
+    const { docId, op } = resolved;
 
-    const op = { id, ...snapshot.data() } as FinishedOperation;
+    await deleteDoc(doc(db, 'finishedOperations', docId));
 
-    // Remove from finishedOperations
-    await deleteDoc(docRef);
-
-    // Remove from reports doc
     const stringToRemove = op.reportString || getCompactString(op);
     if (op.reportDocId) {
       try {
@@ -296,7 +327,6 @@ export const moveFinishedToPending = async (id: string) => {
       }
     }
 
-    // Try to remove from Sheets (best-effort)
     if (op.carimbo) {
       try {
         await fetch('/api/delete', {
@@ -309,7 +339,6 @@ export const moveFinishedToPending = async (id: string) => {
       }
     }
 
-    // Strip finished-only fields and re-add as pending
     const { quantidade, horaFinal, reportDocId, reportString, carimbo, ...pendingData } = op;
     const newPendingOp: Operation = {
       ...pendingData,
