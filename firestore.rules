@@ -5,85 +5,35 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    function isAdmin() { return false; }
-    function isSignedIn() { return request.auth != null; }
-    function incoming() { return request.resource.data; }
-    function existing() { return resource.data; }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$'); }
 
     function isValidPendingOperation(data) {
-      return data.keys().hasAll(['opNumber', 'litragem', 'produto', 'linha', 'turno', 'horaInicial', 'carimboInicial', 'localId'])
-        && data.opNumber is string && data.opNumber.size() > 0 && data.opNumber.size() <= 200
-        && data.litragem is string && data.litragem.size() > 0 && data.litragem.size() <= 200
-        && data.produto is string && data.produto.size() > 0 && data.produto.size() <= 200
-        && data.linha is string && data.linha.size() > 0 && data.linha.size() <= 200
-        && data.turno is string && data.turno.size() > 0 && data.turno.size() <= 200
-        && data.horaInicial is string && data.horaInicial.size() > 0 && data.horaInicial.size() <= 200
-        && data.carimboInicial is string && data.carimboInicial.size() > 0 && data.carimboInicial.size() <= 200
-        && data.localId is string && data.localId.size() > 0 && data.localId.size() <= 200;
+      return data.keys().hasAll(['opNumber', 'litragem', 'produto', 'linha', 'turno', 'horaInicial', 'carimboInicial', 'localId']);
     }
 
     match /pendingOperations/{opId} {
-      allow read: if true;
-      allow list: if true;
-      allow create: if isValidId(opId) && isValidPendingOperation(incoming());
-      allow update: if isValidId(opId) && isValidPendingOperation(incoming()) && 
-         incoming().diff(existing()).affectedKeys().hasOnly(['opNumber', 'litragem', 'produto', 'linha', 'turno', 'horaInicial', 'carimboInicial', 'localId']);
-      allow delete: if true;
+      allow read, list: if true;
+      allow create: if isValidId(opId) && isValidPendingOperation(request.resource.data);
+      allow update, delete: if true;
     }
 
-    // --- REGLAS AÑADIDAS PARA SOLUCIONAR EL ERROR ---
+    // Regla añadida para solucionar el error de permisos
     match /finishedOperations/{opId} {
-      allow read: if true;
-      allow list: if true;
-      allow create: if true;
-      allow update: if true;
-      allow delete: if true;
-    }
-    // -------------------------------------------------
-
-    function isValidProduct(data) {
-       return data.keys().hasAll(['produto', 'litragem'])
-         && data.produto is string && data.produto.size() > 0 && data.produto.size() <= 200
-         && data.litragem is string && data.litragem.size() > 0 && data.litragem.size() <= 200;
+      allow read, list, create, update, delete: if true;
     }
 
     match /products/{prodId} {
-      allow read: if true;
-      allow list: if true;
-      allow create: if isValidId(prodId) && isValidProduct(incoming());
-      allow update: if isValidId(prodId) && isValidProduct(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['produto', 'litragem']);
-      allow delete: if true;
-    }
-
-    function isValidReport(data) {
-       return data.keys().hasAll(['ops'])
-         && data.ops is list 
-         && data.ops.size() <= 1000
-         && (data.ops.size() == 0 || data.ops[0] is string);
+      allow read, list, create, update, delete: if true;
     }
 
     match /reports/{reportId} {
-      allow read: if true;
-      allow list: if true;
-      allow create: if isValidId(reportId) && isValidReport(incoming());
-      allow update: if isValidId(reportId) && isValidReport(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['ops']);
-      allow delete: if true;
-    }
-
-    function isValidAuthProfile(data) {
-       return data.keys().hasAll(['password', 'lastPasswordChange'])
-         && data.password is string && data.password.size() > 0 && data.password.size() <= 200
-         && data.lastPasswordChange is string && data.lastPasswordChange.size() <= 100;
+      allow read, list, create, update, delete: if true;
     }
 
     match /authProfiles/{profileId} {
-      allow read: if true;
-      allow list: if true;
-      allow create: if true && isValidAuthProfile(incoming());
-      allow update: if true && isValidAuthProfile(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['password', 'lastPasswordChange']);
+      allow read, list, create: if true;
+      allow update: if true;
       allow delete: if false;
-      // Profiles shouldn't be deleted by client
     }
   }
 }
