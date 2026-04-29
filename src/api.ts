@@ -1,5 +1,17 @@
 import { format } from 'date-fns';
-import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, query, where, onSnapshot, arrayUnion, addDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  setDoc,
+  getDocs,
+  getDoc,
+  deleteDoc,
+  query,
+  where,
+  onSnapshot,
+  arrayUnion,
+  addDoc,
+} from 'firebase/firestore';
 import { db } from './firebase';
 import { initialProducts } from './produtos';
 
@@ -25,7 +37,7 @@ export interface FinishedOperation extends Operation {
 
 export const getOperations = async (): Promise<Operation[]> => {
   const snapshot = await getDocs(query(collection(db, 'pendingOperations')));
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Operation));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Operation));
 };
 
 export const addOperation = async (op: Operation) => {
@@ -42,10 +54,13 @@ export const removeOperation = async (id: string) => {
 const getCompactString = (op: FinishedOperation) =>
   `${op.opNumber}|${op.linha}|${op.produto}|${op.litragem}|${op.quantidade}|${op.horaInicial}|${op.horaFinal}`;
 
-// IMPLEMENTACIÓN CORREGIDA: Espera a la planilla antes de borrar en Firebase
-export const markOperationFinished = async (id: string, cantidad: string, horaFinal: string) => {
+export const markOperationFinished = async (
+  id: string,
+  cantidad: string,
+  horaFinal: string
+) => {
   const ops = await getOperations();
-  const op = ops.find(o => o.id === id);
+  const op = ops.find((o) => o.id === id);
   if (!op) return null;
 
   const today = new Date();
@@ -54,10 +69,19 @@ export const markOperationFinished = async (id: string, cantidad: string, horaFi
   const formatedCarimbo = format(today, 'dd/MM/yyyy HH:mm:ss');
 
   try {
-    const formattedLinha = op.linha ? (isNaN(Number(op.linha)) ? op.linha : `Linha ${op.linha}`) : '';
+    const formattedLinha = op.linha
+      ? isNaN(Number(op.linha))
+        ? op.linha
+        : `Linha ${op.linha}`
+      : '';
+
     const finishedOp: FinishedOperation = {
-      ...op, linea: formattedLinha, cantidad, horaFinal,
-      reportDocId: docId, carimbo: formatedCarimbo
+      ...op,
+      linea: formattedLinha,
+      cantidad,
+      horaFinal,
+      reportDocId: docId,
+      carimbo: formatedCarimbo,
     } as any;
 
     const compactString = getCompactString(finishedOp);
@@ -68,15 +92,24 @@ export const markOperationFinished = async (id: string, cantidad: string, horaFi
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        carimbo: formatedCarimbo, op: op.opNumber, litragem: op.litragem,
-        produto: op.produto, linea: formattedLinha, turno: op.turno,
-        cantidad, horaInicial: op.horaInicial, horaFinal
-      })
+        carimbo: formatedCarimbo,
+        op: op.opNumber,
+        litragem: op.litragem,
+        produto: op.produto,
+        linea: formattedLinha,   // ← el backend espera 'linea'
+        turno: op.turno,
+        cantidad,                // ← el backend espera 'cantidad'
+        horaInicial: op.horaInicial,
+        horaFinal,
+      }),
     });
 
     if (!sheetRes.ok) {
-      const err = await sheetRes.json().catch(() => ({ error: 'Error en servidor de planilla' }));
-      throw new Error(err.error || 'Falla al guardar en Google Sheets');
+      // FIX #3: Muestra HTTP status si el body no es JSON válido
+      const err = await sheetRes.json().catch(() => null);
+      throw new Error(
+        err?.error || `Falla al guardar en Google Sheets (HTTP ${sheetRes.status})`
+      );
     }
 
     // 2. Si la planilla tuvo éxito, actualizar Firebase
@@ -84,7 +117,7 @@ export const markOperationFinished = async (id: string, cantidad: string, horaFi
     await setDoc(reportRef, { ops: arrayUnion(compactString) }, { merge: true });
     await removeOperation(id);
     await addDoc(collection(db, 'finishedOperations'), { ...finishedOp, localId: id });
-    
+
     return true;
   } catch (error: any) {
     console.error('Error sincronizando operación:', error);
