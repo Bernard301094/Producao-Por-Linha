@@ -44,7 +44,7 @@ import { SupervisorPanel } from './components/SupervisorPanel';
 import { LoginModule } from './components/LoginModule';
 import { ChangePasswordDialog } from './components/ChangePasswordDialog';
 import { Toaster, toast } from 'sonner';
-import { Factory, LogIn, LogOut, Trash2, Eye, EyeOff, FileDown, Check, ChevronsUpDown, Search } from 'lucide-react';
+import { Factory, LogIn, LogOut, Trash2, Eye, EyeOff, FileDown, Check, ChevronsUpDown, Search, Clock, Package, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -203,7 +203,6 @@ export default function App() {
   }, [watchHoraInicial, setValue]);
 
   useEffect(() => {
-    // Real-time operations
     const q = query(collection(db, 'pendingOperations'));
     const unsub = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Operation));
@@ -211,8 +210,6 @@ export default function App() {
     });
     
     loadOps();
-    
-    // Default current time to "HH:mm"
     setValue('horaInicial', format(new Date(), 'HH:mm'));
 
     const storedProfile = localStorage.getItem('loginProfile');
@@ -260,7 +257,6 @@ export default function App() {
     await addOperation(newOp);
     await addProduct(data.produto, derivedLitragem);
     
-    // Refresh products list just in case
     const prods = await getProducts();
     setAvailableProducts(prods);
 
@@ -306,6 +302,8 @@ export default function App() {
   
   const myPendingOps = operations.filter(op => op.turno === currentTurnForView);
   const myFinishedOps = finishedOps.filter(op => op.turno === currentTurnForView);
+
+  const totalUnidades = myFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0);
 
   const confirmDelete = async () => {
     if (!deletingOp) return;
@@ -380,9 +378,6 @@ export default function App() {
      );
   }
 
-
-
-
   if (loginProfile === 'Supervisor') {
      return (
         <SupervisorPanel
@@ -402,266 +397,333 @@ export default function App() {
   }
 
   return (
-    <div className="w-full h-[100dvh] bg-slate-50 flex flex-col font-sans overflow-hidden">
+    <div className="w-full h-[100dvh] bg-slate-100 flex flex-col font-sans overflow-hidden">
       <Toaster position="top-right" richColors />
       
-      {/* Top Navigation Bar */}
-      <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-3 sm:px-8 shadow-sm z-10 shrink-0 relative">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 rounded flex items-center justify-center">
-            <Factory className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+      {/* ── HEADER ── */}
+      <header className="bg-white border-b border-slate-200 h-14 flex items-center justify-between px-3 sm:px-6 shadow-sm z-10 shrink-0 relative">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 bg-blue-600 rounded-md flex items-center justify-center shadow-sm">
+            <Factory className="w-4 h-4 text-white" />
           </div>
-          <h1 className="text-lg sm:text-xl font-semibold text-slate-800 tracking-tight italic hidden sm:block">SheetBridge <span className="font-normal text-slate-400 not-italic">v2.1</span></h1>
+          <div className="hidden sm:flex flex-col leading-none">
+            <span className="text-sm font-bold text-slate-800 tracking-tight italic">SheetBridge</span>
+            <span className="text-[10px] text-slate-400 font-medium">v2.1</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-6">
-          <div className="flex items-center gap-2">
-             <span className="absolute left-1/2 -translate-x-1/2 sm:static sm:translate-x-0 text-[10px] sm:text-sm font-medium text-slate-600 font-mono tracking-wider text-center sm:text-right leading-tight">
-               <span className="block sm:inline">{format(new Date(), 'dd/MM/yyyy')}</span>
-               <span className="hidden sm:inline"> — </span>
-               <span className="block sm:inline">{loginProfile}</span>
-             </span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <ChangePasswordDialog loginProfile={loginProfile!} defaultProfiles={PROFILES} />
-            <Button variant="ghost" size="sm" onClick={() => {
-               setLoginProfile(null);
-               localStorage.removeItem('loginProfile');
-            }} className="text-red-500 hover:text-red-600 hover:bg-red-50 px-2 sm:px-3">
-               <span className="hidden sm:inline">Sair</span> <LogOut className="w-4 h-4 sm:ml-2" />
-            </Button>
-          </div>
+
+        {/* Center: turno badge */}
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+          <span className="hidden sm:inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            {loginProfile} — {format(new Date(), 'dd/MM/yyyy')}
+          </span>
+          <span className="sm:hidden text-xs font-bold text-slate-600">{loginProfile}</span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <ChangePasswordDialog loginProfile={loginProfile!} defaultProfiles={PROFILES} />
+          <Button variant="ghost" size="sm" onClick={() => {
+             setLoginProfile(null);
+             localStorage.removeItem('loginProfile');
+          }} className="text-red-500 hover:text-red-600 hover:bg-red-50 px-2 sm:px-3">
+             <span className="hidden sm:inline text-xs">Sair</span> <LogOut className="w-4 h-4 sm:ml-1.5" />
+          </Button>
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col xl:grid xl:grid-cols-12 gap-0 overflow-hidden relative">
-        
-        {/* Mobile / Tablet Tabs */}
-        <div className="xl:hidden flex bg-white border-b border-slate-200 shrink-0 z-20">
-           <button onClick={() => setMobileTab('pendentes')} className={`flex-1 py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b-2 ${mobileTab === 'pendentes' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-              Pendentes ({operations.length})
-           </button>
-           <button onClick={() => setMobileTab('nova')} className={`flex-1 py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b-2 ${mobileTab === 'nova' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-              Nova OP
-           </button>
-           <button onClick={() => setMobileTab('concluidas')} className={`flex-1 py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b-2 ${mobileTab === 'concluidas' ? 'border-purple-600 text-purple-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-              Concluídas ({finishedOps.filter(op => op.turno === currentTurnForView).length})
-           </button>
-        </div>
+      {/* ── MOBILE TABS ── */}
+      <div className="xl:hidden flex bg-white border-b border-slate-200 shrink-0 z-20">
+         <button onClick={() => setMobileTab('pendentes')} className={`flex-1 py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
+           mobileTab === 'pendentes' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+         }`}>
+            Pendentes ({myPendingOps.length})
+         </button>
+         <button onClick={() => setMobileTab('nova')} className={`flex-1 py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
+           mobileTab === 'nova' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+         }`}>
+            Nova OP
+         </button>
+         <button onClick={() => setMobileTab('concluidas')} className={`flex-1 py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
+           mobileTab === 'concluidas' ? 'border-purple-600 text-purple-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+         }`}>
+            Concluídas ({myFinishedOps.length})
+         </button>
+      </div>
 
-        {/* Left Sidebar: Open Sessions -> OPs em Andamento */}
-        <aside className={`${mobileTab !== 'pendentes' ? 'hidden xl:flex' : 'flex'} flex-col xl:col-span-3 bg-white xl:h-full overflow-hidden flex-1 xl:flex-none border-b xl:border-b-0 xl:border-r border-slate-200 z-10 shrink-0 shadow-sm xl:shadow-none`}>
-          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
-            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Linhas Pendentes</h2>
-            <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold">{myPendingOps.length} Ativas</span>
+      {/* ── MAIN: 3-column on xl+ ── */}
+      <main className="flex-1 flex flex-col xl:flex-row overflow-hidden">
+
+        {/* ══ COL 1: LINHAS PENDENTES (280px) ══ */}
+        <aside className={`${
+          mobileTab !== 'pendentes' ? 'hidden xl:flex' : 'flex'
+        } flex-col w-full xl:w-[280px] xl:min-w-[280px] xl:max-w-[280px] bg-white border-b xl:border-b-0 xl:border-r border-slate-200 overflow-hidden`}>
+          
+          {/* Col header */}
+          <div className="px-4 py-3.5 border-b border-slate-100 bg-slate-50 shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-4 rounded-full bg-blue-500"></div>
+                <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Em Andamento</span>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                myPendingOps.length > 0
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-slate-100 text-slate-500'
+              }`}>
+                {myPendingOps.length} {myPendingOps.length === 1 ? 'ativa' : 'ativas'}
+              </span>
+            </div>
           </div>
+
+          {/* Cards list */}
           <div className="flex-1 overflow-y-auto">
             {myPendingOps.length === 0 ? (
-               <div className="p-8 text-center">
-                 <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">Nenhuma linha ativa no momento</p>
-               </div>
+              <div className="flex flex-col items-center justify-center h-full py-16 px-6 text-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                  <AlertCircle className="w-5 h-5 text-slate-400" />
+                </div>
+                <p className="text-xs text-slate-400 font-medium leading-relaxed">Nenhuma linha ativa no momento</p>
+              </div>
             ) : (
-               myPendingOps.map(op => (
-                 <div key={op.id} className="p-4 border-b border-slate-100 transition-colors bg-blue-50/30 border-l-4 border-l-blue-600 cursor-default">
-                   <div className="flex justify-between mb-1">
-                     <span className="text-xs font-mono text-slate-400">#{op.opNumber}</span>
-                     <span className="text-[10px] text-blue-600 font-bold uppercase tracking-tighter">Iniciada - Turno {op.turno}</span>
-                   </div>
-                   <p className="text-sm font-semibold text-slate-800">{op.produto}</p>
-                   <p className="text-xs text-slate-500 mt-1 italic uppercase">Início: {op.horaInicial} | Linha {op.linha}</p>
-                   
-                   <div className="mt-3 flex gap-2">
-                     <button onClick={() => openEdit(op)} className="flex-none px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
-                       Editar
-                     </button>
-                     <button onClick={() => setDeletingOp(op)} className="flex-none px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors" title="Excluir">
-                       <Trash2 className="w-3 h-3" />
-                     </button>
-                     <Dialog open={finishingId === op.id} onOpenChange={(open) => {
-                       if(open) {
-                         setFinishingId(op.id);
-                         setFinishTime(format(new Date(), 'HH:mm'));
-                       } else {
-                         setFinishingId(null);
-                       }
-                     }}>
-                       <DialogTrigger render={<button className="flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded border border-emerald-600 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 transition-colors">Finalizar</button>} />
-                       {/* Removed extra button */}
-                       <DialogContent className="max-w-md w-[95vw] sm:w-full">
-                         <DialogHeader>
-                           <DialogTitle>Finalizar OP {op.opNumber}</DialogTitle>
-                           <DialogDescription>
-                             Informe a quantidade apontada e o horário de término.
-                           </DialogDescription>
-                         </DialogHeader>
-                         <div className="space-y-4 py-4">
-                            <div>
-                              <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Quantidade Apontada (Unidades)</Label>
-                              <Input 
-                                type="text" 
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                value={finishQtd} 
-                                onChange={e => setFinishQtd(e.target.value.replace(/[^0-9]/g, ''))} 
-                                placeholder="Ex: 599"
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm font-mono text-slate-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              />
-                            </div>
-                            <div>
-                              <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Hora Final</Label>
-                              <Input 
-                                type="time" 
-                                value={finishTime} 
-                                onChange={e => setFinishTime(e.target.value)} 
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm font-mono text-slate-700"
-                              />
-                            </div>
-                         </div>
-                         <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-2">
-                           <Button variant="outline" onClick={() => setFinishingId(null)} className="w-full sm:w-auto">Cancelar</Button>
-                           <Button onClick={() => handleFinish(op.id)} disabled={loading} className="w-full sm:w-auto bg-emerald-600 text-white hover:bg-emerald-700">
-                             {loading ? 'Enviando...' : 'Salvar na Planilha'}
-                           </Button>
-                         </DialogFooter>
-                       </DialogContent>
-                     </Dialog>
-                     
-                     <button onClick={() => handleDelete(op.id)} className="flex-none px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded border border-slate-200 text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors">
-                       Cancelar
-                     </button>
-                   </div>
-                 </div>
-               ))
+              <div className="divide-y divide-slate-100">
+                {myPendingOps.map(op => (
+                  <div key={op.id} className="p-4 hover:bg-blue-50/40 transition-colors group">
+                    {/* Line number badge + OP */}
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-7 h-7 rounded-md bg-blue-600 text-white text-[11px] font-black flex items-center justify-center shrink-0">
+                          L{op.linha}
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-400 font-bold">#{op.opNumber}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] text-blue-600 font-bold">
+                        <Clock className="w-3 h-3" />
+                        {op.horaInicial}
+                      </div>
+                    </div>
+
+                    {/* Product name */}
+                    <p className="text-sm font-semibold text-slate-800 leading-tight mb-3 line-clamp-2">{op.produto}</p>
+                    {op.litragem && (
+                      <span className="inline-block text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded mb-3">
+                        {op.litragem}
+                      </span>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => openEdit(op)}
+                        className="flex-none px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => setDeletingOp(op)}
+                        className="flex-none p-1.5 rounded-md border border-red-100 text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                        title="Excluir"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      <Dialog open={finishingId === op.id} onOpenChange={(open) => {
+                        if(open) {
+                          setFinishingId(op.id);
+                          setFinishTime(format(new Date(), 'HH:mm'));
+                        } else {
+                          setFinishingId(null);
+                        }
+                      }}>
+                        <DialogTrigger render={
+                          <button className="flex-1 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm">
+                            Finalizar
+                          </button>
+                        } />
+                        <DialogContent className="max-w-md w-[95vw] sm:w-full">
+                          <DialogHeader>
+                            <DialogTitle>Finalizar OP {op.opNumber}</DialogTitle>
+                            <DialogDescription>
+                              Informe a quantidade apontada e o horário de término.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                             <div>
+                               <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Quantidade Apontada (Unidades)</Label>
+                               <Input 
+                                 type="text" 
+                                 inputMode="numeric"
+                                 pattern="[0-9]*"
+                                 value={finishQtd} 
+                                 onChange={e => setFinishQtd(e.target.value.replace(/[^0-9]/g, ''))} 
+                                 placeholder="Ex: 599"
+                                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm font-mono text-slate-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                               />
+                             </div>
+                             <div>
+                               <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Hora Final</Label>
+                               <Input 
+                                 type="time" 
+                                 value={finishTime} 
+                                 onChange={e => setFinishTime(e.target.value)} 
+                                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm font-mono text-slate-700"
+                               />
+                             </div>
+                          </div>
+                          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-2">
+                            <Button variant="outline" onClick={() => setFinishingId(null)} className="w-full sm:w-auto">Cancelar</Button>
+                            <Button onClick={() => handleFinish(op.id)} disabled={loading} className="w-full sm:w-auto bg-emerald-600 text-white hover:bg-emerald-700">
+                              {loading ? 'Enviando...' : 'Salvar na Planilha'}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </aside>
 
-        {/* Main Data Entry Area -> Nova OP */}
-        <section className={`${mobileTab === 'pendentes' ? 'hidden xl:flex' : 'flex'} flex-col xl:col-span-9 p-4 md:p-8 gap-6 bg-slate-50 xl:h-full overflow-y-auto w-full flex-auto`}>
-          <div className={`${mobileTab !== 'nova' ? 'hidden xl:flex' : 'flex'} justify-between items-end`}>
-            <div>
-              <nav className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-2">Coleta de Dados / Registro Ativo</nav>
-              <h2 className="text-2xl sm:text-3xl font-light text-slate-800 tracking-tight">Iniciar <span className="font-bold">Nova OP</span></h2>
-            </div>
-            <div className="text-right hidden sm:block">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Planilha Destino</p>
-              <p className="text-sm font-mono text-slate-600">gid: 1992525527</p>
-            </div>
+        {/* ══ COL 2: NOVA OP (flex-1, centro) ══ */}
+        <section className={`${
+          mobileTab === 'pendentes' ? 'hidden xl:flex' : mobileTab === 'concluidas' ? 'hidden xl:flex' : 'flex'
+        } flex-col flex-1 bg-slate-100 overflow-y-auto`}>
+          
+          {/* Section header */}
+          <div className="px-6 xl:px-8 pt-6 pb-4 shrink-0">
+            <nav className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1.5">Coleta de Dados / Registro Ativo</nav>
+            <h2 className="text-2xl font-light text-slate-700 tracking-tight">
+              Iniciar <span className="font-bold text-slate-900">Nova OP</span>
+            </h2>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-4 flex-1 items-start">
-            {/* Entry Form Container */}
-            <div className={`${mobileTab !== 'nova' ? 'hidden xl:block' : 'block'} bg-white p-6 md:p-8 border border-slate-200 rounded-lg shadow-sm w-full`}>
-              <form onSubmit={handleSubmit(onStartOp)} className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Form card — centered, max-width constrained */}
+          <div className="flex-1 flex items-start justify-center px-4 xl:px-8 pb-8">
+            <div className="w-full max-w-lg bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+              
+              {/* Form header strip */}
+              <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-slate-300" />
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-widest">Nova Ordem de Produção</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">Turno {currentTurnForView}</span>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit(onStartOp)} className="p-6 space-y-5">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="opNumber" className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Nº da OP</Label>
-                    <Input id="opNumber" {...register('opNumber', { onChange: (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" className="w-full h-10 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono text-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500" />
-                    {errors.opNumber && <p className="text-[10px] text-red-500 mt-1 uppercase font-bold">{errors.opNumber.message}</p>}
+                    <Input
+                      id="opNumber"
+                      {...register('opNumber', { onChange: (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="Ex: 48370"
+                      className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono text-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500"
+                    />
+                    {errors.opNumber && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.opNumber.message}</p>}
                   </div>
                   <div>
                     <Label htmlFor="horaInicial" className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Hora Inicial</Label>
-                    <Input id="horaInicial" type="time" {...register('horaInicial')} className="w-full h-10 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono text-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500" />
-                    {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1 uppercase font-bold">{errors.horaInicial.message}</p>}
+                    <Input
+                      id="horaInicial"
+                      type="time"
+                      {...register('horaInicial')}
+                      className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono text-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500"
+                    />
+                    {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.horaInicial.message}</p>}
                   </div>
                 </div>
 
                 <div className="relative">
                   <Label htmlFor="produto" className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Produto</Label>
-                  <input 
-                      id="produto" 
-                      {...register('produto')} 
-                      autoComplete="off"
-                      onFocus={() => setShowProductSuggestions(true)}
-                      onBlur={() => setTimeout(() => setShowProductSuggestions(false), 200)}
-                      placeholder="Ex: ALUMAX 5L" 
-                      className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" 
+                  <input
+                    id="produto"
+                    {...register('produto')}
+                    autoComplete="off"
+                    onFocus={() => setShowProductSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowProductSuggestions(false), 200)}
+                    placeholder="Ex: ALUMAX 5L"
+                    className="flex h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   />
                   {showProductSuggestions && filteredProducts.length > 0 && (
-                     <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto p-1">
-                        {filteredProducts.map(p => (
-                           <div 
-                              key={p.produto} 
-                              onMouseDown={(e) => {
-                                 e.preventDefault();
-                                 setValue('produto', p.produto);
-                                 setShowProductSuggestions(false);
-                              }}
-                              className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-sm"
-                           >
-                              {p.produto}
-                           </div>
-                        ))}
-                     </div>
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-56 overflow-y-auto p-1">
+                      {filteredProducts.map(p => (
+                        <div
+                          key={p.produto}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setValue('produto', p.produto);
+                            setShowProductSuggestions(false);
+                          }}
+                          className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-md flex items-center justify-between gap-2"
+                        >
+                          <span>{p.produto}</span>
+                          {p.litragem && <span className="text-[10px] text-slate-400 font-mono shrink-0">{p.litragem}</span>}
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  {errors.produto && <p className="text-[10px] text-red-500 mt-1 uppercase font-bold">{errors.produto.message}</p>}
+                  {errors.produto && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.produto.message}</p>}
                 </div>
 
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <Label htmlFor="linha" className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Linha de Produção</Label>
-                    <Popover open={openLineSelect} onOpenChange={setOpenLineSelect}>
-                      <PopoverTrigger
-                        type="button"
-                        role="combobox"
-                        aria-expanded={openLineSelect}
-                        className={cn(
-                          "flex items-center justify-between w-full h-12 px-3 border-2 transition-all duration-200 text-sm font-semibold rounded-lg shadow-sm outline-none focus:ring-2 focus:ring-blue-500",
-                          watch('linha') 
-                            ? 'border-blue-500 bg-blue-50/30 text-blue-700 ring-2 ring-blue-100' 
-                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                        )}
-                      >
-                        {watch('linha') ? `Linha ${watch('linha')}` : "Selecione a Linha"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 shadow-xl border-slate-200" align="start">
-                        <Command className="border-none">
-                          <CommandInput 
-                            placeholder="Buscar linha..." 
-                            className="bg-transparent text-sm"
-                          />
-                          <CommandList className="max-h-[250px] overflow-y-auto mt-1">
-                            <CommandEmpty className="py-6 text-center text-xs text-slate-500">Nenhuma linha encontrada.</CommandEmpty>
-                            <CommandGroup>
-                              {Array.from({ length: 16 }, (_, i) => {
-                                const lineVal = String(i + 1);
-                                return (
-                                  <CommandItem
-                                    key={lineVal}
-                                    value={`Linha ${lineVal}`}
-                                    onSelect={() => {
-                                      setValue('linha', lineVal, { shouldValidate: true });
-                                      setOpenLineSelect(false);
-                                    }}
-                                    className="flex items-center justify-between py-2.5 px-3 cursor-pointer aria-selected:bg-blue-600 aria-selected:text-white group"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-bold uppercase tracking-tight">Linha {lineVal}</span>
-                                    </div>
-                                    <Check
-                                      className={cn(
-                                        "h-4 w-4",
-                                        watch('linha') === lineVal ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                  </CommandItem>
-                                );
-                              })}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    {errors.linha && <p className="text-[10px] text-red-500 mt-1 uppercase font-bold">{errors.linha.message}</p>}
-                  </div>
+                <div>
+                  <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Linha de Produção</Label>
+                  <Popover open={openLineSelect} onOpenChange={setOpenLineSelect}>
+                    <PopoverTrigger
+                      type="button"
+                      role="combobox"
+                      aria-expanded={openLineSelect}
+                      className={cn(
+                        "flex items-center justify-between w-full h-11 px-3 border-2 transition-all duration-200 text-sm font-semibold rounded-lg outline-none focus:ring-2 focus:ring-blue-500",
+                        watch('linha')
+                          ? 'border-blue-500 bg-blue-50/50 text-blue-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'
+                      )}
+                    >
+                      {watch('linha') ? `Linha ${watch('linha')}` : 'Selecione a Linha'}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0 shadow-xl border-slate-200" align="start">
+                      <Command className="border-none">
+                        <CommandInput placeholder="Buscar linha..." className="bg-transparent text-sm" />
+                        <CommandList className="max-h-[250px] overflow-y-auto mt-1">
+                          <CommandEmpty className="py-6 text-center text-xs text-slate-500">Nenhuma linha encontrada.</CommandEmpty>
+                          <CommandGroup>
+                            {Array.from({ length: 16 }, (_, i) => {
+                              const lineVal = String(i + 1);
+                              return (
+                                <CommandItem
+                                  key={lineVal}
+                                  value={`Linha ${lineVal}`}
+                                  onSelect={() => {
+                                    setValue('linha', lineVal, { shouldValidate: true });
+                                    setOpenLineSelect(false);
+                                  }}
+                                  className="flex items-center justify-between py-2.5 px-3 cursor-pointer aria-selected:bg-blue-600 aria-selected:text-white"
+                                >
+                                  <span className="font-bold uppercase tracking-tight">Linha {lineVal}</span>
+                                  <Check className={cn("h-4 w-4", watch('linha') === lineVal ? 'opacity-100' : 'opacity-0')} />
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  {errors.linha && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.linha.message}</p>}
                 </div>
-                
+
+                {/* Hidden turno */}
                 <div className="hidden">
-                  <Label htmlFor="turno" className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Turno</Label>
-                  <Select onValueChange={(v) => setValue('turno', v)} value={watch('turno') || ""} disabled={!!loginProfile && loginProfile !== 'Supervisor'}>
-                    <SelectTrigger className="w-full h-10 bg-white border border-slate-200 rounded-md text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0 disabled:opacity-75 disabled:bg-slate-50 disabled:text-slate-500">
-                      <SelectValue placeholder="Selecione o Turno" />
-                    </SelectTrigger>
+                  <Select onValueChange={(v) => setValue('turno', v)} value={watch('turno') || ''} disabled={!!loginProfile && loginProfile !== 'Supervisor'}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="A">Turno A</SelectItem>
                       <SelectItem value="B">Turno B</SelectItem>
@@ -669,88 +731,123 @@ export default function App() {
                       <SelectItem value="D">Turno D</SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors.turno && <p className="text-[10px] text-red-500 mt-1 uppercase font-bold">{errors.turno.message}</p>}
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 flex">
-                  <Button type="submit" className="w-full bg-emerald-600 text-white py-6 rounded text-xs font-bold uppercase tracking-wider shadow-md hover:bg-emerald-700 h-auto">
+                <div className="pt-2">
+                  <Button
+                    type="submit"
+                    className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-xs rounded-lg shadow-md transition-all active:scale-[0.99]"
+                  >
                     Iniciar Produção
                   </Button>
                 </div>
               </form>
             </div>
+          </div>
+        </section>
 
-            {/* Status Panel */}
-            <div className={`${mobileTab !== 'concluidas' ? 'hidden xl:flex' : 'flex'} flex-col gap-4 w-full`}>
-              <div className="bg-slate-800 rounded-lg p-4 sm:p-6 text-white shadow-xl flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">Status da Sessão</p>
-                  <p className="text-2xl font-light">{myPendingOps.length} <span className="text-xs text-slate-500">{myPendingOps.length === 1 ? 'linha em aberto' : 'linhas em aberto'}</span></p>
-                </div>
-                <div className="w-10 h-10 bg-blue-600/20 rounded-full flex items-center justify-center">
-                  <Factory className="w-5 h-5 text-blue-400" />
-                </div>
+        {/* ══ COL 3: CONCLUÍDAS + KPIs (320px) ══ */}
+        <aside className={`${
+          mobileTab !== 'concluidas' ? 'hidden xl:flex' : 'flex'
+        } flex-col w-full xl:w-[320px] xl:min-w-[320px] xl:max-w-[320px] bg-white border-t xl:border-t-0 xl:border-l border-slate-200 overflow-hidden`}>
+
+          {/* KPI header */}
+          <div className="bg-slate-900 text-white px-5 py-4 shrink-0">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span className="text-[11px] font-black uppercase tracking-widest text-slate-300">Concluídas Hoje</span>
               </div>
+              <button
+                onClick={generatePDF}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider transition-colors border border-white/10"
+                title="Gerar PDF"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                PDF
+              </button>
+            </div>
 
-              {/* Finished Today */}
-              <div className="bg-white border border-slate-200 rounded-lg p-4 sm:p-6 flex flex-col gap-4 mt-0 xl:mt-2 shadow-sm flex-1 xl:max-h-[400px] overflow-hidden">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-widest">Concluídas Hoje</h3>
-                  <div className="flex gap-3 items-center">
-                    <button onClick={generatePDF} className="hidden xl:block px-3 py-1 bg-slate-50 text-slate-600 rounded text-[10px] border border-slate-200 hover:bg-slate-100 font-bold uppercase tracking-wider transition-colors shadow-sm cursor-pointer whitespace-nowrap">
-                       Gerar PDF
-                    </button>
-                    <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-tighter whitespace-nowrap">{myFinishedOps.length} Registros</span>
-                  </div>
-                </div>
-                
-                {/* Floating Button for Mobile PDF Generation */}
-                {mobileTab === 'concluidas' && (
-                  <button 
-                    onClick={generatePDF}
-                    className="xl:hidden fixed bottom-24 right-6 w-14 h-14 bg-slate-800 text-white rounded-full flex items-center justify-center shadow-2xl z-50 active:scale-95 transition-transform border-4 border-white"
-                    title="Gerar PDF"
-                  >
-                    <FileDown className="w-6 h-6" />
-                  </button>
-                )}
-                
-                <div className="flex-1 overflow-y-auto pr-1 -mr-1">
-                  {myFinishedOps.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic">Nenhum registro concluído na sessão atual.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {myFinishedOps.map((op, i) => (
-                        <div key={i} className="bg-slate-50/50 border border-slate-100 rounded-md p-3 hover:bg-slate-50 transition-colors">
-                          <div className="flex justify-between items-start gap-2 mb-2">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter truncate">OP {op.opNumber} • L{op.linha}</p>
-                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
-                                 <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-sm whitespace-nowrap">{op.quantidade} un.</span>
-                                 <span className="text-[10px] text-slate-500 font-mono tracking-tighter whitespace-nowrap">{op.horaInicial} - {op.horaFinal}</span>
-                              </div>
-                            </div>
-                            <div className="flex gap-1 shrink-0">
-                               <button onClick={() => openEdit(op)} className="p-2 sm:p-1.5 rounded border border-slate-200 text-slate-500 hover:bg-white hover:text-blue-600 transition-colors bg-white shadow-sm" title="Editar">
-                                 <Eye className="w-3.5 h-3.5" />
-                               </button>
-                               <button onClick={() => setDeletingOp(op)} className="p-2 sm:p-1.5 rounded border border-red-100 text-red-500 hover:bg-white hover:text-red-600 transition-colors bg-white shadow-sm" title="Excluir">
-                                 <Trash2 className="w-3.5 h-3.5" />
-                               </button>
-                            </div>
-                          </div>
-                          <p className="text-xs font-semibold text-slate-700 leading-tight break-words" title={op.produto}>{op.produto}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            {/* KPIs row */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white/10 rounded-lg px-3 py-2.5">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">Registros</p>
+                <p className="text-2xl font-black text-white tabular-nums">{myFinishedOps.length}</p>
+              </div>
+              <div className="bg-emerald-500/20 rounded-lg px-3 py-2.5">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-emerald-400 mb-0.5">Total Un.</p>
+                <p className="text-2xl font-black text-emerald-300 tabular-nums">{totalUnidades.toLocaleString('pt-BR')}</p>
               </div>
             </div>
           </div>
-        </section>
+
+          {/* List */}
+          <div className="flex-1 overflow-y-auto">
+            {myFinishedOps.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full py-16 px-6 text-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-slate-300" />
+                </div>
+                <p className="text-xs text-slate-400 font-medium leading-relaxed">Nenhum registro concluído na sessão atual</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {myFinishedOps.map((op, i) => (
+                  <div key={i} className="px-4 py-3.5 hover:bg-slate-50 transition-colors group">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="w-5 h-5 rounded bg-slate-200 text-slate-600 text-[10px] font-black flex items-center justify-center shrink-0">L{op.linha}</span>
+                          <span className="text-[10px] font-mono text-slate-400">#{op.opNumber}</span>
+                        </div>
+                        <p className="text-xs font-semibold text-slate-700 leading-tight line-clamp-2 mb-1.5">{op.produto}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                            {parseInt(op.quantidade).toLocaleString('pt-BR')} un.
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {op.horaInicial.slice(0,5)} → {op.horaFinal.slice(0,5)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => openEdit(op)}
+                          className="p-1.5 rounded border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-colors bg-white shadow-sm"
+                          title="Editar"
+                        >
+                          <Eye className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingOp(op)}
+                          className="p-1.5 rounded border border-red-100 text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors bg-white shadow-sm"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Mobile PDF FAB */}
+          {mobileTab === 'concluidas' && (
+            <button
+              onClick={generatePDF}
+              className="xl:hidden fixed bottom-6 right-6 w-14 h-14 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl z-50 active:scale-95 transition-transform border-4 border-white"
+              title="Gerar PDF"
+            >
+              <FileDown className="w-6 h-6" />
+            </button>
+          )}
+        </aside>
+
       </main>
 
+      {/* ── DIALOGS (sin cambios) ── */}
       <Dialog open={!!deletingOp} onOpenChange={(open) => !open && setDeletingOp(null)}>
         <DialogContent className="max-w-md w-[95vw] sm:w-full">
           <DialogHeader>
@@ -791,18 +888,18 @@ export default function App() {
              <div>
                 <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Produto</Label>
                 <div className="relative">
-                   <input 
-                      {...registerEdit('produto')} 
+                   <input
+                      {...registerEdit('produto')}
                       autoComplete="off"
                       onFocus={() => setShowEditProductSuggestions(true)}
                       onBlur={() => setTimeout(() => setShowEditProductSuggestions(false), 200)}
-                      className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" 
+                      className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                    />
                    {showEditProductSuggestions && filteredEditProducts.length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto p-1">
                          {filteredEditProducts.map(p => (
-                            <div 
-                               key={p.produto} 
+                            <div
+                               key={p.produto}
                                onMouseDown={(e) => {
                                   e.preventDefault();
                                   setValueEdit('produto', p.produto);
@@ -818,11 +915,8 @@ export default function App() {
                 </div>
              </div>
              <div className="hidden">
-                 <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Turno</Label>
-                 <Select onValueChange={(v) => setValueEdit('turno', v)} value={watchEdit('turno') || ""} disabled={!!loginProfile && loginProfile !== 'Supervisor'}>
-                    <SelectTrigger className="w-full h-10 bg-white border border-slate-200 rounded-md text-sm text-slate-700 disabled:opacity-75 disabled:bg-slate-50 disabled:text-slate-500">
-                       <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
+                 <Select onValueChange={(v) => setValueEdit('turno', v)} value={watchEdit('turno') || ''} disabled={!!loginProfile && loginProfile !== 'Supervisor'}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                        <SelectItem value="A">A</SelectItem>
                        <SelectItem value="B">B</SelectItem>
@@ -834,7 +928,7 @@ export default function App() {
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Linha</Label>
-                  <Select onValueChange={(v) => setValueEdit('linha', v)} value={watchEdit('linha') || ""}>
+                  <Select onValueChange={(v) => setValueEdit('linha', v)} value={watchEdit('linha') || ''}>
                      <SelectTrigger className="w-full h-10 bg-white border border-slate-200 rounded-md text-sm text-slate-700">
                         <SelectValue placeholder="Selecione..." />
                      </SelectTrigger>
@@ -870,4 +964,3 @@ export default function App() {
     </div>
   );
 }
-
