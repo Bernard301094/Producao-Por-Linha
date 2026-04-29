@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popove
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../components/ui/command';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { cn } from './lib/utils';
-import toast, { Toaster } from 'react-hot-toast';
+import { toast, Toaster } from 'sonner';
 import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, FileDown, Shield } from 'lucide-react';
 
 // Utilitários e Componentes Locais
@@ -244,7 +244,7 @@ export default function App() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja cancelar esta operação?')) {
-      await removeOperation(id); toast.info('Operação removida.'); loadOps();
+      await removeOperation(id); toast.message('Operação removida.'); loadOps();
     }
   };
 
@@ -275,7 +275,7 @@ export default function App() {
         toast.success('Registro removido.');
       } else {
         await removeOperation(deletingOp.id);
-        toast.info('Operação removida.');
+        toast.message('Operação removida.');
       }
       loadOps();
     } catch (err: any) {
@@ -526,7 +526,6 @@ export default function App() {
                 </div>
                 <div className="relative" ref={novaOpRef}>
                   <Label htmlFor="produto" className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Produto</Label>
-                  {/* Se elimina onBlur para no ocultar la lista prematuramente en móviles */}
                   <input id="produto" {...register('produto')} autoComplete="off" onFocus={() => setShowProductSuggestions(true)} placeholder="Ex: ALUMAX 5L" className="flex h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" />
                   {showProductSuggestions && filteredProducts.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-56 overflow-y-auto p-1">
@@ -696,7 +695,6 @@ export default function App() {
               </div>
               <div className="relative" ref={editOpRef}>
                 <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Produto</Label>
-                {/* Lo mismo para el modal de edición */}
                 <input {...registerEdit('produto')} autoComplete="off" onFocus={() => setShowEditProductSuggestions(true)} className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" />
                 {showEditProductSuggestions && filteredEditProducts.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto p-1">
