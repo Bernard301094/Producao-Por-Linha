@@ -317,91 +317,113 @@ export default function App() {
     return (
       <>
         <Toaster position="top-center" />
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center p-4">
           <div className="w-full max-w-sm">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg">
-                <Package className="w-8 h-8 text-white" />
+            {/* Header idêntico ao da app */}
+            <div className="flex items-center justify-center gap-3 mb-8">
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+                <Package className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-2xl font-black text-white tracking-tight">Produção por Linha</h1>
-              <p className="text-slate-400 text-sm mt-1">Vonixx — Controle de OPs</p>
+              <div>
+                <h1 className="text-base font-black text-slate-800 tracking-tight leading-none">Produção por Linha</h1>
+                <p className="text-[11px] text-slate-400 font-mono mt-0.5">Vonixx — Controle de OPs</p>
+              </div>
             </div>
 
-            <div className="bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-700">
-              {!selectedProfile ? (
-                <div className="space-y-3">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 text-center">Selecione seu perfil</p>
-                  {Object.keys(PROFILES).map((profile) => (
+            {/* Card igual aos painéis da app */}
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              {/* Topo azul igual ao painel Nova OP */}
+              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                <p className="text-xs font-bold text-blue-100 uppercase tracking-widest text-center">
+                  {!selectedProfile ? 'Selecione seu perfil' : selectedProfile}
+                </p>
+              </div>
+
+              <div className="p-6">
+                {!selectedProfile ? (
+                  // Passo 1: selecionar perfil
+                  <div className="space-y-2.5">
+                    {Object.keys(PROFILES).map((profile) => (
+                      <button
+                        key={profile}
+                        onClick={() => { setSelectedProfile(profile); setPasswordInput(''); setShowPassword(false); }}
+                        className={cn(
+                          'w-full py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 border text-left flex items-center justify-between',
+                          profile === 'Supervisor'
+                            ? 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100 hover:border-amber-300'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700'
+                        )}
+                      >
+                        <span className="flex items-center gap-2">
+                          {profile === 'Supervisor' && <Shield className="w-4 h-4 text-amber-500" />}
+                          {profile}
+                        </span>
+                        <ChevronsUpDown className="w-3.5 h-3.5 opacity-30" />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  // Passo 2: inserir senha
+                  <div className="space-y-4">
                     <button
-                      key={profile}
-                      onClick={() => { setSelectedProfile(profile); setPasswordInput(''); setShowPassword(false); }}
+                      onClick={() => { setSelectedProfile(null); setPasswordInput(''); }}
+                      className="flex items-center gap-1.5 text-slate-400 hover:text-slate-600 text-xs font-semibold transition-colors"
+                    >
+                      ← Voltar
+                    </button>
+
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className={cn(
+                        'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0',
+                        selectedProfile === 'Supervisor' ? 'bg-amber-100' : 'bg-blue-100'
+                      )}>
+                        {selectedProfile === 'Supervisor'
+                          ? <Shield className="w-4.5 h-4.5 text-amber-600" />
+                          : <Package className="w-4.5 h-4.5 text-blue-600" />}
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Perfil selecionado</p>
+                        <p className="text-sm font-black text-slate-800">{selectedProfile}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Senha</Label>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          value={passwordInput}
+                          onChange={e => setPasswordInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }}
+                          placeholder="Digite a senha..."
+                          autoFocus
+                          className="w-full h-11 bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400 pr-10 focus-visible:ring-2 focus-visible:ring-blue-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(v => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={handleLogin}
+                      disabled={loginLoading || !passwordInput}
                       className={cn(
-                        'w-full py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200',
-                        profile === 'Supervisor'
+                        'w-full h-11 font-black text-sm',
+                        selectedProfile === 'Supervisor'
                           ? 'bg-amber-500 hover:bg-amber-400 text-amber-950'
-                          : 'bg-slate-700 hover:bg-blue-600 text-white hover:shadow-lg'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
                       )}
                     >
-                      {profile === 'Supervisor'
-                        ? <span className="flex items-center justify-center gap-2"><Shield className="w-4 h-4" />{profile}</span>
-                        : profile}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <button
-                    onClick={() => { setSelectedProfile(null); setPasswordInput(''); }}
-                    className="flex items-center gap-1.5 text-slate-400 hover:text-white text-xs font-semibold transition-colors mb-2"
-                  >
-                    ← Voltar
-                  </button>
-                  <div className="text-center mb-2">
-                    <div className={cn(
-                      'inline-flex items-center justify-center w-12 h-12 rounded-xl mb-2',
-                      selectedProfile === 'Supervisor' ? 'bg-amber-500/20' : 'bg-blue-600/20'
-                    )}>
-                      {selectedProfile === 'Supervisor'
-                        ? <Shield className="w-6 h-6 text-amber-400" />
-                        : <Package className="w-6 h-6 text-blue-400" />}
-                    </div>
-                    <p className="text-white font-black text-base">{selectedProfile}</p>
+                      {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Entrar'}
+                    </Button>
                   </div>
-                  <div>
-                    <Label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Senha</Label>
-                    <div className="relative">
-                      <Input
-                        type={showPassword ? 'text' : 'password'}
-                        value={passwordInput}
-                        onChange={e => setPasswordInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }}
-                        placeholder="Digite a senha..."
-                        autoFocus
-                        className="w-full h-11 bg-slate-700 border-slate-600 text-white placeholder:text-slate-500 pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleLogin}
-                    disabled={loginLoading || !passwordInput}
-                    className={cn(
-                      'w-full h-11 font-black text-sm',
-                      selectedProfile === 'Supervisor'
-                        ? 'bg-amber-500 hover:bg-amber-400 text-amber-950'
-                        : 'bg-blue-600 hover:bg-blue-500 text-white'
-                    )}
-                  >
-                    {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Entrar'}
-                  </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
