@@ -272,6 +272,55 @@ export const removeFinishedOperation = async (id: string) => {
   }
 };
 
+// ── Move Finished back to Pending ─────────────────────────────────────────────
+
+export const moveFinishedToPending = async (id: string) => {
+  try {
+    const docRef = doc(db, 'finishedOperations', id);
+    const snapshot = await getDoc(docRef);
+    if (!snapshot.exists()) return;
+
+    const op = { id, ...snapshot.data() } as FinishedOperation;
+
+    // Remove from finishedOperations
+    await deleteDoc(docRef);
+
+    // Remove from reports doc
+    const stringToRemove = op.reportString || getCompactString(op);
+    if (op.reportDocId) {
+      try {
+        const reportRef = doc(db, 'reports', op.reportDocId);
+        await setDoc(reportRef, { ops: arrayRemove(stringToRemove) }, { merge: true });
+      } catch(error) {
+        console.error('Failed to remove from Firestore reports', error);
+      }
+    }
+
+    // Try to remove from Sheets (best-effort)
+    if (op.carimbo) {
+      try {
+        await fetch('/api/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ carimbo: op.carimbo, op: op.opNumber })
+        });
+      } catch (e) {
+        console.error('Failed to remove from sheets on revert', e);
+      }
+    }
+
+    // Strip finished-only fields and re-add as pending
+    const { quantidade, horaFinal, reportDocId, reportString, carimbo, ...pendingData } = op;
+    const newPendingOp: Operation = {
+      ...pendingData,
+      carimboInicial: op.carimboInicial || new Date().toISOString(),
+    };
+    await addOperation(newPendingOp);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, `finishedOperations/${id}`);
+  }
+};
+
 // ── Mark Finished ─────────────────────────────────────────────────────────────
 
 export const markOperationFinished = async (id: string, quantidade: string, horaFinal: string) => {

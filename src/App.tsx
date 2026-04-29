@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, moveFinishedToPending } from './api';
 import { db } from './firebase';
 import { collection, query, onSnapshot, doc } from 'firebase/firestore';
 
@@ -17,7 +17,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { cn } from './lib/utils';
 import { toast, Toaster } from 'sonner';
-import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, FileDown, Shield, Eye, EyeOff } from 'lucide-react';
+import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, FileDown, Shield, Eye, EyeOff, RotateCcw } from 'lucide-react';
 
 // Utilitários e Componentes Locais
 import { saveAndSharePDF } from './lib/pdfUtils';
@@ -104,6 +104,7 @@ export default function App() {
   const [finishTime, setFinishTime] = useState('');
   const [editingOp, setEditingOp] = useState<Operation | FinishedOperation | null>(null);
   const [deletingOp, setDeletingOp] = useState<Operation | FinishedOperation | null>(null);
+  const [revertingOp, setRevertingOp] = useState<FinishedOperation | null>(null);
   const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setValueEdit, watch: watchEdit } = useForm<StartOpFormValues & { quantidade?: string; horaFinal?: string }>({});
   const watchEditProduto = watchEdit('produto');
 
@@ -325,6 +326,20 @@ export default function App() {
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar.');
     } finally { setLoading(false); }
+  };
+
+  const confirmRevert = async () => {
+    if (!revertingOp) return;
+    setLoading(true);
+    try {
+      await moveFinishedToPending(revertingOp.id);
+      toast.success('OP movida de volta para Pendentes.');
+    } catch (err: any) {
+      toast.error('Erro ao reverter: ' + err.message);
+    } finally {
+      setLoading(false);
+      setRevertingOp(null);
+    }
   };
 
   const myFinishedOps = finishedOps;
@@ -750,6 +765,30 @@ export default function App() {
                           <p className="text-xs font-black text-emerald-600 mt-1">{parseInt(op.quantidade).toLocaleString()} UN</p>
                         )}
                       </div>
+                      {/* Actions for finished ops */}
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => openEdit(op)}
+                          title="Editar"
+                          className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setRevertingOp(op)}
+                          title="Voltar para Pendentes"
+                          className="p-1.5 text-slate-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingOp(op)}
+                          title="Excluir"
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -783,6 +822,24 @@ export default function App() {
             <Button variant="outline" onClick={() => setDeletingOp(null)}>Cancelar</Button>
             <Button onClick={confirmDelete} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Remover'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Revert to Pending Confirmation Dialog */}
+      <Dialog open={!!revertingOp} onOpenChange={(o) => { if (!o) setRevertingOp(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-black text-slate-800">Voltar para Pendentes?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600">
+            A OP <span className="font-bold text-slate-800">{revertingOp?.opNumber}</span> será removida de Concluídas e voltará para a lista de Pendentes. O registro na planilha também será removido.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setRevertingOp(null)}>Cancelar</Button>
+            <Button onClick={confirmRevert} disabled={loading} className="bg-amber-500 hover:bg-amber-600 text-white">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar'}
             </Button>
           </DialogFooter>
         </DialogContent>
