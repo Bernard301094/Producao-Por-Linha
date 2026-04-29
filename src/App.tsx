@@ -432,35 +432,35 @@ export default function App() {
         </div>
       </header>
 
-      {/* ── MOBILE TABS ── */}
-      <div className="xl:hidden flex bg-white border-b border-slate-200 shrink-0 z-20">
-         <button onClick={() => setMobileTab('pendentes')} className={`flex-1 py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
+      {/* ── MOBILE TABS — only shown below md (768px) ── */}
+      <div className="md:hidden flex bg-white border-b border-slate-200 shrink-0 z-20">
+         <button onClick={() => setMobileTab('pendentes')} className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-colors ${
            mobileTab === 'pendentes' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'
          }`}>
             Pendentes ({myPendingOps.length})
          </button>
-         <button onClick={() => setMobileTab('nova')} className={`flex-1 py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
+         <button onClick={() => setMobileTab('nova')} className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-colors ${
            mobileTab === 'nova' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700'
          }`}>
             Nova OP
          </button>
-         <button onClick={() => setMobileTab('concluidas')} className={`flex-1 py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b-2 transition-colors ${
+         <button onClick={() => setMobileTab('concluidas')} className={`flex-1 py-3 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-colors ${
            mobileTab === 'concluidas' ? 'border-purple-600 text-purple-600' : 'border-transparent text-slate-500 hover:text-slate-700'
          }`}>
             Concluídas ({myFinishedOps.length})
          </button>
       </div>
 
-      {/* ── MAIN: 3-column on xl+ ── */}
-      <main className="flex-1 flex flex-col xl:flex-row overflow-hidden">
+      {/* ── MAIN: 3 columns from md (768px) ── */}
+      <main className="flex-1 flex flex-col md:flex-row overflow-hidden">
 
-        {/* ══ COL 1: LINHAS PENDENTES (280px) ══ */}
+        {/* ══ COL 1: LINHAS PENDENTES ══ */}
         <aside className={`${
-          mobileTab !== 'pendentes' ? 'hidden xl:flex' : 'flex'
-        } flex-col w-full xl:w-[280px] xl:min-w-[280px] xl:max-w-[280px] bg-white border-b xl:border-b-0 xl:border-r border-slate-200 overflow-hidden`}>
+          mobileTab !== 'pendentes' ? 'hidden md:flex' : 'flex'
+        } flex-col w-full md:w-[240px] md:min-w-[240px] md:max-w-[240px] lg:w-[260px] lg:min-w-[260px] lg:max-w-[260px] xl:w-[280px] xl:min-w-[280px] xl:max-w-[280px] bg-white border-b md:border-b-0 md:border-r border-slate-200 overflow-hidden`}>
           
           {/* Col header */}
-          <div className="px-4 py-3.5 border-b border-slate-100 bg-slate-50 shrink-0">
+          <div className="px-3 md:px-4 py-3.5 border-b border-slate-100 bg-slate-50 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-4 rounded-full bg-blue-500"></div>
@@ -488,7 +488,7 @@ export default function App() {
             ) : (
               <div className="divide-y divide-slate-100">
                 {myPendingOps.map(op => (
-                  <div key={op.id} className="p-4 hover:bg-blue-50/40 transition-colors group">
+                  <div key={op.id} className="p-3 md:p-4 hover:bg-blue-50/40 transition-colors group">
                     {/* Line number badge + OP */}
                     <div className="flex items-center justify-between mb-2.5">
                       <div className="flex items-center gap-2">
@@ -504,7 +504,7 @@ export default function App() {
                     </div>
 
                     {/* Product name */}
-                    <p className="text-sm font-semibold text-slate-800 leading-tight mb-3 line-clamp-2">{op.produto}</p>
+                    <p className="text-xs md:text-sm font-semibold text-slate-800 leading-tight mb-3 line-clamp-2">{op.produto}</p>
                     {op.litragem && (
                       <span className="inline-block text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded mb-3">
                         {op.litragem}
@@ -585,25 +585,25 @@ export default function App() {
           </div>
         </aside>
 
-        {/* ══ COL 2: NOVA OP (flex-1, centro) ══ */}
+        {/* ══ COL 2: NOVA OP (centro, flex-1) ══ */}
         <section className={`${
-          mobileTab === 'pendentes' ? 'hidden xl:flex' : mobileTab === 'concluidas' ? 'hidden xl:flex' : 'flex'
+          mobileTab === 'pendentes' ? 'hidden md:flex' : mobileTab === 'concluidas' ? 'hidden md:flex' : 'flex'
         } flex-col flex-1 bg-slate-100 overflow-y-auto`}>
           
           {/* Section header */}
-          <div className="px-6 xl:px-8 pt-6 pb-4 shrink-0">
+          <div className="px-4 md:px-6 xl:px-8 pt-5 md:pt-6 pb-4 shrink-0">
             <nav className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mb-1.5">Coleta de Dados / Registro Ativo</nav>
-            <h2 className="text-2xl font-light text-slate-700 tracking-tight">
+            <h2 className="text-xl md:text-2xl font-light text-slate-700 tracking-tight">
               Iniciar <span className="font-bold text-slate-900">Nova OP</span>
             </h2>
           </div>
 
-          {/* Form card — centered, max-width constrained */}
-          <div className="flex-1 flex items-start justify-center px-4 xl:px-8 pb-8">
+          {/* Form card */}
+          <div className="flex-1 flex items-start justify-center px-4 md:px-6 xl:px-8 pb-8">
             <div className="w-full max-w-lg bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
               
               {/* Form header strip */}
-              <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4">
+              <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-4 md:px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-slate-300" />
@@ -613,8 +613,8 @@ export default function App() {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit(onStartOp)} className="p-6 space-y-5">
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit(onStartOp)} className="p-4 md:p-6 space-y-4 md:space-y-5">
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div>
                     <Label htmlFor="opNumber" className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Nº da OP</Label>
                     <Input
@@ -746,13 +746,13 @@ export default function App() {
           </div>
         </section>
 
-        {/* ══ COL 3: CONCLUÍDAS + KPIs (320px) ══ */}
+        {/* ══ COL 3: CONCLUÍDAS + KPIs ══ */}
         <aside className={`${
-          mobileTab !== 'concluidas' ? 'hidden xl:flex' : 'flex'
-        } flex-col w-full xl:w-[320px] xl:min-w-[320px] xl:max-w-[320px] bg-white border-t xl:border-t-0 xl:border-l border-slate-200 overflow-hidden`}>
+          mobileTab !== 'concluidas' ? 'hidden md:flex' : 'flex'
+        } flex-col w-full md:w-[240px] md:min-w-[240px] md:max-w-[240px] lg:w-[290px] lg:min-w-[290px] lg:max-w-[290px] xl:w-[320px] xl:min-w-[320px] xl:max-w-[320px] bg-white border-t md:border-t-0 md:border-l border-slate-200 overflow-hidden`}>
 
           {/* KPI header */}
-          <div className="bg-slate-900 text-white px-5 py-4 shrink-0">
+          <div className="bg-slate-900 text-white px-4 md:px-5 py-4 shrink-0">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -793,7 +793,7 @@ export default function App() {
             ) : (
               <div className="divide-y divide-slate-100">
                 {myFinishedOps.map((op, i) => (
-                  <div key={i} className="px-4 py-3.5 hover:bg-slate-50 transition-colors group">
+                  <div key={i} className="px-3 md:px-4 py-3.5 hover:bg-slate-50 transition-colors group">
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
@@ -801,7 +801,7 @@ export default function App() {
                           <span className="text-[10px] font-mono text-slate-400">#{op.opNumber}</span>
                         </div>
                         <p className="text-xs font-semibold text-slate-700 leading-tight line-clamp-2 mb-1.5">{op.produto}</p>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
                             {parseInt(op.quantidade).toLocaleString('pt-BR')} un.
                           </span>
@@ -833,11 +833,11 @@ export default function App() {
             )}
           </div>
 
-          {/* Mobile PDF FAB */}
+          {/* Mobile PDF FAB — only on small screens */}
           {mobileTab === 'concluidas' && (
             <button
               onClick={generatePDF}
-              className="xl:hidden fixed bottom-6 right-6 w-14 h-14 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl z-50 active:scale-95 transition-transform border-4 border-white"
+              className="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-2xl z-50 active:scale-95 transition-transform border-4 border-white"
               title="Gerar PDF"
             >
               <FileDown className="w-6 h-6" />
@@ -847,7 +847,7 @@ export default function App() {
 
       </main>
 
-      {/* ── DIALOGS (sin cambios) ── */}
+      {/* ── DIALOGS ── */}
       <Dialog open={!!deletingOp} onOpenChange={(open) => !open && setDeletingOp(null)}>
         <DialogContent className="max-w-md w-[95vw] sm:w-full">
           <DialogHeader>
