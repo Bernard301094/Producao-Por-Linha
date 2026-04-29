@@ -2,9 +2,8 @@ import { format } from 'date-fns';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Toaster, toast } from 'sonner';
-import { Factory, LogOut } from 'lucide-react';
+import { Factory, LogOut, CalendarDays, Clock4 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
@@ -54,6 +53,14 @@ export function SupervisorPanel({ supervisorDate, setSupervisorDate, supervisorS
 
      await saveAndSharePDF(doc, `historico_operacoes_${d}_${m}_${y}_turno_${supervisorShift}.pdf`);
   };
+
+  const shiftColors: Record<string, { bg: string; text: string; border: string; dot: string }> = {
+    A: { bg: 'bg-amber-50',   text: 'text-amber-700',  border: 'border-amber-300',  dot: 'bg-amber-400'  },
+    B: { bg: 'bg-blue-50',    text: 'text-blue-700',   border: 'border-blue-300',   dot: 'bg-blue-400'   },
+    C: { bg: 'bg-violet-50',  text: 'text-violet-700', border: 'border-violet-300', dot: 'bg-violet-400' },
+    D: { bg: 'bg-slate-50',   text: 'text-slate-700',  border: 'border-slate-300',  dot: 'bg-slate-400'  },
+  };
+  const shift = shiftColors[supervisorShift] ?? shiftColors['A'];
 
   return (
     <div className="w-full h-[100dvh] bg-slate-50 flex flex-col font-sans overflow-hidden">
@@ -106,25 +113,55 @@ export function SupervisorPanel({ supervisorDate, setSupervisorDate, supervisorS
                 <nav className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-1 sm:mb-2">Histórico de Produção</nav>
                 <h2 className="text-2xl sm:text-3xl font-light text-slate-800 tracking-tight">Painel <span className="font-bold">Supervisor</span></h2>
              </div>
-             <div className="flex flex-wrap justify-center md:justify-end gap-2 sm:gap-4 items-end w-full md:w-auto">
-                <div className="flex-1 sm:flex-none min-w-[120px] text-left">
-                   <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5 text-center md:text-left">Data</Label>
-                   <Input type="date" value={supervisorDate} onChange={e => setSupervisorDate(e.target.value)} className="h-10 text-sm text-center md:text-left" />
+             <div className="flex flex-wrap justify-center md:justify-end gap-2 sm:gap-3 items-end w-full md:w-auto">
+
+                {/* ── Selector de Fecha ── */}
+                <div className="flex-1 sm:flex-none min-w-[148px] text-left">
+                  <Label className="flex items-center gap-1 text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">
+                    <CalendarDays className="w-3 h-3" /> Data
+                  </Label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={supervisorDate}
+                      onChange={e => setSupervisorDate(e.target.value)}
+                      className="w-full h-10 pl-3 pr-3 rounded-lg border-2 border-blue-200 bg-blue-50 text-blue-800 text-sm font-semibold
+                                 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100
+                                 hover:border-blue-300 transition-all cursor-pointer
+                                 [color-scheme:light]"
+                    />
+                  </div>
                 </div>
-                <div className="flex-none w-[100px] sm:w-auto text-left">
-                   <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5 text-center md:text-left">Turno</Label>
-                   <Select value={supervisorShift} onValueChange={setSupervisorShift}>
-                      <SelectTrigger className="w-full sm:w-32 h-10 bg-white">
-                         <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                         <SelectItem value="A">Turno A</SelectItem>
-                         <SelectItem value="B">Turno B</SelectItem>
-                         <SelectItem value="C">Turno C</SelectItem>
-                         <SelectItem value="D">Turno D</SelectItem>
-                      </SelectContent>
-                   </Select>
+
+                {/* ── Selector de Turno ── */}
+                <div className="flex-none w-[120px] sm:w-auto text-left">
+                  <Label className="flex items-center gap-1 text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">
+                    <Clock4 className="w-3 h-3" /> Turno
+                  </Label>
+                  <Select value={supervisorShift} onValueChange={setSupervisorShift}>
+                    <SelectTrigger
+                      className={`w-full sm:w-32 h-10 border-2 font-bold text-sm transition-all
+                        ${shift.bg} ${shift.text} ${shift.border}
+                        hover:brightness-95 focus:ring-2 focus:ring-offset-0`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${shift.dot}`} />
+                        <SelectValue />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(['A','B','C','D'] as const).map(t => (
+                        <SelectItem key={t} value={t}>
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${shiftColors[t].dot}`} />
+                            Turno {t}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <Button onClick={generateSupervisorPDF} className="h-10 bg-emerald-600 text-white hover:bg-emerald-700 font-bold uppercase tracking-wider text-xs px-4 sm:px-6 w-full sm:w-auto shrink-0">Gerar PDF</Button>
              </div>
           </div>
@@ -156,7 +193,12 @@ export function SupervisorPanel({ supervisorDate, setSupervisorDate, supervisorS
                               <tr key={i} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50 transition-colors">
                                  <td className="p-4 font-mono text-slate-700">{opNumber}</td>
                                  <td className="p-4">{linha}</td>
-                                 <td className="p-4 font-bold">{supervisorShift}</td>
+                                 <td className="p-4">
+                                   <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${shiftColors[supervisorShift]?.bg} ${shiftColors[supervisorShift]?.text} ${shiftColors[supervisorShift]?.border}`}>
+                                     <span className={`w-1.5 h-1.5 rounded-full ${shiftColors[supervisorShift]?.dot}`} />
+                                     {supervisorShift}
+                                   </span>
+                                 </td>
                                  <td className="p-4 font-semibold text-slate-800">{produto}</td>
                                  <td className="p-4">{litragem}</td>
                                  <td className="p-4 text-right font-mono font-bold text-emerald-600">{quantidade}</td>
@@ -180,14 +222,18 @@ export function SupervisorPanel({ supervisorDate, setSupervisorDate, supervisorS
                       return (
                          <div key={i} className="p-4 hover:bg-slate-50 transition-colors">
                             <div className="flex justify-between items-start mb-2">
-                               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">OP {opNumber} • Linha {linha} • Turno {supervisorShift}</div>
-                               <div className="text-xs font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{quantidade} un.</div>
+                               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">OP {opNumber} • Linha {linha}</div>
+                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${shiftColors[supervisorShift]?.bg} ${shiftColors[supervisorShift]?.text} ${shiftColors[supervisorShift]?.border}`}>
+                                 <span className={`w-1.5 h-1.5 rounded-full ${shiftColors[supervisorShift]?.dot}`} />
+                                 Turno {supervisorShift}
+                               </span>
                             </div>
                             <h3 className="text-sm font-semibold text-slate-800 leading-tight mb-2">{produto}</h3>
                             <div className="flex justify-between items-center text-xs text-slate-500">
                                <div>Litragem: {litragem}</div>
                                <div className="font-mono">{horaInicial} - {horaFinal}</div>
                             </div>
+                            <div className="text-right text-xs font-mono font-bold text-emerald-600 mt-1">{quantidade} un.</div>
                          </div>
                       );
                    })
