@@ -3,9 +3,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, subscribeFinishedOperations, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift } from './api';
 import { db } from './firebase';
-import { collection, query, onSnapshot } from 'firebase/firestore';
+import { collection, query, onSnapshot, doc } from 'firebase/firestore';
 
 // Componentes UI e Ícones
 import { Button } from '../components/ui/button';
@@ -36,6 +36,25 @@ function getSuggestedShift(now: Date, horaInicial: string): string {
   if (h >= 6 && h < 14) return 'A';
   if (h >= 14 && h < 22) return 'B';
   return 'C';
+}
+
+// Parsea un string compacto "opNumber|linha|produto|litragem|quantidade|horaInicial|horaFinal"
+// en un objeto FinishedOperation parcial para mostrar en pantalla
+function parseReportString(s: string, turno: string): FinishedOperation {
+  const [opNumber, linha, produto, litragem, quantidade, horaInicial, horaFinal] = s.split('|');
+  return {
+    id: s, // usamos el propio string como id único para el key
+    opNumber: opNumber || '',
+    linha: linha || '',
+    produto: produto || '',
+    litragem: litragem || '',
+    quantidade: quantidade || '',
+    horaInicial: horaInicial || '',
+    horaFinal: horaFinal || '',
+    turno,
+    carimboInicial: '',
+    reportString: s,
+  };
 }
 
 const startOpSchema = z.object({
@@ -178,15 +197,14 @@ export default function App() {
     if (watchHoraInicial) setValue('turno', getSuggestedShift(new Date(), watchHoraInicial));
   }, [watchHoraInicial, setValue]);
 
+  const currentTurnForView = loginProfile && loginProfile !== 'Supervisor'
+    ? loginProfile.replace('Turno ', '')
+    : getSuggestedShift(new Date(), format(new Date(), 'HH:mm'));
+
   useEffect(() => {
-    // Real-time listener for pending operations
+    // Listener en tiempo real para OPs pendientes
     const unsubPending = onSnapshot(query(collection(db, 'pendingOperations')), (snapshot) => {
       setOperations(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Operation)));
-    });
-
-    // Real-time listener for finished operations
-    const unsubFinished = subscribeFinishedOperations((ops) => {
-      setFinishedOps(ops);
     });
 
     loadProducts();
@@ -200,9 +218,28 @@ export default function App() {
 
     return () => {
       unsubPending();
-      unsubFinished();
     };
   }, [setValue]);
+
+  // Listener en tiempo real al documento reports/{fecha}_{turno} del turno activo
+  useEffect(() => {
+    if (!loginProfile || loginProfile === 'Supervisor') {
+      setFinishedOps([]);
+      return;
+    }
+    const turno = loginProfile.replace('Turno ', '');
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    const docId = `${dateStr}_${turno}`;
+    const unsubReport = onSnapshot(doc(db, 'reports', docId), (snap) => {
+      if (snap.exists()) {
+        const strings: string[] = snap.data().ops || [];
+        setFinishedOps(strings.map(s => parseReportString(s, turno)));
+      } else {
+        setFinishedOps([]);
+      }
+    });
+    return () => unsubReport();
+  }, [loginProfile]);
 
   const loadHistory = async () => {
     try {
@@ -275,12 +312,9 @@ export default function App() {
     } finally { setLoading(false); }
   };
 
-  const currentTurnForView = loginProfile && loginProfile !== 'Supervisor'
-    ? loginProfile.replace('Turno ', '')
-    : getSuggestedShift(new Date(), format(new Date(), 'HH:mm'));
-
+  // finishedOps ya viene filtrado por turno y fecha desde el listener del report
+  const myFinishedOps = finishedOps;
   const myPendingOps = operations.filter(op => op.turno === currentTurnForView);
-  const myFinishedOps = finishedOps.filter(op => op.turno === currentTurnForView);
 
   const matchesSearch = (op: { opNumber: string; linha: string; produto: string }, q: string) => {
     if (!q.trim()) return true;
@@ -319,7 +353,6 @@ export default function App() {
         <Toaster position="top-center" />
         <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center p-4">
           <div className="w-full max-w-sm">
-            {/* Header idêntico ao da app */}
             <div className="flex items-center justify-center gap-3 mb-8">
               <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-sm">
                 <Package className="w-5 h-5 text-white" />
@@ -330,9 +363,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Card igual aos painéis da app */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              {/* Topo azul igual ao painel Nova OP */}
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
                 <p className="text-xs font-bold text-blue-100 uppercase tracking-widest text-center">
                   {!selectedProfile ? 'Selecione seu perfil' : selectedProfile}
@@ -341,7 +372,6 @@ export default function App() {
 
               <div className="p-6">
                 {!selectedProfile ? (
-                  // Passo 1: selecionar perfil
                   <div className="space-y-2.5">
                     {Object.keys(PROFILES).map((profile) => (
                       <button
@@ -363,7 +393,6 @@ export default function App() {
                     ))}
                   </div>
                 ) : (
-                  // Passo 2: inserir senha
                   <div className="space-y-4">
                     <button
                       onClick={() => { setSelectedProfile(null); setPasswordInput(''); }}
@@ -378,8 +407,8 @@ export default function App() {
                         selectedProfile === 'Supervisor' ? 'bg-amber-100' : 'bg-blue-100'
                       )}>
                         {selectedProfile === 'Supervisor'
-                          ? <Shield className="w-4.5 h-4.5 text-amber-600" />
-                          : <Package className="w-4.5 h-4.5 text-blue-600" />}
+                          ? <Shield className="w-4 h-4 text-amber-600" />
+                          : <Package className="w-4 h-4 text-blue-600" />}
                       </div>
                       <div>
                         <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Perfil selecionado</p>
@@ -689,8 +718,8 @@ export default function App() {
                     <CheckCircle2 className="w-10 h-10 mb-2" />
                     <p className="text-xs font-semibold">Nenhuma OP concluída</p>
                   </div>
-                ) : visibleFinishedOps.map(op => (
-                  <div key={op.id} className="bg-emerald-50/50 rounded-xl p-3 border border-emerald-100">
+                ) : visibleFinishedOps.map((op, idx) => (
+                  <div key={op.reportString || idx} className="bg-emerald-50/50 rounded-xl p-3 border border-emerald-100">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
@@ -701,15 +730,11 @@ export default function App() {
                         {op.litragem && <p className="text-[10px] text-slate-400 font-mono">{op.litragem}</p>}
                         <div className="flex items-center gap-3 mt-1">
                           <span className="text-[10px] text-slate-500">Início: {op.horaInicial}</span>
-                          {(op as FinishedOperation).horaFinal && <span className="text-[10px] text-slate-500">Fim: {(op as FinishedOperation).horaFinal}</span>}
+                          {op.horaFinal && <span className="text-[10px] text-slate-500">Fim: {op.horaFinal}</span>}
                         </div>
-                        {(op as FinishedOperation).quantidade && (
-                          <p className="text-xs font-black text-emerald-600 mt-1">{parseInt((op as FinishedOperation).quantidade).toLocaleString()} UN</p>
+                        {op.quantidade && (
+                          <p className="text-xs font-black text-emerald-600 mt-1">{parseInt(op.quantidade).toLocaleString()} UN</p>
                         )}
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <button onClick={() => openEdit(op)} className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => setDeletingOp(op)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
                   </div>
