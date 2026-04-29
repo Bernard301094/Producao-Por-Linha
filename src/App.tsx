@@ -32,6 +32,7 @@ const PROFILES: Record<string, string> = {
 };
 
 function getSuggestedShift(now: Date, horaInicial: string): string {
+  if (typeof horaInicial !== 'string' || !horaInicial) return 'A';
   const [h] = horaInicial.split(':').map(Number);
   if (h >= 6 && h < 14) return 'A';
   if (h >= 14 && h < 22) return 'B';
@@ -40,6 +41,13 @@ function getSuggestedShift(now: Date, horaInicial: string): string {
 
 // Parsea un string compacto "opNumber|linha|produto|litragem|quantidade|horaInicial|horaFinal"
 function parseReportString(s: string, turno: string): FinishedOperation {
+  if (typeof s !== 'string') {
+    return {
+      id: String(s),
+      opNumber: '', linha: '', produto: '', litragem: '', quantidade: '', horaInicial: '', horaFinal: '',
+      turno, carimboInicial: '', reportString: ''
+    };
+  }
   const [opNumber, linha, produto, litragem, quantidade, horaInicial, horaFinal] = s.split('|');
   return {
     id: s,
@@ -146,9 +154,9 @@ export default function App() {
     setLoading(true);
     try {
       const matchedProduct = availableProducts.find(
-        p => p.produto.trim().toUpperCase() === data.produto.trim().toUpperCase()
+        p => (p.produto || '').trim().toUpperCase() === (data.produto || '').trim().toUpperCase()
       );
-      const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto);
+      const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto || '');
 
       const normalizeTime = (t: string) =>
         t && t.length === 5 ? `${t}:00` : t;
@@ -211,13 +219,13 @@ export default function App() {
 
   const filteredProducts = useMemo(() => {
     if (!watchProduto) return availableProducts;
-    return availableProducts.filter(p => p.produto.toLowerCase().includes(watchProduto.toLowerCase()));
+    return availableProducts.filter(p => (p.produto || '').toLowerCase().includes((watchProduto || '').toLowerCase()));
   }, [watchProduto, availableProducts]);
 
   const [showEditProductSuggestions, setShowEditProductSuggestions] = useState(false);
   const filteredEditProducts = useMemo(() => {
     if (!watchEditProduto) return availableProducts;
-    return availableProducts.filter(p => p.produto.toLowerCase().includes(watchEditProduto.toLowerCase()));
+    return availableProducts.filter(p => (p.produto || '').toLowerCase().includes((watchEditProduto || '').toLowerCase()));
   }, [watchEditProduto, availableProducts]);
 
   useEffect(() => {
@@ -286,7 +294,7 @@ export default function App() {
     setLoginLoading(true);
     try {
       const profileData = await getAuthProfile(selectedProfile);
-      const correctPassword = profileData?.password || PROFILES[selectedProfile];
+      const correctPassword = profileData?.password || profileData?.senha || PROFILES[selectedProfile as keyof typeof PROFILES];
       if (passwordInput.trim() === correctPassword) {
         localStorage.setItem('loginProfile', selectedProfile);
         setLoginProfile(selectedProfile);
@@ -297,7 +305,8 @@ export default function App() {
         toast.error('Senha incorreta. Tente novamente.');
       }
     } catch (err: any) {
-      const correctPassword = PROFILES[selectedProfile];
+      console.error("Login fetch error:", err);
+      const correctPassword = PROFILES[selectedProfile as keyof typeof PROFILES];
       if (passwordInput.trim() === correctPassword) {
         localStorage.setItem('loginProfile', selectedProfile);
         setLoginProfile(selectedProfile);
@@ -322,10 +331,14 @@ export default function App() {
   const onStartOp = async (data: StartOpFormValues) => {
     setLoading(true);
     try {
-      const matchedProduct = availableProducts.find(p => p.produto.trim().toUpperCase() === data.produto.trim().toUpperCase());
-      const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto);
+      const matchedProduct = availableProducts.find(p => (p.produto || '').trim().toUpperCase() === (data.produto || '').trim().toUpperCase());
+      const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto || '');
+      const newOpId = typeof crypto !== 'undefined' && crypto.randomUUID 
+        ? crypto.randomUUID() 
+        : Date.now().toString(36) + Math.random().toString(36).substring(2);
+        
       const newOp: Operation = {
-        id: crypto.randomUUID(), carimboInicial: new Date().toISOString(), ...data,
+        id: newOpId, carimboInicial: new Date().toISOString(), ...data,
         horaInicial: data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial,
         litragem: derivedLitragem
       };
@@ -372,10 +385,12 @@ export default function App() {
   const myFinishedOps = finishedOps;
   const myPendingOps = operations.filter(op => op.turno === currentTurnForView);
 
-  const matchesSearch = (op: { opNumber: string; linha: string; produto: string }, q: string) => {
+  const matchesSearch = (op: { opNumber?: string; linha?: string; produto?: string }, q: string) => {
     if (!q.trim()) return true;
     const lower = q.toLowerCase();
-    return op.opNumber.toLowerCase().includes(lower) || op.linha.toLowerCase().includes(lower) || op.produto.toLowerCase().includes(lower);
+    return (op.opNumber || '').toLowerCase().includes(lower) || 
+           (op.linha || '').toLowerCase().includes(lower) || 
+           (op.produto || '').toLowerCase().includes(lower);
   };
 
   const visiblePendingOps = useMemo(() => myPendingOps.filter(op => matchesSearch(op, searchPending)), [myPendingOps, searchPending]);
@@ -626,7 +641,7 @@ export default function App() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
                           <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-mono">OP {op.opNumber}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">L{op.linha}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
                         </div>
                         <p className="text-xs font-bold text-slate-700 truncate">{op.produto}</p>
                         {op.litragem && <p className="text-[10px] text-slate-400 font-mono">{op.litragem}</p>}
@@ -696,7 +711,7 @@ export default function App() {
                   {showProductSuggestions && filteredProducts.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-56 overflow-y-auto p-1">
                       {filteredProducts.map(p => (
-                        <div key={p.produto} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); }} className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-md flex items-center justify-between gap-2">
+                        <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); }} className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-md flex items-center justify-between gap-2">
                           <span>{p.produto}</span>
                           {p.litragem && <span className="text-[10px] text-slate-400 font-mono shrink-0">{p.litragem}</span>}
                         </div>
@@ -719,7 +734,7 @@ export default function App() {
                           <CommandEmpty className="py-6 text-center text-xs text-slate-500">Nenhuma linha encontrada.</CommandEmpty>
                           <CommandGroup>
                             {Array.from({ length: 16 }, (_, i) => {
-                              const lineVal = String(i + 1);
+                              const lineVal = String(i + 1).padStart(2, '0');
                               return (
                                 <CommandItem key={lineVal} value={`Linha ${lineVal}`} onSelect={() => { setValue('linha', lineVal, { shouldValidate: true }); setOpenLineSelect(false); }} className="flex items-center justify-between py-2.5 px-3 cursor-pointer aria-selected:bg-blue-600 aria-selected:text-white">
                                   <span className="font-bold uppercase tracking-tight">Linha {lineVal}</span>
@@ -781,7 +796,7 @@ export default function App() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
                           <span className="text-[10px] font-black text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full font-mono">OP {op.opNumber}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">L{op.linha}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
                         </div>
                         <p className="text-xs font-bold text-slate-700 truncate">{op.produto}</p>
                         {op.litragem && <p className="text-[10px] text-slate-400 font-mono">{op.litragem}</p>}
@@ -839,7 +854,7 @@ export default function App() {
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deletingOp} onOpenChange={(o) => { if (!o) setDeletingOp(null); }}>
+      <Dialog open={!!deletingOp} onOpenChange={(o: boolean) => { if (!o) setDeletingOp(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-base font-black text-slate-800">Confirmar exclusão</DialogTitle>
@@ -855,7 +870,7 @@ export default function App() {
       </Dialog>
 
       {/* Revert to Pending Confirmation Dialog */}
-      <Dialog open={!!revertingOp} onOpenChange={(o) => { if (!o) setRevertingOp(null); }}>
+      <Dialog open={!!revertingOp} onOpenChange={(o: boolean) => { if (!o) setRevertingOp(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-base font-black text-slate-800">Voltar para Pendentes?</DialogTitle>
@@ -873,7 +888,7 @@ export default function App() {
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog open={!!editingOp} onOpenChange={(o) => { if (!o) setEditingOp(null); }}>
+      <Dialog open={!!editingOp} onOpenChange={(o: boolean) => { if (!o) setEditingOp(null); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-base font-black text-slate-800">Editar Operação</DialogTitle>
@@ -896,7 +911,7 @@ export default function App() {
                 {showEditProductSuggestions && filteredEditProducts.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto p-1">
                     {filteredEditProducts.map(p => (
-                      <div key={p.produto} onClick={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); }} className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-sm">{p.produto}</div>
+                      <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); }} className="cursor-pointer px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 rounded-sm">{p.produto}</div>
                     ))}
                   </div>
                 )}

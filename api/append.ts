@@ -18,7 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       produto,
       linha,
       turno,
-      cantidad,
+      quantidade,
       horaInicial,
       horaFinal,
     } = req.body;
@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       range: getFullRange('A:I'),
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: [[carimbo, op, litragem, produto, linha, turno, cantidad, horaInicial, horaFinal]],
+        values: [[carimbo, op, litragem, produto, linha, turno, quantidade, horaInicial, horaFinal]],
       },
     });
 

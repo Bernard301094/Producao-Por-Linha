@@ -99,7 +99,7 @@ app.post('/api/update', async (req, res) => {
   try {
     const auth = getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
-    const { oldCarimbo, oldOp, newData } = req.body;
+    const { oldHoraInicial, oldOp, oldProduto, newData } = req.body;
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
@@ -109,21 +109,72 @@ app.post('/api/update', async (req, res) => {
     const rows = response.data.values;
     let rowIndex = -1;
     if (rows) {
-      for (let i = 0; i < rows.length; i++) {
-        // Compare carimbo (col A) and OP (col B)
-        if (rows[i][0] === oldCarimbo && String(rows[i][1]) === String(oldOp)) {
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const rowOp = String(rows[i][1] || '').trim();
+        const reqOp = String(oldOp).trim();
+        
+        let rowHora = String(rows[i][7] || '').trim();
+        let reqHora = String(oldHoraInicial).trim();
+        
+        // Normalize time formats (e.g. 08:00:00 or 8:00 AM -> 08:00)
+        const normalize = (t: string) => {
+          const match = t.match(/(\d{1,2}):(\d{2})/);
+          if (match) return `${match[1].padStart(2, '0')}:${match[2]}`;
+          return t;
+        };
+
+        if (rowOp === reqOp && normalize(rowHora) === normalize(reqHora)) {
           rowIndex = i;
           break;
+        }
+      }
+      
+      if (rowIndex === -1 && oldProduto) {
+        for (let i = rows.length - 1; i >= 0; i--) {
+          const rowOp = String(rows[i][1] || '').trim();
+          const reqOp = String(oldOp).trim();
+          const rowProduto = String(rows[i][3] || '').trim().toLowerCase();
+          const reqProduto = String(oldProduto).trim().toLowerCase();
+
+          if (rowOp === reqOp && rowProduto === reqProduto) {
+            rowIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (rowIndex === -1) {
+        for (let i = rows.length - 1; i >= 0; i--) {
+          const rowOp = String(rows[i][1] || '').trim();
+          const reqOp = String(oldOp).trim();
+
+          if (rowOp === reqOp) {
+            rowIndex = i;
+            break;
+          }
         }
       }
     }
 
     if (rowIndex === -1) {
-      return res.status(404).json({ success: false, message: 'Row not found' });
+      console.log('Update: Row not found in spreadsheet. Appending instead. Requested OP:', oldOp, 'Hora:', oldHoraInicial);
+      const opVal = newData.opNumber !== undefined ? newData.opNumber : newData.op;
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: SHEET_RANGE,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [[newData.carimbo || new Date().toLocaleString(), opVal, newData.litragem, newData.produto, newData.linha, newData.turno, newData.quantidade, newData.horaInicial, newData.horaFinal]] },
+      });
+      return res.status(200).json({ success: true, message: 'Row not found in spreadsheet, appended instead' });
     }
 
+    const existingCarimbo = rows[rowIndex][0];
+
+    // Map `newData.opNumber` to `op` if it's sent like that from the frontend
+    const opVal = newData.opNumber !== undefined ? newData.opNumber : newData.op;
+
     const values = [[
-      newData.carimbo, newData.op, newData.litragem, newData.produto, newData.linha, 
+      newData.carimbo || existingCarimbo, opVal, newData.litragem, newData.produto, newData.linha, 
       newData.turno, newData.quantidade, newData.horaInicial, newData.horaFinal
     ]];
 
@@ -147,7 +198,7 @@ app.post('/api/delete', async (req, res) => {
   try {
     const auth = getAuthClient();
     const sheets = google.sheets({ version: 'v4', auth });
-    const { carimbo, op } = req.body;
+    const { horaInicial, op, produto } = req.body;
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
@@ -157,16 +208,55 @@ app.post('/api/delete', async (req, res) => {
     const rows = response.data.values;
     let rowIndex = -1;
     if (rows) {
-      for (let i = 0; i < rows.length; i++) {
-        if (rows[i][0] === carimbo && String(rows[i][1]) === String(op)) {
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const rowOp = String(rows[i][1] || '').trim();
+        const reqOp = String(op).trim();
+        
+        let rowHora = String(rows[i][7] || '').trim();
+        let reqHora = String(horaInicial).trim();
+        
+        const normalize = (t: string) => {
+          const match = t.match(/(\d{1,2}):(\d{2})/);
+          if (match) return `${match[1].padStart(2, '0')}:${match[2]}`;
+          return t;
+        };
+
+        if (rowOp === reqOp && normalize(rowHora) === normalize(reqHora)) {
           rowIndex = i;
           break;
+        }
+      }
+      
+      if (rowIndex === -1 && produto) {
+        for (let i = rows.length - 1; i >= 0; i--) {
+          const rowOp = String(rows[i][1] || '').trim();
+          const reqOp = String(op).trim();
+          const rowProduto = String(rows[i][3] || '').trim().toLowerCase();
+          const reqProduto = String(produto).trim().toLowerCase();
+
+          if (rowOp === reqOp && rowProduto === reqProduto) {
+            rowIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (rowIndex === -1) {
+        for (let i = rows.length - 1; i >= 0; i--) {
+          const rowOp = String(rows[i][1] || '').trim();
+          const reqOp = String(op).trim();
+
+          if (rowOp === reqOp) {
+            rowIndex = i;
+            break;
+          }
         }
       }
     }
 
     if (rowIndex === -1) {
-      return res.status(404).json({ success: false, message: 'Row not found' });
+      console.log('Delete: Row not found in spreadsheet. Assuming already deleted. OP:', op, 'Hora:', horaInicial);
+      return res.status(200).json({ success: true, message: 'Row not found in spreadsheet, assuming already deleted' });
     }
 
     const spreadsheet = await sheets.spreadsheets.get({
@@ -240,7 +330,7 @@ if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
 
 // Start listener only if not serverless
 if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 3000;
+  const PORT = Number(process.env.PORT) || 3000;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
