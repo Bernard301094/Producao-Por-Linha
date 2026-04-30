@@ -302,7 +302,7 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp }:
         </div>
       ) : (
         <div className="flex items-center gap-2 mt-3 p-1 rounded-xl">
-          <Button size="sm" onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(''); }} className="flex-1 h-8 text-xs bg-zinc-900 hover:bg-zinc-800 ring-1 ring-zinc-900/10 shadow-sm text-white font-semibold">
+          <Button size="sm" onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }} className="flex-1 h-8 text-xs bg-zinc-900 hover:bg-zinc-800 ring-1 ring-zinc-900/10 shadow-sm text-white font-semibold">
             <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Concluir OP
           </Button>
           <button onClick={() => openEdit(op)} title="Editar" className="flex items-center justify-center w-8 h-8 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200 rounded-lg transition-colors border border-zinc-200 shadow-sm bg-white"><Pencil className="w-3.5 h-3.5" /></button>
@@ -769,8 +769,9 @@ export default function App() {
   const logicalToday = getLogicalDateStr(new Date());
 
   const myFinishedOps = finishedOps.filter(op => {
-    if (!op.carimboInicial) return true;
-    return getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
+    const sameTurn = op.turno === currentTurnForView;
+    if (!op.carimboInicial) return sameTurn;
+    return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
   });
 
   const myPendingOps = operations.filter(op => {

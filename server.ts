@@ -11,8 +11,13 @@ import cors from 'cors';
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+let __dirname = '';
+try {
+  const __filename = fileURLToPath(import.meta.url);
+  __dirname = path.dirname(__filename);
+} catch (e) {
+  __dirname = process.cwd();
+}
 
 const app = express();
 app.use(express.json());
@@ -273,15 +278,15 @@ app.post('/api/delete', async (req, res) => {
   }
 });
 
-// Serve frontend in production
-if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+// Serve frontend in production (only outside of Vercel)
+if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   const distPath = path.join(__dirname, 'dist');
   app.use(express.static(distPath));
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) return;
     res.sendFile(path.join(distPath, 'index.html'));
   });
-} else {
+} else if (!process.env.VERCEL) {
   const initVite = async () => {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
