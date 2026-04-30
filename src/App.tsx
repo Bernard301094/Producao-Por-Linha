@@ -690,6 +690,11 @@ export default function App() {
       }
     }
 
+    if (operations.some(op => op.opNumber === data.opNumber)) {
+      toast.error('Essa OP já está listada como pendente.');
+      return;
+    }
+
     setLoading(true);
     try {
       const matchedProduct = availableProducts.find(p => (p.produto || '').trim().toUpperCase() === (data.produto || '').trim().toUpperCase());
