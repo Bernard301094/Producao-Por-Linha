@@ -1,22 +1,14 @@
+import 'isomorphic-fetch';
 import express from 'express';
 // Removed top-level vite import
 import { Client } from '@microsoft/microsoft-graph-client';
 import { ClientSecretCredential } from '@azure/identity';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 import dotenv from 'dotenv';
 import cors from 'cors';
 
 dotenv.config();
-
-let __dirname = '';
-try {
-  const __filename = fileURLToPath(import.meta.url);
-  __dirname = path.dirname(__filename);
-} catch (e) {
-  __dirname = process.cwd();
-}
 
 const app = express();
 app.use(express.json());
@@ -274,9 +266,11 @@ app.post('/api/delete', async (req, res) => {
   }
 });
 
+const getDistPath = () => path.join(process.cwd(), 'dist');
+
 // Serve frontend in production (only outside of Vercel)
 if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
-  const distPath = path.join(__dirname, 'dist');
+  const distPath = getDistPath();
   app.use(express.static(distPath));
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) return;
