@@ -91,6 +91,21 @@ app.get('/api/config-check', async (req, res) => {
   });
 });
 
+const formatLitragemText = (val: string): string => {
+  if (!val) return '';
+  const trimmed = val.trim();
+  if (/^(\d+(?:[.,]\d+)?)$/.test(trimmed)) {
+    const num = parseFloat(trimmed.replace(',', '.'));
+    return num === 1 ? `${trimmed} Litro` : `${trimmed} Litros`;
+  }
+  const match = trimmed.match(/^(\d+(?:[.,]\d+)?)\s*L$/i);
+  if (match) {
+    const num = parseFloat(match[1].replace(',', '.'));
+    return num === 1 ? `${match[1]} Litro` : `${match[1]} Litros`;
+  }
+  return trimmed;
+};
+
 app.post('/api/append', async (req, res) => {
   console.log("POST /api/append received (OneDrive)", req.body);
   try {
@@ -113,7 +128,7 @@ app.post('/api/append', async (req, res) => {
       op || '', 
       horaInicial || '', 
       horaFinal || '', 
-      litragem || '', 
+      formatLitragemText(litragem || ''), 
       produto || '', 
       linha || '', 
       turno || '', 
@@ -124,38 +139,28 @@ app.post('/api/append', async (req, res) => {
     const client = getGraphClient();
     const { driveId, itemId } = await resolveExcelFile(client);
     
-    const sessionResponse = await client.api(`/drives/${driveId}/items/${itemId}/workbook/createSession`).post({ persistChanges: true });
-    const workbookSessionId = sessionResponse.id;
-    
     try {
-      const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${MS_SHEET_NAME}')/usedRange`)
-          .header('workbook-session-id', workbookSessionId)
-          .get();
+      const msSheetName = MS_SHEET_NAME;
+      const tablesRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/tables`).get();
       
-      const rowCount = usedRange.rowCount;
-      let nextRow = usedRange.rowIndex + rowCount;
-      if (rowCount === 1 && usedRange.values[0][0] === '') {
-          // If the sheet is completely empty, it might return rowCount 1 with empty values
-          nextRow = 0;
+      let updateRes;
+      if (tablesRes.value && tablesRes.value.length > 0) {
+        const tableName = tablesRes.value[0].name;
+        updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/tables('${tableName}')/rows`)
+          .post({ values: [rowValues] });
+      } else {
+        const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
+        const rowCount = usedRange.rowCount;
+        let nextRow = usedRange.rowIndex + rowCount;
+        if (rowCount === 1 && usedRange.values[0][0] === '') nextRow = 0;
+        const appendRangeStr = `A${nextRow + 1}:J${nextRow + 1}`;
+        updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`)
+          .patch({ values: [rowValues] });
       }
-      const appendRangeStr = `A${nextRow + 1}:J${nextRow + 1}`;
-      
-      const updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${MS_SHEET_NAME}')/range(address='${appendRangeStr}')`)
-        .header('workbook-session-id', workbookSessionId)
-        .patch({
-          values: [rowValues]
-        });
-        
-      await client.api(`/drives/${driveId}/items/${itemId}/workbook/closeSession`)
-          .header('workbook-session-id', workbookSessionId).post({});
       
       console.log("OneDrive Append success");
       return res.status(200).json({ success: true, message: 'Row added via OneDrive', data: updateRes });
     } catch (e) {
-       if (workbookSessionId) {
-           await client.api(`/drives/${driveId}/items/${itemId}/workbook/closeSession`)
-               .header('workbook-session-id', workbookSessionId).post({});
-       }
        throw e;
     }
   } catch (error: any) {
@@ -169,14 +174,103 @@ app.post('/api/append', async (req, res) => {
 });
 
 app.post('/api/update', async (req, res) => {
-  // Microsoft Graph update logic is more complex (search row, then update)
-  // For now, if users want OneDrive, we append. Implementing actual row update on large sheets can be slow.
-  // We'll return 501 for update if not implemented or try a simplified version
-  res.status(501).json({ error: "Update logic for Excel via Graph not fully implemented yet." });
+  try {
+    const { originalData, updates } = req.body;
+    const client = getGraphClient();
+    const { driveId, itemId } = await resolveExcelFile(client);
+    const msSheetName = MS_SHEET_NAME;
+
+    const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
+    
+    let rowIndexFound = -1;
+    let excelRowFound = -1;
+
+    // Search from bottom up to find the most recent matching operation
+    for (let i = usedRange.values.length - 1; i >= 0; i--) {
+      const row = usedRange.values[i];
+      const rowLinha = String(row[6] || '').trim().replace('Linha ', '');
+      const searchLinha = String(originalData.linha || '').trim().replace('Linha ', '');
+      if (
+        String(row[1] || '').trim() === String(originalData.op || '').trim() && 
+        rowLinha === searchLinha
+      ) {
+        rowIndexFound = i;
+        excelRowFound = usedRange.rowIndex + i + 1;
+        break;
+      }
+    }
+
+    if (excelRowFound !== -1 && rowIndexFound !== -1) {
+      const existingRow = usedRange.values[rowIndexFound];
+      const updatedRow = [
+        existingRow[0], // DATA
+        updates.opNumber !== undefined ? updates.opNumber : existingRow[1],
+        updates.horaInicial !== undefined ? updates.horaInicial : existingRow[2],
+        updates.horaFinal !== undefined ? updates.horaFinal : existingRow[3],
+        updates.litragem !== undefined ? formatLitragemText(updates.litragem) : existingRow[4],
+        updates.produto !== undefined ? updates.produto : existingRow[5],
+        updates.linha !== undefined ? updates.linha : existingRow[6],
+        updates.turno !== undefined ? updates.turno : existingRow[7],
+        updates.quantidade !== undefined ? updates.quantidade : existingRow[8],
+        updates.qntReprocesso !== undefined ? updates.qntReprocesso : existingRow[9]
+      ];
+
+      const appendRangeStr = `A${excelRowFound}:J${excelRowFound}`;
+      const updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`)
+        .patch({ values: [updatedRow] });
+      
+      return res.status(200).json({ success: true, message: 'Row updated', data: updateRes });
+    } else {
+      console.log('Row not found for update:', originalData);
+      return res.status(404).json({ success: false, error: 'Row not found in spreadsheet' });
+    }
+  } catch (error: any) {
+    console.error("Update error:", error?.message || error);
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
 });
 
 app.post('/api/delete', async (req, res) => {
-  res.status(501).json({ error: "Delete logic for Excel via Graph not fully implemented yet." });
+  try {
+    const { op, linha } = req.body;
+    const client = getGraphClient();
+    const { driveId, itemId } = await resolveExcelFile(client);
+    const msSheetName = MS_SHEET_NAME;
+
+    const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
+    
+    let rowIndexFound = -1;
+    let excelRowFound = -1;
+
+    for (let i = usedRange.values.length - 1; i >= 0; i--) {
+      const row = usedRange.values[i];
+      const rowLinha = String(row[6] || '').trim().replace('Linha ', '');
+      const searchLinha = String(linha || '').trim().replace('Linha ', '');
+      if (
+        String(row[1] || '').trim() === String(op || '').trim() && 
+        rowLinha === searchLinha
+      ) {
+        rowIndexFound = i;
+        excelRowFound = usedRange.rowIndex + i + 1;
+        break;
+      }
+    }
+
+    if (excelRowFound !== -1) {
+      // Delete the specific row in Excel using 'shift: Up'
+      const rowToDelete = `${excelRowFound}:${excelRowFound}`;
+      await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${rowToDelete}')/delete`)
+        .post({ shift: 'Up' });
+      
+      return res.status(200).json({ success: true, message: 'Row deleted' });
+    } else {
+      console.log('Row not found for delete:', req.body);
+      return res.status(404).json({ success: false, error: 'Row not found in spreadsheet' });
+    }
+  } catch (error: any) {
+    console.error("Delete error:", error?.message || error);
+    return res.status(500).json({ success: false, error: error?.message || String(error) });
+  }
 });
 
 // Serve frontend in production

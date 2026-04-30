@@ -1,4 +1,6 @@
 import { PRODUCTS } from './data';
+import { db } from './firebase';
+import { collection, doc, setDoc, getDocs, deleteDoc, updateDoc, query, where } from 'firebase/firestore';
 
 export interface Operation {
   id: string;
@@ -9,6 +11,7 @@ export interface Operation {
   horaInicial: string;
   carimboInicial?: string;
   litragem?: string;
+  status?: string;
 }
 
 export interface FinishedOperation extends Operation {
@@ -21,13 +24,7 @@ export interface FinishedOperation extends Operation {
 }
 
 const STORAGE_KEYS = {
-  PENDING_OPS: 'v-ops-pending',
   PRODUCTS: 'v-ops-products',
-  FINISHED_HISTORY: 'v-ops-finished-local' // Local cache of recent finishes
-};
-
-const getCompactString = (op: any) => {
-  return `${op.opNumber}|${op.linha}|${op.produto}|${op.litragem}|${op.quantidade}|${op.horaInicial}|${op.horaFinal}|${op.qntReprocesso || ''}`;
 };
 
 // LOCAL STORAGE HELPERS
@@ -41,18 +38,19 @@ const saveLocal = (key: string, data: any) => {
 };
 
 export const getOperations = async (): Promise<Operation[]> => {
-  return getLocal<Operation>(STORAGE_KEYS.PENDING_OPS);
+  const q = query(collection(db, 'operations'), where('status', '==', 'pending'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Operation));
 };
 
 export const addOperation = async (op: Operation) => {
-  const ops = await getOperations();
-  saveLocal(STORAGE_KEYS.PENDING_OPS, [...ops, op]);
+  await setDoc(doc(db, 'operations', op.id), { ...op, status: 'pending' });
 };
 
 export const removeOperation = async (id: string) => {
-  const ops = await getOperations();
-  saveLocal(STORAGE_KEYS.PENDING_OPS, ops.filter(o => o.id !== id));
+  await deleteDoc(doc(db, 'operations', id));
 };
+
 
 const formatSheetLitragem = (l: string) => {
   if (!l) return '';
@@ -111,10 +109,8 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
   // Remove from pending
   await removeOperation(id);
 
-  // Add to local history cache (since we don't have Firestore reports anymore)
-  const history = getLocal<string>(STORAGE_KEYS.FINISHED_HISTORY);
-  const compact = getCompactString(finishedOp);
-  saveLocal(STORAGE_KEYS.FINISHED_HISTORY, [compact, ...history].slice(0, 50)); // Keep last 50
+  // Add to Firebase finished ops
+  await setDoc(doc(db, 'operations', id), { ...finishedOp, status: 'finished' });
 };
 
 export const getProducts = async (): Promise<{produto: string, litragem: string}[]> => {
@@ -137,42 +133,85 @@ export const addProduct = async (produto: string, litragem: string) => {
 };
 
 export const removeFinishedOperation = async (id: string, _turno: string) => {
-  // Local history removal
-  const history = getLocal<string>(STORAGE_KEYS.FINISHED_HISTORY);
-  saveLocal(STORAGE_KEYS.FINISHED_HISTORY, history.filter(s => s !== id));
-  // Note: deletion from OneDrive is not implemented in server.ts
+  const docSnap = await getDocs(query(collection(db, 'operations'), where('__name__', '==', id)));
+  if (!docSnap.empty) {
+    const data = docSnap.docs[0].data();
+    try {
+      await fetch('/api/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })
+      });
+    } catch (e) {
+      console.error('Delete API error', e);
+    }
+  }
+  await deleteDoc(doc(db, 'operations', id));
 };
 
 export const moveFinishedToPending = async (id: string, turno: string) => {
-  const parts = id.split('|');
-  const uuid = Math.random().toString(36).substring(2);
-  const newOp: Operation = {
-    id: uuid,
-    opNumber: parts[0] || '',
-    linha: parts[1] || '',
-    produto: parts[2] || '',
-    litragem: parts[3] || '',
-    turno: turno || 'A',
-    horaInicial: parts[5] || '',
-    carimboInicial: new Date().toISOString()
-  };
-  await addOperation(newOp);
-  const history = getLocal<string>(STORAGE_KEYS.FINISHED_HISTORY);
-  saveLocal(STORAGE_KEYS.FINISHED_HISTORY, history.filter(s => s !== id));
+  const docSnap = await getDocs(query(collection(db, 'operations'), where('__name__', '==', id)));
+  if (!docSnap.empty) {
+    const data = docSnap.docs[0].data() as FinishedOperation;
+    const newOp: Operation = {
+      id: Math.random().toString(36).substring(2),
+      opNumber: data.opNumber || '',
+      linha: data.linha || '',
+      produto: data.produto || '',
+      litragem: data.litragem || '',
+      turno: turno || 'A',
+      horaInicial: data.horaInicial || '',
+      carimboInicial: new Date().toISOString()
+    };
+    await addOperation(newOp);
+    await removeFinishedOperation(id, turno);
+  }
 };
 
 export const updateFinishedOperation = async (oldId: string, data: Partial<FinishedOperation>, _turno: string) => {
-  // Update local history
-  const history = getLocal<string>(STORAGE_KEYS.FINISHED_HISTORY);
-  const newCompact = getCompactString(data);
-  saveLocal(STORAGE_KEYS.FINISHED_HISTORY, history.map(s => s === oldId ? newCompact : s));
-  
-  // Note: OneDrive update not implemented
+  const docSnap = await getDocs(query(collection(db, 'operations'), where('__name__', '==', oldId)));
+  if (!docSnap.empty) {
+    const original = docSnap.docs[0].data();
+    try {
+      await fetch('/api/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          originalData: { op: original.opNumber, linha: original.linha, produto: original.produto }, 
+          updates: data 
+        })
+      });
+    } catch (e) {
+      console.error('Update API error', e);
+    }
+    await updateDoc(doc(db, 'operations', oldId), data);
+  }
 };
 
 export const updateOperation = async (id: string, data: Partial<Operation>) => {
-  const ops = await getOperations();
-  saveLocal(STORAGE_KEYS.PENDING_OPS, ops.map(o => o.id === id ? { ...o, ...data } : o));
+  await updateDoc(doc(db, 'operations', id), data);
+};
+
+export const getReportForDateAndShift = async (_date: string, _shift: string) => {
+  const q = query(collection(db, 'operations'), where('status', '==', 'finished'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as FinishedOperation));
+};
+
+export const clearTurnoRecords = async (turno: string) => {
+  const q = query(collection(db, 'operations'), where('turno', '==', turno));
+  const snap = await getDocs(q);
+  for (const item of snap.docs) {
+    if (item.data().status === 'finished') {
+      await deleteDoc(doc(db, 'operations', item.id));
+    }
+  }
+};
+
+export const getAuthProfile = async (profileName: string) => {
+  const customAuth = getLocal<any>('v-ops-auth') || [];
+  const profile = customAuth.find((p: any) => p.name === profileName);
+  return profile || null;
 };
 
 export const checkSheetConnection = async () => {
@@ -184,17 +223,20 @@ export const checkSheetConnection = async () => {
   }
 };
 
-export const getReportForDateAndShift = async (_date: string, _shift: string) => {
-  // Since we don't have Firestore reports, we'll return the local history
-  // filtered by some criteria if needed, or just the history.
-  const history = getLocal<string>(STORAGE_KEYS.FINISHED_HISTORY);
-  return history.map((s: string) => {
-     const [opNumber, linha, produto, litragem, quantidade, horaInicial, horaFinal, qntReprocesso] = s.split('|');
-     return { opNumber, linha, produto, litragem, quantidade, horaInicial, horaFinal, qntReprocesso };
-  });
-};
+export const updateAuthProfile = async (profileName: string, newPassword: string) => {
+  const customAuth = getLocal<any>('v-ops-auth') || [];
+  const now = new Date().toISOString();
+  const existing = customAuth.find((p: any) => p.name === profileName);
 
-export const getAuthProfile = async (_profileName: string) => {
-  // Simplified auth: anyone can login since Firebase is gone
-  return { pin: '1234' }; // Fallback PIN
+  if (existing && existing.lastChangedAt) {
+    const lastChanged = new Date(existing.lastChangedAt);
+    const differenceInDays = (new Date().getTime() - lastChanged.getTime()) / (1000 * 3600 * 24);
+    if (differenceInDays < 30) {
+      throw new Error(`A senha só pode ser alterada uma vez a cada 30 dias. Tente novamente em ${Math.ceil(30 - differenceInDays)} dias.`);
+    }
+  }
+
+  const newProfile = { name: profileName, password: newPassword, lastChangedAt: now };
+  const filtered = customAuth.filter((p: any) => p.name !== profileName);
+  saveLocal('v-ops-auth', [...filtered, newProfile]);
 };
