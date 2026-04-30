@@ -2,7 +2,6 @@ import express from 'express';
 // Removed top-level vite import
 import { Client } from '@microsoft/microsoft-graph-client';
 import { ClientSecretCredential } from '@azure/identity';
-import fetch from 'isomorphic-fetch';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -39,9 +38,6 @@ const getGraphClient = () => {
       credential.getToken("https://graph.microsoft.com/.default")
         .then(token => done(null, token.token))
         .catch(error => done(error, null));
-    },
-    fetchOptions: {
-      customFetch: fetch // isomorphic-fetch
     }
   });
 };
@@ -288,7 +284,8 @@ if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   });
 } else if (!process.env.VERCEL) {
   const initVite = async () => {
-    const { createServer: createViteServer } = await import('vite');
+    const viteModule = 'vite';
+    const { createServer: createViteServer } = await import(/* @vite-ignore */ viteModule);
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
