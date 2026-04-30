@@ -3,9 +3,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation } from './api';
-import { db } from './firebase';
-import { collection, query, onSnapshot, doc } from 'firebase/firestore';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, checkSheetConnection } from './api';
+import { LINHAS } from './data';
 
 // Componentes UI e Ícones
 import { Button } from '../components/ui/button';
@@ -17,7 +16,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { cn } from './lib/utils';
 import { toast, Toaster } from 'sonner';
-import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, FileDown, Shield, Eye, EyeOff, RotateCcw } from 'lucide-react';
+import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, FileDown, Shield, Eye, EyeOff, RotateCcw, Wifi, Clock } from 'lucide-react';
 
 // Utilitários e Componentes Locais
 import { saveAndSharePDF } from './lib/pdfUtils';
@@ -31,15 +30,42 @@ const PROFILES: Record<string, string> = {
   'Supervisor': 'PCP@Vonixx2026'
 };
 
-function getSuggestedShift(now: Date, horaInicial: string): string {
-  if (typeof horaInicial !== 'string' || !horaInicial) return 'A';
-  const [h] = horaInicial.split(':').map(Number);
-  if (h >= 6 && h < 14) return 'A';
-  if (h >= 14 && h < 22) return 'B';
-  return 'C';
+function getActiveTurno(now: Date = new Date()): string {
+  const logicalDate = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+  const logicalTimeZeroed = Date.UTC(logicalDate.getFullYear(), logicalDate.getMonth(), logicalDate.getDate());
+  
+  // Ref date is April 29th, 2026. This was an A/B day.
+  const refDate = Date.UTC(2026, 3, 29); 
+  const diffDays = Math.floor((logicalTimeZeroed - refDate) / (1000 * 60 * 60 * 24));
+  
+  const isABDay = Math.abs(diffDays) % 2 === 0;
+  
+  const h = now.getHours();
+  const isDayTime = h >= 6 && h < 18;
+
+  if (isABDay) {
+      return isDayTime ? 'Turno A' : 'Turno B';
+  } else {
+      return isDayTime ? 'Turno C' : 'Turno D';
+  }
 }
 
-// Parsea un string compacto "opNumber|linha|produto|litragem|quantidade|horaInicial|horaFinal"
+function getSuggestedShift(now: Date, horaInicial: string): string {
+  return getActiveTurno(now).replace('Turno ', '');
+}
+
+function isShiftAllowed(profile: string): { allowed: boolean, reason?: string } {
+  if (profile === 'Supervisor') return { allowed: true };
+  
+  const activeTurno = getActiveTurno();
+  if (profile === activeTurno) {
+      return { allowed: true };
+  } else {
+      return { allowed: false, reason: `Fora do horário. O turno atual é o ${activeTurno}` };
+  }
+}
+
+// Parsea un string compacto "opNumber|linha|produto|litragem|quantidade|horaInicial|horaFinal|qntReprocesso"
 function parseReportString(s: string, turno: string): FinishedOperation {
   if (typeof s !== 'string') {
     return {
@@ -48,7 +74,7 @@ function parseReportString(s: string, turno: string): FinishedOperation {
       turno, carimboInicial: '', reportString: ''
     };
   }
-  const [opNumber, linha, produto, litragem, quantidade, horaInicial, horaFinal] = s.split('|');
+  const [opNumber, linha, produto, litragem, quantidade, horaInicial, horaFinal, qntReprocesso] = s.split('|');
   return {
     id: s,
     opNumber: opNumber || '',
@@ -58,6 +84,7 @@ function parseReportString(s: string, turno: string): FinishedOperation {
     quantidade: quantidade || '',
     horaInicial: horaInicial || '',
     horaFinal: horaFinal || '',
+    qntReprocesso: qntReprocesso || '',
     turno,
     carimboInicial: '',
     reportString: s,
@@ -100,6 +127,7 @@ export default function App() {
   const [historyReports, setHistoryReports] = useState<any[]>([]);
   const [mobileTab, setMobileTab] = useState<'pendentes' | 'nova' | 'concluidas'>('nova');
   const [openLineSelect, setOpenLineSelect] = useState(false);
+  const [openEditLineSelect, setOpenEditLineSelect] = useState(false);
   const [searchPending, setSearchPending] = useState('');
   const [searchFinished, setSearchFinished] = useState('');
   const [operations, setOperations] = useState<Operation[]>([]);
@@ -109,11 +137,13 @@ export default function App() {
   const [availableProducts, setAvailableProducts] = useState<{produto: string, litragem: string}[]>([]);
   const [showProductSuggestions, setShowProductSuggestions] = useState(false);
   const [finishQtd, setFinishQtd] = useState('');
+  const [finishQtdReprocesso, setFinishQtdReprocesso] = useState('');
   const [finishTime, setFinishTime] = useState('');
+  const [checkingConnection, setCheckingConnection] = useState(false);
   const [editingOp, setEditingOp] = useState<Operation | FinishedOperation | null>(null);
   const [deletingOp, setDeletingOp] = useState<Operation | FinishedOperation | null>(null);
   const [revertingOp, setRevertingOp] = useState<FinishedOperation | null>(null);
-  const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setValueEdit, watch: watchEdit } = useForm<StartOpFormValues & { quantidade?: string; horaFinal?: string }>({});
+  const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setValueEdit, watch: watchEdit } = useForm<StartOpFormValues & { quantidade?: string; horaFinal?: string; qntReprocesso?: string }>({});
   const watchEditProduto = watchEdit('produto');
 
   const novaOpRef = useRef<HTMLDivElement>(null);
@@ -145,7 +175,8 @@ export default function App() {
       turno: op.turno,
       horaInicial: op.horaInicial,
       quantidade: (op as FinishedOperation).quantidade || '',
-      horaFinal: (op as FinishedOperation).horaFinal || ''
+      horaFinal: (op as FinishedOperation).horaFinal || '',
+      qntReprocesso: (op as FinishedOperation).qntReprocesso || ''
     });
   };
 
@@ -161,12 +192,12 @@ export default function App() {
       const normalizeTime = (t: string) =>
         t && t.length === 5 ? `${t}:00` : t;
 
-      if ('quantidade' in editingOp) {
-        const linhaRaw = data.linha || '';
-        const formattedLinha = linhaRaw
-          ? isNaN(Number(linhaRaw)) ? linhaRaw : `Linha ${linhaRaw}`
-          : editingOp.linha;
+      const linhaRaw = data.linha || '';
+      const formattedLinha = linhaRaw
+        ? isNaN(Number(linhaRaw)) ? linhaRaw : `Linha ${linhaRaw}`
+        : editingOp.linha;
 
+      if ('quantidade' in editingOp) {
         // Pasar turno del op para que api.ts derive el reportDocId correcto
         const turno = editingOp.turno || currentTurnForView;
 
@@ -181,20 +212,23 @@ export default function App() {
             horaInicial: normalizeTime(data.horaInicial),
             quantidade: data.quantidade,
             horaFinal: normalizeTime(data.horaFinal),
+            qntReprocesso: data.qntReprocesso,
           },
           turno
         );
         toast.success('OP concluída actualizada.');
+        refreshData();
       } else {
         await updateOperation(editingOp.id, {
           opNumber: data.opNumber,
           produto: data.produto,
           litragem: derivedLitragem,
-          linha: data.linha,
+          linha: formattedLinha,
           turno: data.turno,
           horaInicial: normalizeTime(data.horaInicial),
         });
         toast.success('OP actualizada.');
+        refreshData();
       }
       setEditingOp(null);
     } catch (err: any) {
@@ -236,12 +270,22 @@ export default function App() {
     ? loginProfile.replace('Turno ', '')
     : getSuggestedShift(new Date(), format(new Date(), 'HH:mm'));
 
-  useEffect(() => {
-    const unsubPending = onSnapshot(query(collection(db, 'pendingOperations')), (snapshot) => {
-      setOperations(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Operation)));
-    });
+  const refreshData = async () => {
+    try {
+      const ops = await getOperations();
+      setOperations(ops);
+      
+      const finished = await getReportForDateAndShift('', '');
+      setFinishedOps(finished as FinishedOperation[]);
+      
+      await loadProducts();
+    } catch (e) {
+      console.error("Error refreshing data:", e);
+    }
+  };
 
-    loadProducts();
+  useEffect(() => {
+    refreshData();
     setValue('horaInicial', format(new Date(), 'HH:mm'));
 
     const storedProfile = localStorage.getItem('loginProfile');
@@ -249,31 +293,11 @@ export default function App() {
       setLoginProfile(storedProfile);
       if (storedProfile !== 'Supervisor') setValue('turno', storedProfile.replace('Turno ', ''));
     }
-
-    return () => {
-      unsubPending();
-    };
+    
+    // Refresh every 30 seconds just in case
+    const interval = setInterval(refreshData, 30000);
+    return () => clearInterval(interval);
   }, [setValue]);
-
-  // Listener en tiempo real al documento reports/{fecha}_{turno} del turno activo
-  useEffect(() => {
-    if (!loginProfile || loginProfile === 'Supervisor') {
-      setFinishedOps([]);
-      return;
-    }
-    const turno = loginProfile.replace('Turno ', '');
-    const dateStr = format(new Date(), 'yyyy-MM-dd');
-    const docId = `${dateStr}_${turno}`;
-    const unsubReport = onSnapshot(doc(db, 'reports', docId), (snap) => {
-      if (snap.exists()) {
-        const strings: string[] = snap.data().ops || [];
-        setFinishedOps(strings.map(s => parseReportString(s, turno)));
-      } else {
-        setFinishedOps([]);
-      }
-    });
-    return () => unsubReport();
-  }, [loginProfile]);
 
   const loadHistory = async () => {
     try {
@@ -286,11 +310,19 @@ export default function App() {
 
   useEffect(() => {
     if (loginProfile === 'Supervisor') loadHistory();
+    refreshData();
   }, [supervisorDate, supervisorShift, loginProfile]);
 
   // Login
   const handleLogin = async () => {
     if (!selectedProfile) return;
+    
+    const shiftCheck = isShiftAllowed(selectedProfile);
+    if (!shiftCheck.allowed) {
+      toast.error(shiftCheck.reason);
+      return;
+    }
+
     setLoginLoading(true);
     try {
       const profileData = await getAuthProfile(selectedProfile);
@@ -344,7 +376,7 @@ export default function App() {
       };
       await addOperation(newOp);
       await addProduct(data.produto, derivedLitragem);
-      setAvailableProducts(await getProducts());
+      await refreshData();
       toast.success('Operação iniciada!');
       reset({ ...data, opNumber: '', produto: '' });
       setValue('horaInicial', format(new Date(), 'HH:mm'));
@@ -359,9 +391,17 @@ export default function App() {
     if (!finishQtd || !finishTime) { toast.error('Preencha a quantidade e hora final.'); return; }
     setLoading(true);
     try {
-      await markOperationFinished(id, finishQtd, finishTime.length === 5 ? `${finishTime}:00` : finishTime);
+      await markOperationFinished(
+          id, 
+          finishQtd, 
+          finishTime.length === 5 ? `${finishTime}:00` : finishTime,
+          finishQtdReprocesso
+      );
+      await refreshData();
       toast.success('Salvo na planilha com sucesso!');
-      setFinishingId(null); setFinishQtd('');
+      setFinishingId(null); 
+      setFinishQtd('');
+      setFinishQtdReprocesso('');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar.');
     } finally { setLoading(false); }
@@ -373,6 +413,7 @@ export default function App() {
     try {
       // Pasar turno para que api.ts derive el reportDocId correcto
       await moveFinishedToPending(revertingOp.id, revertingOp.turno || currentTurnForView);
+      await refreshData();
       toast.success('OP movida de volta para Pendentes.');
     } catch (err: any) {
       toast.error('Erro ao reverter: ' + err.message);
@@ -410,6 +451,7 @@ export default function App() {
         await removeOperation(deletingOp.id);
         toast.message('Operação removida.');
       }
+      await refreshData();
     } catch (err: any) {
       toast.error('Erro ao remover: ' + err.message);
     } finally {
@@ -552,6 +594,26 @@ export default function App() {
     );
   }
 
+  const handleTestConnection = async () => {
+    setCheckingConnection(true);
+    toast.info('Verificando conexão...');
+    try {
+      const dbTest = await checkSheetConnection();
+      if (dbTest.status === 'Connected') {
+        toast.success(`Conexão Banco OK!`, {
+          description: `Planilha: ${dbTest.title || 'Desconhecida'}`
+        });
+      } else {
+        toast.error(`Falha na conexão`, {
+          description: dbTest.status
+        });
+      }
+    } catch (e) {
+      toast.error('Erro de rede ao verificar conexão');
+    }
+    setCheckingConnection(false);
+  };
+
   const today = format(new Date(), 'dd/MM/yyyy');
 
   return (
@@ -571,6 +633,15 @@ export default function App() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={checkingConnection}
+                className="hidden md:flex items-center gap-1.5 text-slate-500 hover:text-blue-600 font-semibold text-xs px-2 py-1.5 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50"
+                title="Testar conexão com o banco de dados"
+              >
+                {checkingConnection ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
+              </button>
               <div className="hidden md:flex items-center gap-1.5 bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5">
                 <span className="text-[11px] font-black text-blue-700 uppercase tracking-wider">{loginProfile}</span>
               </div>
@@ -593,7 +664,7 @@ export default function App() {
         </header>
 
         {/* Mobile Tab Bar */}
-        <div className="md:hidden sticky top-[57px] z-20 bg-white border-b border-slate-200 shadow-sm">
+        <div className="lg:hidden sticky top-[57px] z-20 bg-white border-b border-slate-200 shadow-sm">
           <div className="flex">
             {(['pendentes', 'nova', 'concluidas'] as const).map((tab) => (
               <button
@@ -613,10 +684,10 @@ export default function App() {
         </div>
 
         <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
 
             {/* Pendentes */}
-            <div className={cn('bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden', mobileTab !== 'pendentes' && 'hidden md:flex')}>
+            <div className={cn('bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
               <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
@@ -654,21 +725,28 @@ export default function App() {
                     </div>
                     {finishingId === op.id ? (
                       <div className="mt-2 pt-2 border-t border-slate-200 space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                           <div>
                             <label className="text-[10px] font-bold text-slate-500 uppercase">Qtd (UN)</label>
-                            <Input type="number" value={finishQtd} onChange={e => setFinishQtd(e.target.value)} placeholder="Ex: 1200" className="h-8 text-xs mt-0.5" />
+                            <Input type="number" value={finishQtd} onChange={e => setFinishQtd(e.target.value)} placeholder="Ex: 1200" className="h-10 md:h-8 text-base md:text-xs mt-0.5" />
                           </div>
                           <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase">Reprocesso</label>
+                            <Input type="number" value={finishQtdReprocesso} onChange={e => setFinishQtdReprocesso(e.target.value)} placeholder="Opcional" className="h-10 md:h-8 text-base md:text-xs mt-0.5" />
+                          </div>
+                          <div className="col-span-2 md:col-span-1">
                             <label className="text-[10px] font-bold text-slate-500 uppercase">Hora Final</label>
-                            <Input type="time" value={finishTime} onChange={e => setFinishTime(e.target.value)} className="h-8 text-xs mt-0.5" />
+                            <div className="relative flex items-center bg-white border border-slate-200 rounded-md focus-within:ring-2 focus-within:ring-blue-500 overflow-hidden mt-0.5">
+                              <Clock className="absolute left-2 w-4 md:w-3.5 h-4 md:h-3.5 text-slate-400 pointer-events-none" />
+                              <Input type="time" value={finishTime} onChange={e => setFinishTime(e.target.value)} className="w-full h-10 md:h-8 pl-8 md:pl-7 pr-2 text-base md:text-xs font-mono text-slate-700 bg-transparent border-none shadow-none focus-visible:ring-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:bg-transparent" />
+                            </div>
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={() => handleFinish(op.id)} disabled={loading} className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white">
+                          <Button size="sm" onClick={() => handleFinish(op.id)} disabled={loading} className="flex-1 h-10 md:h-8 text-sm md:text-xs bg-emerald-600 hover:bg-emerald-700 text-white">
                             {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Confirmar'}
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => { setFinishingId(null); setFinishQtd(''); setFinishTime(''); }} className="h-8 text-xs">Cancelar</Button>
+                          <Button size="sm" variant="outline" onClick={() => { setFinishingId(null); setFinishQtd(''); setFinishTime(''); setFinishQtdReprocesso(''); }} className="h-10 md:h-8 text-xs">Cancelar</Button>
                         </div>
                       </div>
                     ) : (
@@ -682,7 +760,7 @@ export default function App() {
             </div>
 
             {/* Nova OP */}
-            <div className={cn('bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden', mobileTab !== 'nova' && 'hidden md:flex')}>
+            <div className={cn('bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden', mobileTab !== 'nova' && 'hidden lg:flex')}>
               <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -692,22 +770,28 @@ export default function App() {
                   <span className="text-[10px] font-mono text-slate-400">Turno {currentTurnForView}</span>
                 </div>
               </div>
-              <form onSubmit={handleSubmit(onStartOp)} className="p-4 md:p-6 space-y-4 md:space-y-5">
+              <form onSubmit={handleSubmit(onStartOp, (errors) => {
+                const errorMsg = Object.values(errors).map(e => e.message).join(', ');
+                if (errorMsg) toast.error('Preencha os campos obrigatórios: ' + Object.keys(errors).join(', '));
+              })} className="p-4 md:p-6 space-y-4 md:space-y-5">
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div>
                     <Label htmlFor="opNumber" className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Nº da OP</Label>
-                    <Input id="opNumber" {...register('opNumber', { onChange: (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono text-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500" />
+                    <Input id="opNumber" {...register('opNumber', { onChange: (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" className="w-full h-12 md:h-11 px-3 bg-slate-50 border border-slate-200 rounded-lg text-base md:text-sm font-mono text-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500" />
                     {errors.opNumber && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.opNumber.message}</p>}
                   </div>
                   <div>
                     <Label htmlFor="horaInicial" className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Hora Inicial</Label>
-                    <Input id="horaInicial" type="time" {...register('horaInicial')} className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono text-slate-700 focus-visible:ring-2 focus-visible:ring-blue-500" />
+                    <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 overflow-hidden">
+                      <Clock className="absolute left-3 w-4 md:w-4 h-4 md:h-4 text-slate-400 pointer-events-none" />
+                      <Input id="horaInicial" type="time" {...register('horaInicial')} className="w-full h-12 md:h-11 pl-9 pr-3 text-base md:text-sm font-mono text-slate-700 bg-transparent border-none shadow-none focus-visible:ring-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:bg-transparent" />
+                    </div>
                     {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.horaInicial.message}</p>}
                   </div>
                 </div>
                 <div className="relative" ref={novaOpRef}>
                   <Label htmlFor="produto" className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Produto</Label>
-                  <input id="produto" {...register('produto')} autoComplete="off" onFocus={() => setShowProductSuggestions(true)} placeholder="Ex: ALUMAX 5L" className="flex h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" />
+                  <input id="produto" {...register('produto')} autoComplete="off" onFocus={() => setShowProductSuggestions(true)} placeholder="Ex: ALUMAX 5L" className="flex h-12 md:h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-base md:text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" />
                   {showProductSuggestions && filteredProducts.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-56 overflow-y-auto p-1">
                       {filteredProducts.map(p => (
@@ -722,8 +806,9 @@ export default function App() {
                 </div>
                 <div>
                   <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Linha de Produção</Label>
+                  <input type="hidden" {...register('linha')} />
                   <Popover open={openLineSelect} onOpenChange={setOpenLineSelect}>
-                    <PopoverTrigger type="button" role="combobox" aria-expanded={openLineSelect} className={cn("flex items-center justify-between w-full h-11 px-3 border-2 transition-all duration-200 text-sm font-semibold rounded-lg outline-none focus:ring-2 focus:ring-blue-500", watch('linha') ? 'border-blue-500 bg-blue-50/50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300')}>
+                    <PopoverTrigger type="button" role="combobox" aria-expanded={openLineSelect} className={cn("flex items-center justify-between w-full h-12 md:h-11 px-3 border-2 transition-all duration-200 text-base md:text-sm font-semibold rounded-lg outline-none focus:ring-2 focus:ring-blue-500", watch('linha') ? 'border-blue-500 bg-blue-50/50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300')}>
                       {watch('linha') ? `Linha ${watch('linha')}` : 'Selecione a Linha'}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </PopoverTrigger>
@@ -733,11 +818,11 @@ export default function App() {
                         <CommandList className="max-h-[250px] overflow-y-auto mt-1">
                           <CommandEmpty className="py-6 text-center text-xs text-slate-500">Nenhuma linha encontrada.</CommandEmpty>
                           <CommandGroup>
-                            {Array.from({ length: 16 }, (_, i) => {
-                              const lineVal = String(i + 1).padStart(2, '0');
+                            {LINHAS.map((linhaFull) => {
+                              const lineVal = linhaFull.replace('Linha ', '');
                               return (
-                                <CommandItem key={lineVal} value={`Linha ${lineVal}`} onSelect={() => { setValue('linha', lineVal, { shouldValidate: true }); setOpenLineSelect(false); }} className="flex items-center justify-between py-2.5 px-3 cursor-pointer aria-selected:bg-blue-600 aria-selected:text-white">
-                                  <span className="font-bold uppercase tracking-tight">Linha {lineVal}</span>
+                                <CommandItem key={lineVal} value={linhaFull} onSelect={() => { setValue('linha', lineVal, { shouldValidate: true }); setOpenLineSelect(false); }} className="flex items-center justify-between py-2.5 px-3 cursor-pointer aria-selected:bg-blue-600 aria-selected:text-white">
+                                  <span className="font-bold uppercase tracking-tight">{linhaFull}</span>
                                   <Check className={cn('h-4 w-4', watch('linha') === lineVal ? 'opacity-100' : 'opacity-0')} />
                                 </CommandItem>
                               );
@@ -750,6 +835,7 @@ export default function App() {
                   {errors.linha && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.linha.message}</p>}
                 </div>
                 <div className="hidden">
+                  <input type="hidden" {...register('turno')} />
                   <Select onValueChange={(v) => setValue('turno', v)} value={watch('turno') || ''} disabled={!!loginProfile && loginProfile !== 'Supervisor'}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -765,7 +851,7 @@ export default function App() {
             </div>
 
             {/* Concluídas */}
-            <div className={cn('bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden', mobileTab !== 'concluidas' && 'hidden md:flex')}>
+            <div className={cn('bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
               <div className="p-4 border-b border-slate-100">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -805,7 +891,12 @@ export default function App() {
                           {op.horaFinal && <span className="text-[10px] text-slate-500">Fim: {op.horaFinal}</span>}
                         </div>
                         {op.quantidade && (
-                          <p className="text-xs font-black text-emerald-600 mt-1">{parseInt(op.quantidade).toLocaleString()} UN</p>
+                          <div className="flex gap-2 items-center mt-1">
+                            <p className="text-xs font-black text-emerald-600">{parseInt(op.quantidade).toLocaleString()} UN</p>
+                            {op.qntReprocesso && (
+                              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider bg-amber-100/50 px-1.5 py-0.5 rounded-sm">Reprocesso: {op.qntReprocesso} UN</p>
+                            )}
+                          </div>
                         )}
                       </div>
                       <div className="flex flex-col gap-1 flex-shrink-0">
@@ -835,7 +926,7 @@ export default function App() {
                   </div>
                 ))}
               </div>
-              <div className="p-3 border-t border-slate-100 md:hidden">
+              <div className="p-3 border-t border-slate-100 lg:hidden">
                 <button
                   onClick={async () => {
                     const r = await import('./lib/pdfUtils');
@@ -898,16 +989,19 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Nº da OP</Label>
-                  <Input type="text" inputMode="numeric" pattern="[0-9]*" {...registerEdit('opNumber', { onChange: (e) => e.target.value = e.target.value.replace(/[^0-9]/g, '') })} className="w-full h-10 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono text-slate-700" />
+                  <Input type="text" inputMode="numeric" pattern="[0-9]*" {...registerEdit('opNumber', { onChange: (e) => e.target.value = e.target.value.replace(/[^0-9]/g, '') })} className="w-full h-11 md:h-10 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-base md:text-sm font-mono text-slate-700" />
                 </div>
                 <div>
                   <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Hora Inicial</Label>
-                  <Input type="time" {...registerEdit('horaInicial')} className="w-full h-10 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono text-slate-700" />
+                  <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-md focus-within:ring-2 focus-within:ring-blue-500 overflow-hidden">
+                    <Clock className="absolute left-3 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <Input type="time" {...registerEdit('horaInicial')} className="w-full h-11 md:h-10 pl-9 pr-3 py-2 text-base md:text-sm font-mono text-slate-700 bg-transparent border-none shadow-none focus-visible:ring-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:bg-transparent" />
+                  </div>
                 </div>
               </div>
               <div className="relative" ref={editOpRef}>
                 <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Produto</Label>
-                <input {...registerEdit('produto')} autoComplete="off" onFocus={() => setShowEditProductSuggestions(true)} className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" />
+                <input {...registerEdit('produto')} autoComplete="off" onFocus={() => setShowEditProductSuggestions(true)} className="flex h-11 md:h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-base md:text-sm text-slate-700 transition-colors placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" />
                 {showEditProductSuggestions && filteredEditProducts.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-60 overflow-y-auto p-1">
                     {filteredEditProducts.map(p => (
@@ -916,7 +1010,37 @@ export default function App() {
                   </div>
                 )}
               </div>
+              <div>
+                <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Linha de Produção</Label>
+                <input type="hidden" {...registerEdit('linha')} />
+                <Popover open={openEditLineSelect} onOpenChange={setOpenEditLineSelect}>
+                  <PopoverTrigger type="button" role="combobox" aria-expanded={openEditLineSelect} className={cn("flex items-center justify-between w-full h-11 md:h-10 px-3 border-2 transition-all duration-200 text-base md:text-sm font-semibold rounded-lg outline-none focus:ring-2 focus:ring-blue-500", watchEdit('linha') ? 'border-blue-500 bg-blue-50/50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300')}>
+                    {watchEdit('linha') ? `Linha ${watchEdit('linha').replace(/^Linha\s*/i, '')}` : 'Selecione a Linha'}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0 shadow-xl border-slate-200" align="start">
+                    <Command className="border-none">
+                      <CommandInput placeholder="Buscar linha..." className="bg-transparent text-sm" />
+                      <CommandList className="max-h-[250px] overflow-y-auto mt-1">
+                        <CommandEmpty className="py-6 text-center text-xs text-slate-500">Nenhuma linha encontrada.</CommandEmpty>
+                        <CommandGroup>
+                          {LINHAS.map((linhaFull) => {
+                            const lineVal = linhaFull.replace('Linha ', '');
+                            return (
+                              <CommandItem key={lineVal} value={linhaFull} onSelect={() => { setValueEdit('linha', lineVal, { shouldValidate: true }); setOpenEditLineSelect(false); }} className="flex items-center justify-between py-2.5 px-3 cursor-pointer aria-selected:bg-blue-600 aria-selected:text-white">
+                                <span className="font-bold uppercase tracking-tight">{linhaFull}</span>
+                                <Check className={cn('h-4 w-4', watchEdit('linha')?.replace(/^Linha\s*/i, '') === lineVal ? 'opacity-100' : 'opacity-0')} />
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div className="hidden">
+                <input type="hidden" {...registerEdit('turno')} />
                 <Select onValueChange={(v) => setValueEdit('turno', v)} value={watchEdit('turno') || ''} disabled={!!loginProfile && loginProfile !== 'Supervisor'}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -926,14 +1050,21 @@ export default function App() {
                 </Select>
               </div>
               {'quantidade' in editingOp && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Quantidade (UN)</Label>
-                    <Input type="number" {...registerEdit('quantidade')} className="w-full h-10 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono text-slate-700" />
+                    <Input type="number" {...registerEdit('quantidade')} className="w-full h-11 md:h-10 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-base md:text-sm font-mono text-slate-700" />
                   </div>
                   <div>
+                    <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Reprocesso</Label>
+                    <Input type="number" {...registerEdit('qntReprocesso')} className="w-full h-11 md:h-10 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-base md:text-sm font-mono text-slate-700" placeholder="Opcional" />
+                  </div>
+                  <div className="col-span-2 md:col-span-1">
                     <Label className="block text-[10px] font-black text-slate-500 uppercase tracking-tighter mb-1.5">Hora Final</Label>
-                    <Input type="time" {...registerEdit('horaFinal')} className="w-full h-10 px-3 py-2 bg-slate-50 border border-slate-200 rounded-md text-sm font-mono text-slate-700" />
+                    <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-md focus-within:ring-2 focus-within:ring-blue-500 overflow-hidden">
+                      <Clock className="absolute left-3 w-4 h-4 text-slate-400 pointer-events-none" />
+                      <Input type="time" {...registerEdit('horaFinal')} className="w-full h-11 md:h-10 pl-9 pr-3 py-2 text-base md:text-sm font-mono text-slate-700 bg-transparent border-none shadow-none focus-visible:ring-0 cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:bg-transparent" />
+                    </div>
                   </div>
                 </div>
               )}

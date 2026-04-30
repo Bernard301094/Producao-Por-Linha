@@ -12,6 +12,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@azure/identity": "^4.13.1",
     "@base-ui/react": "^1.4.1",
     "@capacitor/android": "^8.3.1",
     "@capacitor/core": "^8.3.1",
@@ -20,6 +21,7 @@
     "@fontsource-variable/geist": "^5.2.8",
     "@google/genai": "^1.29.0",
     "@hookform/resolvers": "^5.2.2",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "class-variance-authority": "^0.7.1",
@@ -32,6 +34,7 @@
     "firebase": "^12.12.1",
     "google-auth-library": "^10.6.2",
     "googleapis": "^171.4.0",
+    "isomorphic-fetch": "^3.0.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "localforage": "^1.10.0",
