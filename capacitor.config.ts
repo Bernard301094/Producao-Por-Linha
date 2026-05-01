@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.vonixx.sheetbridge',
-  appName: 'SheetBridge',
+  appId: 'com.vonixx.producaolinha',
+  appName: 'Produção por Linha',
   webDir: 'dist'
 };
 
