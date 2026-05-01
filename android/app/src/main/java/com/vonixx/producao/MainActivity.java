@@ -1,4 +1,4 @@
-package com.vonixx.sheetbridge;
+package com.vonixx.producao;
 
 import com.getcapacitor.BridgeActivity;
 
