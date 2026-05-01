@@ -410,7 +410,6 @@ export default function App() {
   const [finishQtd, setFinishQtd] = useState('');
   const [finishQtdReprocesso, setFinishQtdReprocesso] = useState('');
   const [finishTime, setFinishTime] = useState('');
-  const [checkingConnection, setCheckingConnection] = useState(false);
   
   const [searchLine, setSearchLine] = useState('');
   const [searchEditLine, setSearchEditLine] = useState('');
@@ -999,26 +998,6 @@ export default function App() {
   }
 
   // Deleted Painel Supervisor
-
-  const handleTestConnection = async () => {
-    setCheckingConnection(true);
-    toast.info('Verificando conexão...');
-    try {
-      const dbTest = await checkSheetConnection();
-      if (dbTest.status === 'Connected') {
-        toast.success(`Conexão Banco OK!`, {
-          description: `Planilha: ${dbTest.title || 'Desconhecida'}`
-        });
-      } else {
-        toast.error(`Falha na conexão`, {
-          description: dbTest.status
-        });
-      }
-    } catch (e) {
-      toast.error('Erro de rede ao verificar conexão');
-    }
-    setCheckingConnection(false);
-  };
 
   const today = format(new Date(), 'dd/MM/yyyy');
 

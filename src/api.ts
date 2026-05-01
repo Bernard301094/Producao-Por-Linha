@@ -67,7 +67,8 @@ export const removeOperation = async (id: string) => {
 
 
 // Detect if running inside Capacitor
-const isCapacitor = typeof (window as any)?.Capacitor !== 'undefined' && (window as any)?.Capacitor?.isNativePlatform();
+import { Capacitor } from '@capacitor/core';
+const isCapacitor = Capacitor.isNativePlatform();
 
 // Use the explicit backend URL for Capacitor Native environments so it doesn't fail trying to reach capacitor://localhost/api
 const API_BASE = isCapacitor ? 'https://ais-pre-lr3elaaqn26vdipvtk4fc5-246875337716.us-east1.run.app' : '';
