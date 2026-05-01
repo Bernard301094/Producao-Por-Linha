@@ -94,7 +94,12 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
   if (!data) throw new Error("Operação pendente não encontrada.");
   
   const formattedLinha = data.linha ? (isNaN(Number(data.linha)) ? data.linha : `Linha ${data.linha}`) : '';
-  const formatedCarimbo = new Date().toLocaleDateString('pt-BR');
+  
+  const now = new Date();
+  const DD = String(now.getDate()).padStart(2, '0');
+  const MM = String(now.getMonth() + 1).padStart(2, '0');
+  const YYYY = now.getFullYear();
+  const formatedCarimbo = `${DD}/${MM}/${YYYY}`;
 
   const finishedOp: FinishedOperation = {
     ...data,
@@ -106,7 +111,7 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
 
   // Sync with OneDrive
   const payload = {
-    carimbo: formatedCarimbo,
+    carimbo: `'${formatedCarimbo}`,
     op: data.opNumber,
     litragem: formatSheetLitragem(data.litragem || ''),
     produto: data.produto,
@@ -133,11 +138,13 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
     throw new Error(`Aviso: Ocorreu um erro ao sincronizar com o OneDrive. Detalhes: ${error.message}`);
   }
 
-  // Remove from pending
-  await removeOperation(id);
-
-  // Add to Firebase finished ops
-  await setDoc(doc(db, 'operations', id), { ...finishedOp, status: 'finished' });
+  // Update document atomically to become finished 
+  try {
+    await updateDoc(doc(db, 'operations', id), { ...finishedOp, status: 'finished' });
+  } catch (firebaseErr: any) {
+    console.error("Firebase updateDoc failed", firebaseErr);
+    throw new Error(`Copiado na planilha com sucesso, porém ocorreu erro ao salvar na nuvem: ${firebaseErr.message}`);
+  }
 };
 
 export const getProducts = async (): Promise<{produto: string, litragem: string}[]> => {
@@ -161,6 +168,7 @@ export const addProduct = async (produto: string, litragem: string) => {
 
 export const removeFinishedOperation = async (id: string, _turno: string) => {
   const docSnap = await getDocs(query(collection(db, 'operations'), where('__name__', '==', id)));
+  let apiError = null;
   if (!docSnap.empty) {
     const data = docSnap.docs[0].data();
     try {
@@ -170,14 +178,25 @@ export const removeFinishedOperation = async (id: string, _turno: string) => {
         body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })
       });
       if (!resp.ok) {
-        throw new Error(await resp.text());
+        apiError = await resp.text();
       }
     } catch (e: any) {
       console.error('Delete API error', e);
-      throw new Error(`Erro ao apagar planilha: ${e.message}`);
+      apiError = e.message;
     }
   }
-  await deleteDoc(doc(db, 'operations', id));
+  
+  try {
+    await deleteDoc(doc(db, 'operations', id));
+  } catch (firebaseErr: any) {
+    console.error("Firebase deleteDoc failed", firebaseErr);
+    throw new Error(`Erro ao deletar da nuvem: ${firebaseErr.message}`);
+  }
+
+  if (apiError) {
+    // Only throw after successfully deleting from Firebase so state isn't stuck
+    throw new Error(`Aviso: Operação removida do aplicativo, mas ocorreu um erro ao apagar da planilha: ${apiError}`);
+  }
 };
 
 export const moveFinishedToPending = async (id: string, turno: string) => {
@@ -185,19 +204,31 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
   if (!docSnap.empty) {
     const data = docSnap.docs[0].data() as FinishedOperation;
     
-    await removeFinishedOperation(id, turno);
+    // Attempt to remove from spreadsheet
+    try {
+      await fetch(`${API_BASE}/api/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })
+      });
+    } catch (e) {
+      console.error('API delete error in revert', e);
+    }
     
+    // Clean up finished-specific fields
     const newOp: Operation = {
-      id: Math.random().toString(36).substring(2),
+      id: id,
       opNumber: data.opNumber || '',
       linha: data.linha || '',
       produto: data.produto || '',
       litragem: data.litragem || '',
       turno: turno || 'A',
       horaInicial: data.horaInicial || '',
-      carimboInicial: new Date().toISOString()
+      carimboInicial: data.carimboInicial || new Date().toISOString(),
+      status: 'pending'
     };
-    await addOperation(newOp);
+
+    await setDoc(doc(db, 'operations', id), newOp);
   }
 };
 
@@ -236,10 +267,11 @@ export const clearTurnoRecords = async (turno: string) => {
   const snap = await getDocs(q);
   for (const item of snap.docs) {
     if (item.data().status === 'finished') {
-      await deleteDoc(doc(db, 'operations', item.id));
+       await deleteDoc(doc(db, 'operations', item.id));
     }
   }
 };
+
 
 export const getAuthProfile = async (profileName: string) => {
   try {
