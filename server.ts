@@ -272,8 +272,10 @@ const getDistPath = () => path.join(process.cwd(), 'dist');
 if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   const distPath = getDistPath();
   app.use(express.static(distPath));
-  app.get('*', (req, res) => {
-    if (req.path.startsWith('/api')) return;
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
     res.sendFile(path.join(distPath, 'index.html'));
   });
 } else if (!process.env.VERCEL) {
@@ -289,7 +291,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   initVite();
 }
 
-if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
+if (!process.env.VERCEL) {
   const PORT = 3000;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
