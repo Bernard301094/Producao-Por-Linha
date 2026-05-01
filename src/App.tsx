@@ -411,6 +411,12 @@ export default function App() {
   const [finishQtdReprocesso, setFinishQtdReprocesso] = useState('');
   const [finishTime, setFinishTime] = useState('');
   const [checkingConnection, setCheckingConnection] = useState(false);
+  
+  const [searchLine, setSearchLine] = useState('');
+  const [searchEditLine, setSearchEditLine] = useState('');
+  const [customLinhas, setCustomLinhas] = useState<string[]>([]);
+
+  const allLinhas = useMemo(() => Array.from(new Set([...LINHAS, ...customLinhas])), [customLinhas]);
 
   const [editingOp, setEditingOp] = useState<Operation | FinishedOperation | null>(null);
   const [deletingOp, setDeletingOp] = useState<Operation | FinishedOperation | null>(null);
@@ -1131,14 +1137,22 @@ export default function App() {
                 <div className="relative" ref={novaOpRef}>
                   <Label htmlFor="produto" className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Produto</Label>
                   <input id="produto" {...register('produto')} autoComplete="off" onFocus={() => setShowProductSuggestions(true)} placeholder="Ex: ALUMAX 5L" className="flex h-12 md:h-11 w-full rounded-lg border border-zinc-200/60 bg-[#F9FAFB] px-3 py-2 text-base md:text-sm text-zinc-900 transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400" />
-                  {showProductSuggestions && filteredProducts.length > 0 && (
+                  {showProductSuggestions && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200/60 rounded-lg shadow-xl max-h-56 overflow-y-auto p-1 ring-1 ring-zinc-900/5">
-                      {filteredProducts.map(p => (
+                      {filteredProducts.length > 0 ? filteredProducts.map(p => (
                         <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); }} className="cursor-pointer px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 rounded-md flex items-center justify-between gap-2 font-medium">
                           <span>{p.produto}</span>
                           {p.litragem && <span className="text-[10px] text-zinc-400 font-mono tracking-tight shrink-0">{p.litragem}</span>}
                         </div>
-                      ))}
+                      )) : watch('produto') ? (
+                         <div className="px-3 py-2 text-sm text-zinc-500 font-medium cursor-pointer hover:bg-zinc-50 rounded-md" onClick={() => setShowProductSuggestions(false)}>
+                            Adicionar novo produto "{watch('produto')}"
+                         </div>
+                      ) : (
+                         <div className="px-3 py-2 text-sm text-zinc-500 font-medium">
+                            Digite para buscar ou criar...
+                         </div>
+                      )}
                     </div>
                   )}
                   {errors.produto && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.produto.message}</p>}
@@ -1152,12 +1166,32 @@ export default function App() {
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-zinc-400" />
                     </PopoverTrigger>
                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0 shadow-xl border-zinc-200/60 rounded-xl" align="start">
-                      <Command className="border-none">
-                        <CommandInput placeholder="Buscar linha..." className="bg-transparent text-sm" />
+                      <Command className="border-none" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
+                        <CommandInput placeholder="Buscar linha..." className="bg-transparent text-sm" value={searchLine} onValueChange={setSearchLine} />
                         <CommandList className="max-h-[250px] overflow-y-auto mt-1 p-1">
-                          <CommandEmpty className="py-6 text-center text-xs text-zinc-500">Nenhuma linha encontrada.</CommandEmpty>
+                          <CommandEmpty className="py-2 text-center text-xs text-zinc-500">
+                            {searchLine ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="w-full justify-start font-bold text-zinc-700"
+                                onClick={() => {
+                                  const newLine = searchLine.trim().startsWith('Linha') ? searchLine.trim() : `Linha ${searchLine.trim()}`;
+                                  const val = newLine.replace('Linha ', '');
+                                  setCustomLinhas(prev => [...prev, newLine]);
+                                  setValue('linha', val, { shouldValidate: true });
+                                  setOpenLineSelect(false);
+                                  setSearchLine('');
+                                }}
+                              >
+                                Adicionar "{searchLine}"
+                              </Button>
+                            ) : (
+                              "Nenhuma linha encontrada."
+                            )}
+                          </CommandEmpty>
                           <CommandGroup>
-                            {LINHAS.map((linhaFull) => {
+                            {allLinhas.map((linhaFull) => {
                               const lineVal = linhaFull.replace('Linha ', '');
                               return (
                                 <CommandItem key={lineVal} value={linhaFull} onSelect={() => { setValue('linha', lineVal, { shouldValidate: true }); setOpenLineSelect(false); }} className="flex items-center justify-between py-2 px-3 cursor-pointer rounded-md aria-selected:bg-zinc-900 aria-selected:text-white transition-colors">
@@ -1294,11 +1328,19 @@ export default function App() {
               <div className="relative" ref={editOpRef}>
                 <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Produto</Label>
                 <input {...registerEdit('produto')} autoComplete="off" onFocus={() => setShowEditProductSuggestions(true)} className="flex h-11 md:h-10 w-full rounded-md border border-zinc-200/60 bg-white px-3 py-2 text-base md:text-sm text-zinc-900 transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400" />
-                {showEditProductSuggestions && filteredEditProducts.length > 0 && (
+                {showEditProductSuggestions && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200/60 rounded-md shadow-lg max-h-60 overflow-y-auto p-1">
-                    {filteredEditProducts.map(p => (
+                    {filteredEditProducts.length > 0 ? filteredEditProducts.map(p => (
                       <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); }} className="cursor-pointer px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 rounded-sm">{p.produto}</div>
-                    ))}
+                    )) : watchEdit('produto') ? (
+                         <div className="px-3 py-2 text-sm text-zinc-500 font-medium cursor-pointer hover:bg-zinc-50 rounded-md" onClick={() => setShowEditProductSuggestions(false)}>
+                            Adicionar novo produto "{watchEdit('produto')}"
+                         </div>
+                    ) : (
+                         <div className="px-3 py-2 text-sm text-zinc-500 font-medium">
+                            Digite para buscar ou criar...
+                         </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1311,12 +1353,32 @@ export default function App() {
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </PopoverTrigger>
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-0 shadow-xl rounded-xl border-zinc-200/60" align="start">
-                    <Command className="border-none">
-                      <CommandInput placeholder="Buscar linha..." className="bg-transparent text-sm" />
+                    <Command className="border-none" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
+                      <CommandInput placeholder="Buscar linha..." className="bg-transparent text-sm" value={searchEditLine} onValueChange={setSearchEditLine} />
                       <CommandList className="max-h-[250px] overflow-y-auto mt-1 p-1">
-                        <CommandEmpty className="py-6 text-center text-xs text-zinc-500">Nenhuma linha encontrada.</CommandEmpty>
+                        <CommandEmpty className="py-2 text-center text-xs text-zinc-500">
+                            {searchEditLine ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="w-full justify-start font-bold text-zinc-700"
+                                onClick={() => {
+                                  const newLine = searchEditLine.trim().startsWith('Linha') ? searchEditLine.trim() : `Linha ${searchEditLine.trim()}`;
+                                  const val = newLine.replace('Linha ', '');
+                                  setCustomLinhas(prev => [...prev, newLine]);
+                                  setValueEdit('linha', val, { shouldValidate: true });
+                                  setOpenEditLineSelect(false);
+                                  setSearchEditLine('');
+                                }}
+                              >
+                                Adicionar "{searchEditLine}"
+                              </Button>
+                            ) : (
+                              "Nenhuma linha encontrada."
+                            )}
+                        </CommandEmpty>
                         <CommandGroup>
-                          {LINHAS.map((linhaFull) => {
+                          {allLinhas.map((linhaFull) => {
                             const lineVal = linhaFull.replace('Linha ', '');
                             return (
                               <CommandItem key={lineVal} value={linhaFull} onSelect={() => { setValueEdit('linha', lineVal, { shouldValidate: true }); setOpenEditLineSelect(false); }} className="flex items-center justify-between py-2 px-3 cursor-pointer rounded-md aria-selected:bg-zinc-900 aria-selected:text-white transition-colors">
