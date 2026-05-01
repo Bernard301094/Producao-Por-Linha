@@ -1,6 +1,6 @@
 import { PRODUCTS } from './data';
 import { db } from './firebase';
-import { collection, doc, setDoc, getDocs, deleteDoc, updateDoc, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, updateDoc, query, where, onSnapshot } from 'firebase/firestore';
 
 export interface Operation {
   id: string;
@@ -70,8 +70,14 @@ export const removeOperation = async (id: string) => {
 import { Capacitor } from '@capacitor/core';
 const isCapacitor = Capacitor.isNativePlatform();
 
-// Use the explicit backend URL for Capacitor Native environments so it doesn't fail trying to reach capacitor://localhost/api
-const API_BASE = isCapacitor ? 'https://ais-pre-lr3elaaqn26vdipvtk4fc5-246875337716.us-east1.run.app' : '';
+/**
+ * DETERMINISTIC API BASE URL
+ * In Capacitor native environments, nested fetch('/api/...') calls default to capacitor://localhost/api/...
+ * which doesn't exist. We must point to the absolute URL of the deployed backend.
+ * We MUST point to the Shared App URL (ais-pre) because the Dev URL (ais-dev) is protected and denies access from the mobile phone.
+ * The user must click "Share" in the AI Studio platform to publish the backend.
+ */
+const API_BASE = import.meta.env.VITE_API_URL || (isCapacitor ? 'https://ais-pre-lr3elaaqn26vdipvtk4fc5-246875337716.us-east1.run.app' : '');
 
 const formatSheetLitragem = (l: string) => {
   if (!l) return '';
@@ -158,13 +164,17 @@ export const removeFinishedOperation = async (id: string, _turno: string) => {
   if (!docSnap.empty) {
     const data = docSnap.docs[0].data();
     try {
-      await fetch(`${API_BASE}/api/delete`, {
+      const resp = await fetch(`${API_BASE}/api/delete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })
       });
-    } catch (e) {
+      if (!resp.ok) {
+        throw new Error(await resp.text());
+      }
+    } catch (e: any) {
       console.error('Delete API error', e);
+      throw new Error(`Erro ao apagar planilha: ${e.message}`);
     }
   }
   await deleteDoc(doc(db, 'operations', id));
@@ -174,6 +184,9 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
   const docSnap = await getDocs(query(collection(db, 'operations'), where('__name__', '==', id)));
   if (!docSnap.empty) {
     const data = docSnap.docs[0].data() as FinishedOperation;
+    
+    await removeFinishedOperation(id, turno);
+    
     const newOp: Operation = {
       id: Math.random().toString(36).substring(2),
       opNumber: data.opNumber || '',
@@ -185,7 +198,6 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
       carimboInicial: new Date().toISOString()
     };
     await addOperation(newOp);
-    await removeFinishedOperation(id, turno);
   }
 };
 
@@ -230,6 +242,16 @@ export const clearTurnoRecords = async (turno: string) => {
 };
 
 export const getAuthProfile = async (profileName: string) => {
+  try {
+    const docRef = doc(db, 'profiles', profileName);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data();
+    }
+  } catch (err) {
+    console.error("Firestore get profile error", err);
+  }
+
   const customAuth = getLocal<any>('v-ops-auth') || [];
   const profile = customAuth.find((p: any) => p.name === profileName);
   return profile || null;
@@ -238,6 +260,9 @@ export const getAuthProfile = async (profileName: string) => {
 export const checkSheetConnection = async () => {
   try {
     const response = await fetch(`${API_BASE}/api/config-check`);
+    if (!response.ok) {
+      throw new Error(`Erro na API: ${response.status}`);
+    }
     return await response.json();
   } catch (err) {
     return { status: 'Error', error: String(err) };
@@ -245,9 +270,23 @@ export const checkSheetConnection = async () => {
 };
 
 export const updateAuthProfile = async (profileName: string, newPassword: string) => {
-  const customAuth = getLocal<any>('v-ops-auth') || [];
   const now = new Date().toISOString();
-  const existing = customAuth.find((p: any) => p.name === profileName);
+  
+  let existing: any = null;
+  try {
+    const docRef = doc(db, 'profiles', profileName);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      existing = docSnap.data();
+    }
+  } catch (err) {
+    console.warn("Could not fetch profile from firestore", err);
+  }
+
+  if (!existing) {
+    const customAuth = getLocal<any>('v-ops-auth') || [];
+    existing = customAuth.find((p: any) => p.name === profileName);
+  }
 
   if (existing && existing.lastChangedAt) {
     const lastChanged = new Date(existing.lastChangedAt);
@@ -258,6 +297,15 @@ export const updateAuthProfile = async (profileName: string, newPassword: string
   }
 
   const newProfile = { name: profileName, password: newPassword, lastChangedAt: now };
+  
+  try {
+    await setDoc(doc(db, 'profiles', profileName), newProfile, { merge: true });
+  } catch (err: any) {
+    console.error("Error saving profile to firestore", err);
+    throw new Error(`Erro ao salvar na nuvem: ${err?.message || err}`);
+  }
+
+  const customAuth = getLocal<any>('v-ops-auth') || [];
   const filtered = customAuth.filter((p: any) => p.name !== profileName);
   saveLocal('v-ops-auth', [...filtered, newProfile]);
 };

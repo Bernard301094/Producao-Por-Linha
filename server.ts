@@ -14,6 +14,12 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Logging middleware for API hits
+app.use('/api', (req, res, next) => {
+  console.log(`[API Request] ${req.method} ${req.url}`);
+  next();
+});
+
 // Microsoft Graph API Setup
 const getGraphClient = () => {
   const tenantId = process.env.MICROSOFT_TENANT_ID;

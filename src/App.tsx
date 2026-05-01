@@ -249,13 +249,18 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp }:
 
   const onConfirm = async () => {
     setItemLoading(true);
-    await handleFinish(op.id, finishQtd, finishTime, finishQtdReprocesso, () => {
-      setIsFinishing(false);
-      setFinishQtd('');
-      setFinishQtdReprocesso('');
-      setFinishTime('');
-    });
-    setItemLoading(false);
+    try {
+      await handleFinish(op.id, finishQtd, finishTime, finishQtdReprocesso, () => {
+        setIsFinishing(false);
+        setFinishQtd('');
+        setFinishQtdReprocesso('');
+        setFinishTime('');
+      });
+    } catch (err: any) {
+      console.error(err);
+    } finally {
+      setItemLoading(false);
+    }
   };
 
   return (

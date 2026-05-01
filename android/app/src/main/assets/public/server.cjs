@@ -28875,6 +28875,10 @@ import_dotenv.default.config();
 var app = (0, import_express.default)();
 app.use(import_express.default.json());
 app.use((0, import_cors.default)());
+app.use("/api", (req, res, next) => {
+  console.log(`[API Request] ${req.method} ${req.url}`);
+  next();
+});
 var getGraphClient = () => {
   const tenantId = process.env.MICROSOFT_TENANT_ID;
   const clientId = process.env.MICROSOFT_CLIENT_ID;
@@ -29085,8 +29089,10 @@ var getDistPath = () => import_path2.default.join(process.cwd(), "dist");
 if (process.env.NODE_ENV === "production" && !process.env.VERCEL) {
   const distPath = getDistPath();
   app.use(import_express.default.static(distPath));
-  app.get("*", (req, res) => {
-    if (req.path.startsWith("/api")) return;
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      return next();
+    }
     res.sendFile(import_path2.default.join(distPath, "index.html"));
   });
 } else if (!process.env.VERCEL) {
@@ -29104,7 +29110,7 @@ if (process.env.NODE_ENV === "production" && !process.env.VERCEL) {
   };
   initVite();
 }
-if (!process.env.VERCEL && process.env.NODE_ENV !== "production") {
+if (!process.env.VERCEL) {
   const PORT = 3e3;
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
