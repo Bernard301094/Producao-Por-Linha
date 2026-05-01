@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">SheetBridge</string>
-    <string name="title_activity_main">SheetBridge</string>
-    <string name="package_name">com.vonixx.sheetbridge</string>
-    <string name="custom_url_scheme">com.vonixx.sheetbridge</string>
+    <string name="app_name">Produção por Linha</string>
+    <string name="title_activity_main">Produção por Linha</string>
+    <string name="package_name">com.vonixx.producaolinha</string>
+    <string name="custom_url_scheme">com.vonixx.producaolinha</string>
 </resources>
