@@ -737,8 +737,7 @@ export default function App() {
       await addOperation(newOp);
       addProduct(data.produto, derivedLitragem); // fire and forget
       toast.success('Operação iniciada!');
-      reset({ opNumber: '', produto: '', linha: '', turno: data.turno });
-      setValue('horaInicial', format(new Date(), 'HH:mm'));
+      reset({ opNumber: '', produto: '', linha: '', turno: data.turno, horaInicial: format(new Date(), 'HH:mm') });
     } catch (err: any) {
       toast.error('Erro: ' + err.message);
     } finally {

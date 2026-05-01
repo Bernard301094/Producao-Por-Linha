@@ -108,6 +108,7 @@ export const markOperationFinished = async (
     linha: formattedLinha,
     quantidade,
     horaFinal,
+    qntReprocesso: qntReprocesso || '',
     carimbo: formatedCarimbo,
   };
 
