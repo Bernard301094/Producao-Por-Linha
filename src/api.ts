@@ -1,6 +1,6 @@
 import { PRODUCTS } from './data';
 import { db } from './firebase';
-import { collection, doc, setDoc, getDocs, deleteDoc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, deleteDoc, updateDoc, query, where, onSnapshot } from 'firebase/firestore';
 
 export interface Operation {
   id: string;
@@ -37,6 +37,20 @@ const saveLocal = (key: string, data: any) => {
   localStorage.setItem(key, JSON.stringify(data));
 };
 
+export const subscribeToOperations = (callback: (ops: Operation[]) => void) => {
+  const q = query(collection(db, 'operations'), where('status', '==', 'pending'));
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Operation)));
+  });
+};
+
+export const subscribeToFinishedOps = (callback: (ops: FinishedOperation[]) => void) => {
+  const q = query(collection(db, 'operations'), where('status', '==', 'finished'));
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as FinishedOperation)));
+  });
+};
+
 export const getOperations = async (): Promise<Operation[]> => {
   const q = query(collection(db, 'operations'), where('status', '==', 'pending'));
   const snap = await getDocs(q);
@@ -51,6 +65,12 @@ export const removeOperation = async (id: string) => {
   await deleteDoc(doc(db, 'operations', id));
 };
 
+
+// Detect if running inside Capacitor
+const isCapacitor = typeof (window as any)?.Capacitor !== 'undefined' && (window as any)?.Capacitor?.isNativePlatform();
+
+// Use the explicit backend URL for Capacitor Native environments so it doesn't fail trying to reach capacitor://localhost/api
+const API_BASE = isCapacitor ? 'https://ais-pre-lr3elaaqn26vdipvtk4fc5-246875337716.us-east1.run.app' : '';
 
 const formatSheetLitragem = (l: string) => {
   if (!l) return '';
@@ -92,7 +112,7 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
   };
 
   try {
-    const res = await fetch('/api/append', { 
+    const res = await fetch(`${API_BASE}/api/append`, { 
       method: 'POST', 
       body: JSON.stringify(payload), 
       headers: {'Content-Type': 'application/json'} 
@@ -137,7 +157,7 @@ export const removeFinishedOperation = async (id: string, _turno: string) => {
   if (!docSnap.empty) {
     const data = docSnap.docs[0].data();
     try {
-      await fetch('/api/delete', {
+      await fetch(`${API_BASE}/api/delete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })
@@ -173,7 +193,7 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
   if (!docSnap.empty) {
     const original = docSnap.docs[0].data();
     try {
-      await fetch('/api/update', {
+      await fetch(`${API_BASE}/api/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -216,7 +236,7 @@ export const getAuthProfile = async (profileName: string) => {
 
 export const checkSheetConnection = async () => {
   try {
-    const response = await fetch('/api/config-check');
+    const response = await fetch(`${API_BASE}/api/config-check`);
     return await response.json();
   } catch (err) {
     return { status: 'Error', error: String(err) };

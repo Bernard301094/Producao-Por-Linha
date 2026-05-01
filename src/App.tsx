@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, checkSheetConnection } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps } from './api';
 import { LINHAS } from './data';
 
 // Componentes UI e Ícones
@@ -575,17 +575,26 @@ export default function App() {
 
   const refreshData = async () => {
     try {
-      const ops = await getOperations();
-      setOperations(ops);
-      
-      const finished = await getReportForDateAndShift('', '');
-      setFinishedOps(finished as FinishedOperation[]);
-      
       await loadProducts();
     } catch (e) {
-      console.error("Error refreshing data:", e);
+      console.error("Error loading products:", e);
     }
   };
+
+  useEffect(() => {
+    const unsubOps = subscribeToOperations((ops) => {
+      setOperations(ops);
+    });
+    
+    const unsubFinished = subscribeToFinishedOps((ops) => {
+      setFinishedOps(ops);
+    });
+
+    return () => {
+      unsubOps();
+      unsubFinished();
+    };
+  }, []);
 
   useEffect(() => {
     refreshData();
@@ -596,10 +605,6 @@ export default function App() {
       setLoginProfile(storedProfile);
       setValue('turno', storedProfile.replace('Turno ', ''));
     }
-    
-    // Refresh every 30 seconds just in case
-    const interval = setInterval(refreshData, 30000);
-    return () => clearInterval(interval);
   }, [setValue]);
 
   useEffect(() => {
