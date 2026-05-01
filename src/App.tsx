@@ -692,9 +692,12 @@ export default function App() {
   const handleLogout = async () => {
     if (loginProfile) {
       try {
-        const turno = loginProfile.replace('Turno ', '');
-        const r = await import('./api');
-        await r.clearTurnoRecords(turno);
+        const shiftCheck = isShiftAllowed(loginProfile);
+        if (!shiftCheck.allowed) {
+          const turno = loginProfile.replace('Turno ', '');
+          const r = await import('./api');
+          await r.clearTurnoRecords(turno);
+        }
       } catch (e) {
         console.error("Failed to clear turno records", e);
       }
