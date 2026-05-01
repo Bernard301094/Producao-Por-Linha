@@ -21,6 +21,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Create env file
+        run: |
+          echo "VITE_API_URL=https://producao-por-linha.vercel.app" > .env
+
       - name: Build web app
         run: npm run build
 
@@ -42,9 +46,10 @@ jobs:
           gradle wrapper
           chmod +x ./gradlew
           ./gradlew assembleDebug
+          mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/app.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: app
+          path: android/app/build/outputs/apk/debug/app.apk
