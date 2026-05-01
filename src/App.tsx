@@ -408,8 +408,10 @@ export default function App() {
   const [searchFinished, setSearchFinished] = useState('');
   const [operations, setOperations] = useState<Operation[]>([]);
   const [finishedOps, setFinishedOps] = useState<FinishedOperation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [finishingId, setFinishingId] = useState<string | null>(null);
+  const [loadingNewOp, setLoadingNewOp] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
+  const [loadingRevert, setLoadingRevert] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
   const [availableProducts, setAvailableProducts] = useState<{produto: string, litragem: string}[]>([]);
   const [showProductSuggestions, setShowProductSuggestions] = useState(false);
   const [finishQtd, setFinishQtd] = useState('');
@@ -483,7 +485,7 @@ export default function App() {
     }
 
     if (!editingOp) return;
-    setLoading(true);
+    setLoadingEdit(true);
     try {
       const matchedProduct = availableProducts.find(
         p => (p.produto || '').trim().toUpperCase() === (data.produto || '').trim().toUpperCase()
@@ -499,9 +501,7 @@ export default function App() {
         : editingOp.linha;
 
       if ('quantidade' in editingOp) {
-        // Pasar turno del op para que api.ts derive el reportDocId correcto
         const turno = editingOp.turno || currentTurnForView;
-
         await updateFinishedOperation(
           editingOp.id,
           {
@@ -518,7 +518,6 @@ export default function App() {
           turno
         );
         toast.success('OP concluída actualizada.');
-        refreshData();
       } else {
         await updateOperation(editingOp.id, {
           opNumber: data.opNumber,
@@ -529,13 +528,12 @@ export default function App() {
           horaInicial: normalizeTime(data.horaInicial),
         });
         toast.success('OP actualizada.');
-        refreshData();
       }
       setEditingOp(null);
     } catch (err: any) {
       toast.error('Erro ao editar: ' + err.message);
     } finally {
-      setLoading(false);
+      setLoadingEdit(false);
     }
   };
 
@@ -721,30 +719,30 @@ export default function App() {
       return;
     }
 
-    setLoading(true);
+    setLoadingNewOp(true);
     try {
       const matchedProduct = availableProducts.find(p => (p.produto || '').trim().toUpperCase() === (data.produto || '').trim().toUpperCase());
       const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto || '');
-      const newOpId = typeof crypto !== 'undefined' && crypto.randomUUID 
-        ? crypto.randomUUID() 
+      const newOpId = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
         : Date.now().toString(36) + Math.random().toString(36).substring(2);
-        
+
       const newOp: Operation = {
         id: newOpId, carimboInicial: new Date().toISOString(), ...data,
         horaInicial: data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial,
         litragem: derivedLitragem,
         turno: loginProfile ? loginProfile.replace('Turno ', '') : data.turno
       };
+      // addOperation writes locally first (offline cache) — onSnapshot reacts instantly
       await addOperation(newOp);
-      await addProduct(data.produto, derivedLitragem);
-      await refreshData();
+      addProduct(data.produto, derivedLitragem); // fire and forget
       toast.success('Operação iniciada!');
       reset({ opNumber: '', produto: '', linha: '', turno: data.turno });
       setValue('horaInicial', format(new Date(), 'HH:mm'));
     } catch (err: any) {
       toast.error('Erro: ' + err.message);
     } finally {
-      setLoading(false);
+      setLoadingNewOp(false);
     }
   };
 
@@ -758,15 +756,27 @@ export default function App() {
     }
 
     if (!qtd || !time) { toast.error('Preencha a quantidade e hora final.'); return; }
+
+    const op = operations.find(o => o.id === id);
+    if (!op) { toast.error('Operação não encontrada.'); return; }
+
     try {
+      // Firebase write is instant (offline cache) — UI updates immediately via onSnapshot
       await markOperationFinished(
-          id, 
-          qtd, 
-          time.length === 5 ? `${time}:00` : time,
-          reprocesso
+        op,
+        qtd,
+        time.length === 5 ? `${time}:00` : time,
+        reprocesso,
+        (success, error) => {
+          if (success) {
+            toast.success('Sincronizado com a planilha!');
+          } else {
+            toast.warning(`OP salva, mas erro ao sincronizar planilha: ${error}`);
+          }
+        }
       );
-      await refreshData();
-      toast.success('Salvo na planilha com sucesso!');
+      // onSuccess is called right after Firebase write — before OneDrive finishes
+      toast.success('OP concluída!');
       onSuccess();
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar.');
@@ -783,33 +793,31 @@ export default function App() {
     }
 
     if (!revertingOp) return;
-    setLoading(true);
+    setLoadingRevert(true);
     try {
-      // Pasar turno para que api.ts derive el reportDocId correcto
       await moveFinishedToPending(revertingOp.id, revertingOp.turno || currentTurnForView);
-      await refreshData();
       toast.success('OP movida de volta para Pendentes.');
     } catch (err: any) {
       toast.error('Erro ao reverter: ' + err.message);
     } finally {
-      setLoading(false);
+      setLoadingRevert(false);
       setRevertingOp(null);
     }
   };
 
   const logicalToday = getLogicalDateStr(new Date());
 
-  const myFinishedOps = finishedOps.filter(op => {
+  const myFinishedOps = useMemo(() => finishedOps.filter(op => {
     const sameTurn = op.turno === currentTurnForView;
     if (!op.carimboInicial) return sameTurn;
     return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
-  });
+  }), [finishedOps, currentTurnForView, logicalToday]);
 
-  const myPendingOps = operations.filter(op => {
+  const myPendingOps = useMemo(() => operations.filter(op => {
     const sameTurn = op.turno === currentTurnForView;
     if (!op.carimboInicial) return sameTurn;
     return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
-  });
+  }), [operations, currentTurnForView, logicalToday]);
 
   const matchesSearch = (op: { opNumber?: string; linha?: string; produto?: string }, q: string) => {
     if (!q.trim()) return true;
@@ -834,21 +842,19 @@ export default function App() {
     }
 
     if (!deletingOp) return;
-    setLoading(true);
+    setLoadingDelete(true);
     try {
       if ('quantidade' in deletingOp) {
-        // Pasar turno para que api.ts derive el reportDocId correcto
         await removeFinishedOperation(deletingOp.id, deletingOp.turno || currentTurnForView);
         toast.success('Registro removido.');
       } else {
         await removeOperation(deletingOp.id);
         toast.message('Operação removida.');
       }
-      await refreshData();
     } catch (err: any) {
       toast.error('Erro ao remover: ' + err.message);
     } finally {
-      setLoading(false);
+      setLoadingDelete(false);
       setDeletingOp(null);
     }
   };
@@ -1208,8 +1214,8 @@ export default function App() {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button type="submit" disabled={loading} className="w-full h-12 bg-zinc-900 hover:bg-zinc-800 text-white font-black text-sm rounded-xl shadow-sm transition-all ring-1 ring-zinc-900/10">
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-4 h-4 mr-2" /> Iniciar Produção</>}
+                <Button type="submit" disabled={loadingNewOp} className="w-full h-12 bg-zinc-900 hover:bg-zinc-800 text-white font-black text-sm rounded-xl shadow-sm transition-all ring-1 ring-zinc-900/10">
+                  {loadingNewOp ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-4 h-4 mr-2" /> Iniciar Produção</>}
                 </Button>
               </form>
             </div>
@@ -1240,9 +1246,9 @@ export default function App() {
                     <CheckCircle2 className="w-10 h-10 mb-2" />
                     <p className="text-xs font-semibold text-zinc-400">Nenhuma OP concluída</p>
                   </div>
-                ) : visibleFinishedOps.map((op, idx) => (
-                  <FinishedOpItem 
-                    key={op.reportString || idx} 
+                ) : visibleFinishedOps.map((op) => (
+                  <FinishedOpItem
+                    key={op.id}
                     op={op} 
                     openEdit={openEdit} 
                     setDeletingOp={setDeletingOp} 
@@ -1267,8 +1273,8 @@ export default function App() {
           <p className="text-sm text-zinc-600">Tem certeza que deseja remover esta operação? Esta ação não pode ser desfeita.</p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setDeletingOp(null)} className="rounded-xl border-zinc-200/60">Cancelar</Button>
-            <Button onClick={confirmDelete} disabled={loading} className="bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-sm">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Remover'}
+            <Button onClick={confirmDelete} disabled={loadingDelete} className="bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-sm">
+              {loadingDelete ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Remover'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1285,8 +1291,8 @@ export default function App() {
           </p>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setRevertingOp(null)} className="rounded-xl border-zinc-200/60">Cancelar</Button>
-            <Button onClick={confirmRevert} disabled={loading} className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-sm">
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar'}
+            <Button onClick={confirmRevert} disabled={loadingRevert} className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-sm">
+              {loadingRevert ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1418,8 +1424,8 @@ export default function App() {
               )}
               <DialogFooter className="gap-2 pt-2">
                 <Button variant="outline" type="button" onClick={() => setEditingOp(null)} className="w-full sm:w-auto rounded-xl border-zinc-200/60 font-medium">Cancelar</Button>
-                <Button type="submit" disabled={loading} className="bg-zinc-900 text-white w-full sm:w-auto rounded-xl shadow-sm hover:bg-zinc-800 font-semibold ring-1 ring-zinc-900/10">
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Correção'}
+                <Button type="submit" disabled={loadingEdit} className="bg-zinc-900 text-white w-full sm:w-auto rounded-xl shadow-sm hover:bg-zinc-800 font-semibold ring-1 ring-zinc-900/10">
+                  {loadingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar Correção'}
                 </Button>
               </DialogFooter>
             </form>

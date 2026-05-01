@@ -88,13 +88,15 @@ const formatSheetLitragem = (l: string) => {
   return l;
 };
 
-export const markOperationFinished = async (id: string, quantidade: string, horaFinal: string, qntReprocesso?: string) => {
-  const ops = await getOperations();
-  const data = ops.find(o => o.id === id);
-  if (!data) throw new Error("Operação pendente não encontrada.");
-  
-  const formattedLinha = data.linha ? (isNaN(Number(data.linha)) ? data.linha : `Linha ${data.linha}`) : '';
-  
+export const markOperationFinished = async (
+  op: Operation,
+  quantidade: string,
+  horaFinal: string,
+  qntReprocesso?: string,
+  onOneDriveSync?: (success: boolean, error?: string) => void
+) => {
+  const formattedLinha = op.linha ? (isNaN(Number(op.linha)) ? op.linha : `Linha ${op.linha}`) : '';
+
   const now = new Date();
   const DD = String(now.getDate()).padStart(2, '0');
   const MM = String(now.getMonth() + 1).padStart(2, '0');
@@ -102,49 +104,50 @@ export const markOperationFinished = async (id: string, quantidade: string, hora
   const formatedCarimbo = `${DD}/${MM}/${YYYY}`;
 
   const finishedOp: FinishedOperation = {
-    ...data,
+    ...op,
     linha: formattedLinha,
     quantidade,
     horaFinal,
     carimbo: formatedCarimbo,
   };
 
-  // Sync with OneDrive
+  // 1. Write to Firebase FIRST — instant due to offline cache
+  try {
+    await updateDoc(doc(db, 'operations', op.id), { ...finishedOp, status: 'finished' });
+  } catch (firebaseErr: any) {
+    console.error("Firebase updateDoc failed", firebaseErr);
+    throw new Error(`Erro ao salvar na nuvem: ${firebaseErr.message}`);
+  }
+
+  // 2. Sync OneDrive in background — fire and forget
   const payload = {
     carimbo: `'${formatedCarimbo}`,
-    op: data.opNumber,
-    litragem: formatSheetLitragem(data.litragem || ''),
-    produto: data.produto,
+    op: op.opNumber,
+    litragem: formatSheetLitragem(op.litragem || ''),
+    produto: op.produto,
     linha: formattedLinha,
-    turno: data.turno,
+    turno: op.turno,
     quantidade,
     qntReprocesso: qntReprocesso || '',
-    horaInicial: data.horaInicial,
+    horaInicial: op.horaInicial,
     horaFinal
   };
 
-  try {
-    const res = await fetch(`${API_BASE}/api/append`, { 
-      method: 'POST', 
-      body: JSON.stringify(payload), 
-      headers: {'Content-Type': 'application/json'} 
-    });
+  fetch(`${API_BASE}/api/append`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' }
+  }).then(async res => {
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`OneDrive: ${errText}`);
+      onOneDriveSync?.(false, errText);
+    } else {
+      onOneDriveSync?.(true);
     }
-  } catch (error: any) {
+  }).catch(error => {
     console.error("OneDrive sync failed", error);
-    throw new Error(`Aviso: Ocorreu um erro ao sincronizar com o OneDrive. Detalhes: ${error.message}`);
-  }
-
-  // Update document atomically to become finished 
-  try {
-    await updateDoc(doc(db, 'operations', id), { ...finishedOp, status: 'finished' });
-  } catch (firebaseErr: any) {
-    console.error("Firebase updateDoc failed", firebaseErr);
-    throw new Error(`Copiado na planilha com sucesso, porém ocorreu erro ao salvar na nuvem: ${firebaseErr.message}`);
-  }
+    onOneDriveSync?.(false, error.message);
+  });
 };
 
 export const getProducts = async (): Promise<{produto: string, litragem: string}[]> => {
