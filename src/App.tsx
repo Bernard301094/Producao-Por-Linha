@@ -414,7 +414,18 @@ export default function App() {
   
   const [searchLine, setSearchLine] = useState('');
   const [searchEditLine, setSearchEditLine] = useState('');
-  const [customLinhas, setCustomLinhas] = useState<string[]>([]);
+  const [customLinhas, setCustomLinhas] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('customLinhas');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('customLinhas', JSON.stringify(customLinhas));
+  }, [customLinhas]);
 
   const allLinhas = useMemo(() => Array.from(new Set([...LINHAS, ...customLinhas])), [customLinhas]);
 
@@ -1023,15 +1034,6 @@ export default function App() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={handleTestConnection}
-                disabled={checkingConnection}
-                className="hidden md:flex items-center gap-1.5 text-zinc-500 hover:text-zinc-900 font-medium text-xs px-2 py-1.5 rounded-lg hover:bg-zinc-100 transition-colors disabled:opacity-50"
-                title="Testar conexão com o banco de dados"
-              >
-                {checkingConnection ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
-              </button>
               <div className="hidden md:flex items-center gap-1.5 bg-zinc-100/80 border border-zinc-200/60 rounded-lg px-3 py-1.5">
                 <span className="text-[11px] font-black text-zinc-700 uppercase tracking-wider">{loginProfile}</span>
               </div>
