@@ -15,7 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popove
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../components/ui/command';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
-import { cn } from './lib/utils';
+import { cn, useAutoIncrement } from './lib/utils';
 import { toast, Toaster } from 'sonner';
 import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus } from 'lucide-react';
 import { motion } from 'motion/react';
