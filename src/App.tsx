@@ -279,8 +279,9 @@ const QuickCounter = ({ value, onChange, label, className }: any) => {
             onPointerDown={() => startAdjusting(-10)}
             onPointerUp={stopAdjusting}
             onPointerLeave={stopAdjusting}
-            onClick={(e) => e.preventDefault()}
-            className="w-full h-12 text-[10px] sm:text-xs font-bold border-2 border-zinc-200 bg-white px-1"
+            onPointerCancel={stopAdjusting}
+            onContextMenu={(e) => e.preventDefault()}
+            className="w-full h-12 text-[10px] sm:text-xs font-bold border-2 border-zinc-200 bg-white px-1 select-none touch-none"
           >
             -10
           </Button>
@@ -292,8 +293,9 @@ const QuickCounter = ({ value, onChange, label, className }: any) => {
             onPointerDown={() => startAdjusting(-1)}
             onPointerUp={stopAdjusting}
             onPointerLeave={stopAdjusting}
-            onClick={(e) => e.preventDefault()}
-            className="w-full h-12 border-2 border-zinc-200 bg-white"
+            onPointerCancel={stopAdjusting}
+            onContextMenu={(e) => e.preventDefault()}
+            className="w-full h-12 border-2 border-zinc-200 bg-white select-none touch-none"
           >
             <Minus className="w-4 h-4" />
           </Button>
@@ -314,8 +316,9 @@ const QuickCounter = ({ value, onChange, label, className }: any) => {
             onPointerDown={() => startAdjusting(1)}
             onPointerUp={stopAdjusting}
             onPointerLeave={stopAdjusting}
-            onClick={(e) => e.preventDefault()}
-            className="w-full h-12 border-2 border-zinc-200 bg-white"
+            onPointerCancel={stopAdjusting}
+            onContextMenu={(e) => e.preventDefault()}
+            className="w-full h-12 border-2 border-zinc-200 bg-white select-none touch-none"
           >
             <Plus className="w-4 h-4" />
           </Button>
@@ -327,8 +330,9 @@ const QuickCounter = ({ value, onChange, label, className }: any) => {
             onPointerDown={() => startAdjusting(10)}
             onPointerUp={stopAdjusting}
             onPointerLeave={stopAdjusting}
-            onClick={(e) => e.preventDefault()}
-            className="w-full h-12 text-[10px] sm:text-xs font-bold border-2 border-zinc-200 bg-white px-1"
+            onPointerCancel={stopAdjusting}
+            onContextMenu={(e) => e.preventDefault()}
+            className="w-full h-12 text-[10px] sm:text-xs font-bold border-2 border-zinc-200 bg-white px-1 select-none touch-none"
           >
             +10
           </Button>
