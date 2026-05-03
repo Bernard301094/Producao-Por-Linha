@@ -242,31 +242,57 @@ const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass, input
   );
 };
 
-const QuickCounter = ({ value, onChange, label, className }: any) => {
-  const timerRef = React.useRef<any>(null);
+const useAutoIncrement = (callback: () => void) => {
+  const timerRef = useRef<any>(null);
 
-  const adjust = (amount: number) => {
-    const current = parseInt(value || '0', 10);
-    onChange(Math.max(0, current + amount).toString());
+  const start = () => {
+    callback();
+    timerRef.current = setInterval(callback, 120);
   };
 
-  const startAdjusting = (amount: number) => {
-    adjust(amount);
-    timerRef.current = setInterval(() => {
-      adjust(amount);
-    }, 120);
-  };
-
-  const stopAdjusting = () => {
+  const stop = () => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
   };
 
-  React.useEffect(() => {
-    return () => stopAdjusting();
+  useEffect(() => {
+    return () => stop();
   }, []);
+
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.button !== 0) return; // Solo click izquierdo
+      start();
+    },
+    onPointerUp: stop,
+    onPointerLeave: stop,
+    onPointerCancel: stop,
+  };
+};
+
+const QuickCounter = ({ value, onChange, label, className }: any) => {
+  // Creamos los handlers para cada botón leyendo el valor más reciente de las props
+  const handleMinus10 = useAutoIncrement(() => {
+    const current = parseInt(value || '0', 10);
+    onChange(Math.max(0, current - 10).toString());
+  });
+
+  const handleMinus1 = useAutoIncrement(() => {
+    const current = parseInt(value || '0', 10);
+    onChange(Math.max(0, current - 1).toString());
+  });
+
+  const handlePlus1 = useAutoIncrement(() => {
+    const current = parseInt(value || '0', 10);
+    onChange((current + 1).toString());
+  });
+
+  const handlePlus10 = useAutoIncrement(() => {
+    const current = parseInt(value || '0', 10);
+    onChange((current + 10).toString());
+  });
 
   return (
     <div className={cn("space-y-1.5", className)}>
@@ -276,30 +302,26 @@ const QuickCounter = ({ value, onChange, label, className }: any) => {
           <Button 
             type="button"
             variant="outline" 
-            onPointerDown={() => startAdjusting(-10)}
-            onPointerUp={stopAdjusting}
-            onPointerLeave={stopAdjusting}
-            onPointerCancel={stopAdjusting}
+            {...handleMinus10} // Inyectamos el hook aquí
             onContextMenu={(e) => e.preventDefault()}
             className="w-full h-12 text-[10px] sm:text-xs font-bold border-2 border-zinc-200 bg-white px-1 select-none touch-none"
           >
             -10
           </Button>
         </motion.div>
+        
         <motion.div whileTap={{ scale: 0.95 }} className="flex-[0.8] sm:flex-1">
           <Button 
             type="button"
             variant="outline" 
-            onPointerDown={() => startAdjusting(-1)}
-            onPointerUp={stopAdjusting}
-            onPointerLeave={stopAdjusting}
-            onPointerCancel={stopAdjusting}
+            {...handleMinus1} // Inyectamos el hook aquí
             onContextMenu={(e) => e.preventDefault()}
             className="w-full h-12 border-2 border-zinc-200 bg-white select-none touch-none"
           >
             <Minus className="w-4 h-4" />
           </Button>
         </motion.div>
+
         <Input 
           type="text"
           inputMode="numeric"
@@ -309,28 +331,24 @@ const QuickCounter = ({ value, onChange, label, className }: any) => {
           placeholder="0"
           className="w-16 sm:w-20 h-12 text-center text-lg font-black font-mono bg-zinc-100 border-2 border-zinc-200" 
         />
+
         <motion.div whileTap={{ scale: 0.95 }} className="flex-[0.8] sm:flex-1">
           <Button 
             type="button"
             variant="outline" 
-            onPointerDown={() => startAdjusting(1)}
-            onPointerUp={stopAdjusting}
-            onPointerLeave={stopAdjusting}
-            onPointerCancel={stopAdjusting}
+            {...handlePlus1} // Inyectamos el hook aquí
             onContextMenu={(e) => e.preventDefault()}
             className="w-full h-12 border-2 border-zinc-200 bg-white select-none touch-none"
           >
             <Plus className="w-4 h-4" />
           </Button>
         </motion.div>
+
         <motion.div whileTap={{ scale: 0.95 }} className="flex-[0.8] sm:flex-1">
           <Button 
             type="button"
             variant="outline" 
-            onPointerDown={() => startAdjusting(10)}
-            onPointerUp={stopAdjusting}
-            onPointerLeave={stopAdjusting}
-            onPointerCancel={stopAdjusting}
+            {...handlePlus10} // Inyectamos el hook aquí
             onContextMenu={(e) => e.preventDefault()}
             className="w-full h-12 text-[10px] sm:text-xs font-bold border-2 border-zinc-200 bg-white px-1 select-none touch-none"
           >
