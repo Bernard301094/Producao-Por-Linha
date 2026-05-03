@@ -13,10 +13,12 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../components/ui/command';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '../components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { cn } from './lib/utils';
 import { toast, Toaster } from 'sonner';
-import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound } from 'lucide-react';
+import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus } from 'lucide-react';
+import { motion } from 'motion/react';
 
 const PROFILES: Record<string, string> = {
   'Turno A': 'TurnoA@Vonixx2026',
@@ -240,14 +242,119 @@ const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass, input
   );
 };
 
+const QuickCounter = ({ value, onChange, label, className }: any) => {
+  const timerRef = React.useRef<any>(null);
+
+  const adjust = (amount: number) => {
+    const current = parseInt(value || '0', 10);
+    onChange(Math.max(0, current + amount).toString());
+  };
+
+  const startAdjusting = (amount: number) => {
+    adjust(amount);
+    timerRef.current = setInterval(() => {
+      adjust(amount);
+    }, 120);
+  };
+
+  const stopAdjusting = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  React.useEffect(() => {
+    return () => stopAdjusting();
+  }, []);
+
+  return (
+    <div className={cn("space-y-1.5", className)}>
+      {label && <label className="text-[10px] font-bold text-zinc-500 uppercase">{label}</label>}
+      <div className="flex items-center gap-1 sm:gap-1.5">
+        <motion.div whileTap={{ scale: 0.95 }} className="flex-[0.8] sm:flex-1">
+          <Button 
+            type="button"
+            variant="outline" 
+            onPointerDown={() => startAdjusting(-10)}
+            onPointerUp={stopAdjusting}
+            onPointerLeave={stopAdjusting}
+            onClick={(e) => e.preventDefault()}
+            className="w-full h-12 text-[10px] sm:text-xs font-bold border-2 border-zinc-200 bg-white px-1"
+          >
+            -10
+          </Button>
+        </motion.div>
+        <motion.div whileTap={{ scale: 0.95 }} className="flex-[0.8] sm:flex-1">
+          <Button 
+            type="button"
+            variant="outline" 
+            onPointerDown={() => startAdjusting(-1)}
+            onPointerUp={stopAdjusting}
+            onPointerLeave={stopAdjusting}
+            onClick={(e) => e.preventDefault()}
+            className="w-full h-12 border-2 border-zinc-200 bg-white"
+          >
+            <Minus className="w-4 h-4" />
+          </Button>
+        </motion.div>
+        <Input 
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          value={value} 
+          onChange={e => onChange(e.target.value.replace(/\D/g, ''))}
+          placeholder="0"
+          className="w-16 sm:w-20 h-12 text-center text-lg font-black font-mono bg-zinc-100 border-2 border-zinc-200" 
+        />
+        <motion.div whileTap={{ scale: 0.95 }} className="flex-[0.8] sm:flex-1">
+          <Button 
+            type="button"
+            variant="outline" 
+            onPointerDown={() => startAdjusting(1)}
+            onPointerUp={stopAdjusting}
+            onPointerLeave={stopAdjusting}
+            onClick={(e) => e.preventDefault()}
+            className="w-full h-12 border-2 border-zinc-200 bg-white"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        </motion.div>
+        <motion.div whileTap={{ scale: 0.95 }} className="flex-[0.8] sm:flex-1">
+          <Button 
+            type="button"
+            variant="outline" 
+            onPointerDown={() => startAdjusting(10)}
+            onPointerUp={stopAdjusting}
+            onPointerLeave={stopAdjusting}
+            onClick={(e) => e.preventDefault()}
+            className="w-full h-12 text-[10px] sm:text-xs font-bold border-2 border-zinc-200 bg-white px-1"
+          >
+            +10
+          </Button>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
 const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp }: any) => {
   const [isFinishing, setIsFinishing] = React.useState(false);
   const [finishQtd, setFinishQtd] = React.useState('');
   const [finishQtdReprocesso, setFinishQtdReprocesso] = React.useState('');
   const [finishTime, setFinishTime] = React.useState('');
   const [itemLoading, setItemLoading] = React.useState(false);
+  const [isConfirmingFinish, setIsConfirmingFinish] = React.useState(false);
 
   const onConfirm = async () => {
+    if (!finishQtd || !finishTime) {
+      toast.error('Preencha a quantidade e hora final.');
+      return;
+    }
+    setIsConfirmingFinish(true);
+  };
+
+  const handleActualFinish = async () => {
     setItemLoading(true);
     try {
       await handleFinish(op.id, finishQtd, finishTime, finishQtdReprocesso, () => {
@@ -255,12 +362,20 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp }:
         setFinishQtd('');
         setFinishQtdReprocesso('');
         setFinishTime('');
+        setIsConfirmingFinish(false);
       });
     } catch (err: any) {
       console.error(err);
     } finally {
       setItemLoading(false);
     }
+  };
+
+  const adjustQtd = (amount: number) => {
+    setFinishQtd(prev => {
+      const current = parseInt(prev || '0', 10);
+      return Math.max(0, current + amount).toString();
+    });
   };
 
   return (
@@ -271,47 +386,71 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp }:
             <span className="text-[10px] font-black text-zinc-700 bg-zinc-200/60 border border-zinc-300/40 px-2 py-0.5 rounded-md font-mono">OP {op.opNumber}</span>
             <span className="text-[10px] text-zinc-400 font-mono">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
           </div>
-          <p className="text-xs font-bold text-zinc-900 truncate">{op.produto}</p>
+          <p className="text-sm font-bold text-zinc-900 truncate">{op.produto}</p>
           {op.litragem && <p className="text-[10px] text-zinc-500 font-mono tracking-tight">{op.litragem}</p>}
           <p className="text-[10px] text-zinc-400 mt-0.5 font-medium">Início: {op.horaInicial}</p>
         </div>
       </div>
       {isFinishing ? (
-        <div className="mt-3 pt-3 border-t border-zinc-200/60 space-y-2">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            <div>
-              <label className="text-[10px] font-bold text-zinc-500 uppercase">Qtd (UN)</label>
-              <Input type="text" inputMode="numeric" autoComplete="off" value={finishQtd} onChange={e => setFinishQtd(e.target.value.replace(/\D/g, ''))} placeholder="Ex: 1200" className="h-10 md:h-8 text-base md:text-xs mt-0.5 bg-white border-zinc-200/60 focus-visible:ring-zinc-400 font-mono" />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-zinc-500 uppercase">Reprocesso</label>
-              <Input type="text" inputMode="numeric" autoComplete="off" value={finishQtdReprocesso} onChange={e => setFinishQtdReprocesso(e.target.value.replace(/\D/g, ''))} placeholder="Opcional" className="h-10 md:h-8 text-base md:text-xs mt-0.5 bg-white border-zinc-200/60 focus-visible:ring-zinc-400 font-mono" />
-            </div>
-            <div className="col-span-2 md:col-span-1">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase">Hora Final</label>
-              <CustomTimePicker 
-                value={finishTime} 
-                onChange={setFinishTime} 
-                clockIconClass="absolute left-2 w-4 md:w-3.5 h-4 md:h-3.5 text-zinc-400 pointer-events-none"
-                wrapperClass="bg-white mt-0.5"
-                inputClass="h-10 md:h-8 pl-8 md:pl-7 pr-2 text-base md:text-xs"
+        <div className="mt-3 pt-3 border-t border-zinc-200/60 space-y-4">
+          <div className="space-y-4">
+            <QuickCounter 
+              label="Quantidade (UN)" 
+              value={finishQtd} 
+              onChange={setFinishQtd} 
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <QuickCounter 
+                label="Reprocesso" 
+                value={finishQtdReprocesso} 
+                onChange={setFinishQtdReprocesso} 
               />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase">Hora Final</label>
+                <CustomTimePicker 
+                  value={finishTime} 
+                  onChange={setFinishTime} 
+                  clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
+                  wrapperClass="bg-white h-12 rounded-lg border-2 border-zinc-200 shadow-sm"
+                  inputClass="pl-10 pr-3 text-base"
+                />
+              </div>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={onConfirm} disabled={itemLoading} className="flex-1 h-10 md:h-8 text-sm md:text-xs bg-zinc-900 hover:bg-zinc-800 text-white font-semibold">
-              {itemLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Confirmar'}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishQtdReprocesso(''); }} className="h-10 md:h-8 text-xs font-medium border-zinc-200/60">Cancelar</Button>
+            <Dialog open={isConfirmingFinish} onOpenChange={setIsConfirmingFinish}>
+              <motion.div whileTap={{ scale: 0.95 }} className="flex-1">
+                <Button size="lg" onClick={onConfirm} disabled={itemLoading} className="w-full h-16 text-lg bg-zinc-900 hover:bg-zinc-800 text-white font-black rounded-xl shadow-lg">
+                  {itemLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Finalizar Registro'}
+                </Button>
+              </motion.div>
+              <DialogContent className="max-w-[340px] rounded-3xl">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-black">Confirmar Registro</DialogTitle>
+                  <DialogDescription className="text-zinc-500 font-medium pt-2">
+                    Deseja salvar a produção de <span className="font-bold text-zinc-900">{finishQtd} UN</span> para a OP {op.opNumber}?
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex-row gap-3 mt-4">
+                  <Button variant="outline" onClick={() => setIsConfirmingFinish(false)} className="flex-1 h-12 rounded-xl font-bold">Cancelar</Button>
+                  <Button onClick={handleActualFinish} disabled={itemLoading} className="flex-1 h-12 bg-zinc-900 text-white rounded-xl font-black">
+                    {itemLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sim, Salvar'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Button size="lg" variant="outline" onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishQtdReprocesso(''); }} className="h-16 px-6 text-sm font-bold border-zinc-200/60 rounded-xl">Cancelar</Button>
           </div>
         </div>
       ) : (
         <div className="flex items-center gap-2 mt-3 p-1 rounded-xl">
-          <Button size="sm" onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }} className="flex-1 h-8 text-xs bg-zinc-900 hover:bg-zinc-800 ring-1 ring-zinc-900/10 shadow-sm text-white font-semibold">
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Concluir OP
-          </Button>
-          <button onClick={() => openEdit(op)} title="Editar" className="flex items-center justify-center w-8 h-8 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200 rounded-lg transition-colors border border-zinc-200 shadow-sm bg-white"><Pencil className="w-3.5 h-3.5" /></button>
-          <button onClick={() => setDeletingOp(op)} title="Excluir" className="flex items-center justify-center w-8 h-8 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-zinc-200 shadow-sm bg-white"><Trash2 className="w-3.5 h-3.5" /></button>
+          <motion.div whileTap={{ scale: 0.95 }} className="flex-1">
+            <Button size="sm" onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }} className="w-full h-10 text-xs bg-zinc-900 hover:bg-zinc-800 ring-1 ring-zinc-900/10 shadow-sm text-white font-bold rounded-lg">
+              <CheckCircle2 className="w-4 h-4 mr-2" /> Concluir OP
+            </Button>
+          </motion.div>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => openEdit(op)} title="Editar" className="flex items-center justify-center w-10 h-10 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors border border-zinc-200 shadow-sm bg-white"><Pencil className="w-4 h-4" /></motion.button>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setDeletingOp(op)} title="Excluir" className="flex items-center justify-center w-10 h-10 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-zinc-200 shadow-sm bg-white"><Trash2 className="w-4 h-4" /></motion.button>
         </div>
       )}
     </div>
@@ -437,7 +576,9 @@ export default function App() {
 
   const [editingOp, setEditingOp] = useState<Operation | FinishedOperation | null>(null);
   const [deletingOp, setDeletingOp] = useState<Operation | FinishedOperation | null>(null);
-  const [revertingOp, setRevertingOp] = useState<FinishedOperation | null>(null);
+  const [revertingOp, setRevertingOp] = React.useState<FinishedOperation | null>(null);
+  const [showConfirmStart, setShowConfirmStart] = useState(false);
+  const [startFormData, setStartFormData] = useState<StartOpFormValues | null>(null);
   const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setValueEdit, watch: watchEdit } = useForm<StartOpFormValues & { quantidade?: string; horaFinal?: string; qntReprocesso?: string }>({});
   const watchEditProduto = watchEdit('produto');
 
@@ -708,6 +849,11 @@ export default function App() {
     setPasswordInput('');
   };
 
+  const handlePreStartOp = (data: StartOpFormValues) => {
+    setStartFormData(data);
+    setShowConfirmStart(true);
+  };
+
   const onStartOp = async (data: StartOpFormValues) => {
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(loginProfile);
@@ -741,6 +887,7 @@ export default function App() {
       addProduct(data.produto, derivedLitragem); // fire and forget
       toast.success('Operação iniciada!');
       reset({ opNumber: '', produto: '', linha: '', turno: data.turno, horaInicial: format(new Date(), 'HH:mm') });
+      setShowConfirmStart(false);
     } catch (err: any) {
       toast.error('Erro: ' + err.message);
     } finally {
@@ -1100,127 +1247,148 @@ export default function App() {
             </div>
 
             {/* Nova OP */}
-            <div className={cn('bg-white rounded-2xl shadow-sm ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-3 lg:order-1', mobileTab !== 'nova' && 'hidden lg:flex')} style={{ maxHeight: 'calc(100vh - 120px)' }}>
-              <div className="bg-zinc-900 border-b border-zinc-800 p-4">
+            <Card className={cn('bg-white rounded-2xl shadow-sm ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-3 lg:order-1 border-none', mobileTab !== 'nova' && 'hidden lg:flex')} style={{ maxHeight: 'calc(100vh - 120px)' }}>
+              <CardHeader className="bg-zinc-900 border-b border-zinc-800 p-4 space-y-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-zinc-300" />
-                    <span className="text-xs font-bold text-zinc-100 uppercase tracking-widest">Nova Ordem de Produção</span>
+                    <CardTitle className="text-xs font-bold text-zinc-100 uppercase tracking-widest">Nova Ordem de Produção</CardTitle>
                   </div>
                   <span className="text-[10px] font-mono text-zinc-400 font-bold tracking-widest">Turno {currentTurnForView}</span>
                 </div>
-              </div>
-              <form onSubmit={handleSubmit(onStartOp, (errors) => {
-                const errorMsg = Object.values(errors).map(e => e.message).join(', ');
-                if (errorMsg) toast.error('Preencha os campos obrigatórios: ' + Object.keys(errors).join(', '));
-              })} className="p-4 md:p-6 space-y-4 md:space-y-5">
-                <div className="grid grid-cols-2 gap-3 md:gap-4">
-                  <div>
-                    <Label htmlFor="opNumber" className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Nº da OP</Label>
-                    <Input id="opNumber" {...register('opNumber', { onChange: (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" className="w-full h-12 md:h-11 px-3 bg-[#F9FAFB] border border-zinc-200/60 rounded-lg text-base md:text-sm font-mono text-zinc-900 focus-visible:ring-1 focus-visible:ring-zinc-400" />
-                    {errors.opNumber && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.opNumber.message}</p>}
-                  </div>
-                  <div>
-                    <Label htmlFor="horaInicial" className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Hora Inicial</Label>
-                    <CustomTimePicker
-                      id="horaInicial"
-                      value={watch('horaInicial')}
-                      onChange={(v: string) => setValue('horaInicial', v, { shouldValidate: true })}
-                      clockIconClass="absolute left-3 w-4 md:w-4 h-4 md:h-4 text-zinc-400 pointer-events-none"
-                      wrapperClass="bg-[#F9FAFB] rounded-lg h-12 md:h-11"
-                      inputClass="pl-9 pr-3 text-base md:text-sm"
-                    />
-                    {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.horaInicial.message}</p>}
-                  </div>
-                </div>
-                <div className="relative" ref={novaOpRef}>
-                  <Label htmlFor="produto" className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Produto</Label>
-                  <input id="produto" {...register('produto')} autoComplete="off" onFocus={() => setShowProductSuggestions(true)} placeholder="Ex: ALUMAX 5L" className="flex h-12 md:h-11 w-full rounded-lg border border-zinc-200/60 bg-[#F9FAFB] px-3 py-2 text-base md:text-sm text-zinc-900 transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400" />
-                  {showProductSuggestions && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200/60 rounded-lg shadow-xl max-h-56 overflow-y-auto p-1 ring-1 ring-zinc-900/5">
-                      {filteredProducts.length > 0 ? filteredProducts.map(p => (
-                        <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); }} className="cursor-pointer px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 rounded-md flex items-center justify-between gap-2 font-medium">
-                          <span>{p.produto}</span>
-                          {p.litragem && <span className="text-[10px] text-zinc-400 font-mono tracking-tight shrink-0">{p.litragem}</span>}
-                        </div>
-                      )) : watch('produto') ? (
-                         <div className="px-3 py-2 text-sm text-zinc-500 font-medium cursor-pointer hover:bg-zinc-50 rounded-md" onClick={() => setShowProductSuggestions(false)}>
-                            Adicionar novo produto "{watch('produto')}"
-                         </div>
-                      ) : (
-                         <div className="px-3 py-2 text-sm text-zinc-500 font-medium">
-                            Digite para buscar ou criar...
-                         </div>
-                      )}
+              </CardHeader>
+              <CardContent className="p-0 flex-1 overflow-y-auto">
+                <form onSubmit={handleSubmit(handlePreStartOp, (errors) => {
+                  const errorMsg = Object.values(errors).map(e => e.message).join(', ');
+                  if (errorMsg) toast.error('Faltam dados: ' + Object.keys(errors).join(', '));
+                })} className="p-4 md:p-6 space-y-4 md:space-y-5">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4">
+                    <div>
+                      <Label htmlFor="opNumber" className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Nº da OP</Label>
+                      <Input id="opNumber" {...register('opNumber', { onChange: (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" className="w-full h-12 md:h-11 px-3 bg-[#F9FAFB] border border-zinc-200/60 rounded-lg text-base md:text-sm font-mono text-zinc-900 focus-visible:ring-1 focus-visible:ring-zinc-400" />
+                      {errors.opNumber && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.opNumber.message}</p>}
                     </div>
-                  )}
-                  {errors.produto && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.produto.message}</p>}
-                </div>
-                <div>
-                  <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Linha de Produção</Label>
-                  <input type="hidden" {...register('linha')} />
-                  <Popover open={openLineSelect} onOpenChange={setOpenLineSelect}>
-                    <PopoverTrigger type="button" role="combobox" aria-expanded={openLineSelect} className={cn("flex items-center justify-between w-full h-12 md:h-11 px-3 border border-zinc-200/60 bg-[#F9FAFB] transition-all duration-200 text-base md:text-sm font-semibold rounded-lg outline-none focus:ring-1 focus:ring-zinc-400", watch('linha') ? 'border-zinc-300 bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:border-zinc-300')}>
-                      {watch('linha') ? `Linha ${watch('linha')}` : 'Selecione a Linha'}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-zinc-400" />
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0 shadow-xl border-zinc-200/60 rounded-xl" align="start">
-                      <Command className="border-none" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
-                        <CommandInput placeholder="Buscar linha..." className="bg-transparent text-sm" value={searchLine} onValueChange={setSearchLine} />
-                        <CommandList className="max-h-[250px] overflow-y-auto mt-1 p-1">
-                          <CommandEmpty className="py-2 text-center text-xs text-zinc-500">
-                            {searchLine ? (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                className="w-full justify-start font-bold text-zinc-700"
-                                onClick={() => {
-                                  const newLine = searchLine.trim().startsWith('Linha') ? searchLine.trim() : `Linha ${searchLine.trim()}`;
-                                  const val = newLine.replace('Linha ', '');
-                                  setCustomLinhas(prev => [...prev, newLine]);
-                                  setValue('linha', val, { shouldValidate: true });
-                                  setOpenLineSelect(false);
-                                  setSearchLine('');
-                                }}
-                              >
-                                Adicionar "{searchLine}"
-                              </Button>
-                            ) : (
-                              "Nenhuma linha encontrada."
-                            )}
-                          </CommandEmpty>
-                          <CommandGroup>
-                            {allLinhas.map((linhaFull) => {
-                              const lineVal = linhaFull.replace('Linha ', '');
-                              return (
-                                <CommandItem key={lineVal} value={linhaFull} onSelect={() => { setValue('linha', lineVal, { shouldValidate: true }); setOpenLineSelect(false); }} className="flex items-center justify-between py-2 px-3 cursor-pointer rounded-md aria-selected:bg-zinc-900 aria-selected:text-white transition-colors">
-                                  <span className="font-bold tracking-tight">{linhaFull}</span>
-                                  <Check className={cn('h-4 w-4', watch('linha') === lineVal ? 'opacity-100' : 'opacity-0')} />
-                                </CommandItem>
-                              );
-                            })}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  {errors.linha && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.linha.message}</p>}
-                </div>
-                <div className="hidden">
-                  <input type="hidden" {...register('turno')} />
-                  <Select onValueChange={(v) => setValue('turno', v)} value={watch('turno') || ''} disabled={!!loginProfile}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="A">A</SelectItem><SelectItem value="B">B</SelectItem>
-                      <SelectItem value="C">C</SelectItem><SelectItem value="D">D</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" disabled={loadingNewOp} className="w-full h-12 bg-zinc-900 hover:bg-zinc-800 text-white font-black text-sm rounded-xl shadow-sm transition-all ring-1 ring-zinc-900/10">
-                  {loadingNewOp ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-4 h-4 mr-2" /> Iniciar Produção</>}
-                </Button>
-              </form>
-            </div>
+                    <div>
+                      <Label htmlFor="horaInicial" className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Hora Inicial</Label>
+                      <CustomTimePicker
+                        id="horaInicial"
+                        value={watch('horaInicial')}
+                        onChange={(v: string) => setValue('horaInicial', v, { shouldValidate: true })}
+                        clockIconClass="absolute left-3 w-4 md:w-4 h-4 md:h-4 text-zinc-400 pointer-events-none"
+                        wrapperClass="bg-[#F9FAFB] rounded-lg h-12 md:h-11"
+                        inputClass="pl-9 pr-3 text-base md:text-sm"
+                      />
+                      {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.horaInicial.message}</p>}
+                    </div>
+                  </div>
+                  <div className="relative" ref={novaOpRef}>
+                    <Label htmlFor="produto" className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Produto</Label>
+                    <input id="produto" {...register('produto')} autoComplete="off" onFocus={() => setShowProductSuggestions(true)} placeholder="Ex: ALUMAX 5L" className="flex h-12 md:h-11 w-full rounded-lg border border-zinc-200/60 bg-[#F9FAFB] px-3 py-2 text-base md:text-sm text-zinc-900 transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400" />
+                    {showProductSuggestions && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200/60 rounded-lg shadow-xl max-h-56 overflow-y-auto p-1 ring-1 ring-zinc-900/5">
+                        {filteredProducts.length > 0 ? filteredProducts.map(p => (
+                          <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); }} className="cursor-pointer px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 rounded-md flex items-center justify-between gap-2 font-medium">
+                            <span>{p.produto}</span>
+                            {p.litragem && <span className="text-[10px] text-zinc-400 font-mono tracking-tight shrink-0">{p.litragem}</span>}
+                          </div>
+                        )) : watch('produto') ? (
+                           <div className="px-3 py-2 text-sm text-zinc-500 font-medium cursor-pointer hover:bg-zinc-50 rounded-md" onClick={() => setShowProductSuggestions(false)}>
+                              Adicionar novo produto "{watch('produto')}"
+                           </div>
+                        ) : (
+                           <div className="px-3 py-2 text-sm text-zinc-500 font-medium">
+                              Digite para buscar...
+                           </div>
+                        )}
+                      </div>
+                    )}
+                    {errors.produto && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.produto.message}</p>}
+                  </div>
+                  <div>
+                    <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Linha de Produção</Label>
+                    <input type="hidden" {...register('linha')} />
+                    <Popover open={openLineSelect} onOpenChange={setOpenLineSelect}>
+                      <PopoverTrigger type="button" role="combobox" aria-expanded={openLineSelect} className={cn("flex items-center justify-between w-full h-12 md:h-11 px-3 border border-zinc-200/60 bg-[#F9FAFB] transition-all duration-200 text-base md:text-sm font-semibold rounded-lg outline-none focus:ring-1 focus:ring-zinc-400", watch('linha') ? 'border-zinc-300 bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:border-zinc-300')}>
+                        {watch('linha') ? `Linha ${watch('linha')}` : 'Selecione a Linha'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-zinc-400" />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 shadow-xl border-zinc-200/60 rounded-xl" align="start">
+                        <Command className="border-none" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
+                          <CommandInput placeholder="Buscar linha..." className="bg-transparent text-sm" value={searchLine} onValueChange={setSearchLine} />
+                          <CommandList className="max-h-[250px] overflow-y-auto mt-1 p-1">
+                            <CommandEmpty className="py-2 text-center text-xs text-zinc-500">
+                              {searchLine ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  className="w-full justify-start font-bold text-zinc-700"
+                                  onClick={() => {
+                                    const newLine = searchLine.trim().startsWith('Linha') ? searchLine.trim() : `Linha ${searchLine.trim()}`;
+                                    const val = newLine.replace('Linha ', '');
+                                    setCustomLinhas(prev => [...prev, newLine]);
+                                    setValue('linha', val, { shouldValidate: true });
+                                    setOpenLineSelect(false);
+                                    setSearchLine('');
+                                  }}
+                                >
+                                  Adicionar "{searchLine}"
+                                </Button>
+                              ) : (
+                                "Nenhuma línea encontrada."
+                              )}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {allLinhas.map((linhaFull) => {
+                                const lineVal = linhaFull.replace('Linha ', '');
+                                return (
+                                  <CommandItem key={lineVal} value={linhaFull} onSelect={() => { setValue('linha', lineVal, { shouldValidate: true }); setOpenLineSelect(false); }} className="flex items-center justify-between py-2 px-3 cursor-pointer rounded-md aria-selected:bg-zinc-900 aria-selected:text-white transition-colors">
+                                    <span className="font-bold tracking-tight">{linhaFull}</span>
+                                    <Check className={cn('h-4 w-4', watch('linha') === lineVal ? 'opacity-100' : 'opacity-0')} />
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {errors.linha && <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.linha.message}</p>}
+                  </div>
+                  <div className="hidden">
+                    <input type="hidden" {...register('turno')} />
+                    <Select onValueChange={(v) => setValue('turno', v)} value={watch('turno') || ''} disabled={!!loginProfile}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="A">A</SelectItem><SelectItem value="B">B</SelectItem>
+                        <SelectItem value="C">C</SelectItem><SelectItem value="D">D</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <Dialog open={showConfirmStart} onOpenChange={setShowConfirmStart}>
+                    <motion.div whileTap={{ scale: 0.95 }} className="pt-2">
+                      <Button type="submit" disabled={loadingNewOp} className="w-full h-16 bg-zinc-900 hover:bg-zinc-800 text-white font-black text-lg rounded-xl shadow-xl transition-all ring-1 ring-zinc-900/10">
+                        {loadingNewOp ? <Loader2 className="w-6 h-6 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" /> Iniciar Produção</>}
+                      </Button>
+                    </motion.div>
+                    <DialogContent className="max-w-[340px] rounded-3xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-xl font-black">Confirmar Início</DialogTitle>
+                        <DialogDescription className="text-zinc-500 font-medium pt-2">
+                          ¿Desea iniciar la producción para la OP <span className="font-bold text-zinc-900">{startFormData?.opNumber}</span> en la {startFormData?.linha.includes('Linha') ? startFormData?.linha : `Linha ${startFormData?.linha}`}?
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter className="flex-row gap-3 mt-4">
+                        <Button variant="outline" onClick={() => setShowConfirmStart(false)} className="flex-1 h-12 rounded-xl font-bold">Cancelar</Button>
+                        <Button onClick={() => startFormData && onStartOp(startFormData)} disabled={loadingNewOp} className="flex-1 h-12 bg-zinc-900 text-white rounded-xl font-black">
+                          {loadingNewOp ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </form>
+              </CardContent>
+            </Card>
 
             {/* Concluídas */}
             <div className={cn('bg-white rounded-2xl shadow-sm ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-5 lg:order-3', mobileTab !== 'concluidas' && 'hidden lg:flex')} style={{ maxHeight: 'calc(100vh - 120px)' }}>
@@ -1403,24 +1571,28 @@ export default function App() {
                 </Select>
               </div>
               {'quantidade' in editingOp && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Quantidade (UN)</Label>
-                    <Input type="text" inputMode="numeric" autoComplete="off" {...registerEdit('quantidade', { onChange: e => e.target.value = e.target.value.replace(/\D/g, '') })} className="w-full h-11 md:h-10 px-3 py-2 bg-[#F9FAFB] border border-zinc-200/60 rounded-md text-base md:text-sm font-mono text-zinc-900 focus-visible:ring-1 focus-visible:ring-zinc-400" />
-                  </div>
-                  <div>
-                    <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Reprocesso</Label>
-                    <Input type="text" inputMode="numeric" autoComplete="off" {...registerEdit('qntReprocesso', { onChange: e => e.target.value = e.target.value.replace(/\D/g, '') })} className="w-full h-11 md:h-10 px-3 py-2 bg-[#F9FAFB] border border-zinc-200/60 rounded-md text-base md:text-sm font-mono text-zinc-900 focus-visible:ring-1 focus-visible:ring-zinc-400" placeholder="Opcional" />
-                  </div>
-                  <div className="col-span-2 md:col-span-1">
-                    <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Hora Final</Label>
-                    <CustomTimePicker
-                      value={watchEdit('horaFinal')}
-                      onChange={(v: string) => setValueEdit('horaFinal', v, { shouldValidate: true })}
-                      clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
-                      wrapperClass="bg-[#F9FAFB] h-11 md:h-10"
-                      inputClass="pl-9 pr-3 py-2 text-base md:text-sm"
+                <div className="space-y-4">
+                  <QuickCounter 
+                    label="Quantidade (UN)"
+                    value={watchEdit('quantidade') || ''}
+                    onChange={(val: string) => setValueEdit('quantidade', val, { shouldValidate: true })}
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <QuickCounter 
+                      label="Reprocesso"
+                      value={watchEdit('qntReprocesso') || ''}
+                      onChange={(val: string) => setValueEdit('qntReprocesso', val, { shouldValidate: true })}
                     />
+                    <div>
+                      <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Hora Final</Label>
+                      <CustomTimePicker
+                        value={watchEdit('horaFinal')}
+                        onChange={(v: string) => setValueEdit('horaFinal', v, { shouldValidate: true })}
+                        clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
+                        wrapperClass="bg-[#F9FAFB] h-11 md:h-10"
+                        inputClass="pl-9 pr-3 py-2 text-base md:text-sm"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
