@@ -242,35 +242,7 @@ const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass, input
   );
 };
 
-const useAutoIncrement = (callback: () => void) => {
-  const timerRef = useRef<any>(null);
 
-  const start = () => {
-    callback();
-    timerRef.current = setInterval(callback, 120);
-  };
-
-  const stop = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  useEffect(() => {
-    return () => stop();
-  }, []);
-
-  return {
-    onPointerDown: (e: React.PointerEvent) => {
-      if (e.button !== 0) return; // Solo click izquierdo
-      start();
-    },
-    onPointerUp: stop,
-    onPointerLeave: stop,
-    onPointerCancel: stop,
-  };
-};
 
 const QuickCounter = ({ value, onChange, label, className }: any) => {
   // Creamos los handlers para cada botón leyendo el valor más reciente de las props
