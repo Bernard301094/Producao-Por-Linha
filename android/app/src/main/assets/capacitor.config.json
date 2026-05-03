@@ -1,0 +1,10 @@
+{
+	"appId": "com.vonixx.producao",
+	"appName": "Produção Por Linha",
+	"webDir": "dist",
+	"plugins": {
+		"CapacitorHttp": {
+			"enabled": true
+		}
+	}
+}

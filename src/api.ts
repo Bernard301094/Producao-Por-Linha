@@ -73,6 +73,33 @@ export const getOperations = async (): Promise<Operation[]> => {
 export const getParadas = async (): Promise<Parada[]> => {
   const q = query(collection(db, 'paradas'));
   const snap = await getDocs(q);
+  
+  if (snap.empty) {
+    const defaultParadas: Parada[] = [
+      { seq: 1, tipologia: 'TROCA DE FORMATO (SETUP)' },
+      { seq: 2, tipologia: 'MANUTENÇÃO MECÂNICA' },
+      { seq: 3, tipologia: 'MANUTENÇÃO ELÉTRICA' },
+      { seq: 4, tipologia: 'FALTA DE MATERIAL/INSUMO' },
+      { seq: 5, tipologia: 'LIMPEZA/HIGIENIZAÇÃO' },
+      { seq: 6, tipologia: 'REFEIÇÃO / INTERVALO' },
+      { seq: 7, tipologia: 'FALTA DE ENERGIA / UTILIDADES' },
+      { seq: 8, tipologia: 'REUNIÃO / TREINAMENTO' },
+      { seq: 9, tipologia: 'AGUARDANDO CQ (QUALIDADE)' },
+      { seq: 10, tipologia: 'INOPERANTE / FALTA DE DEMANDA' }
+    ];
+    
+    // Seed the database
+    try {
+      await Promise.all(defaultParadas.map(p => 
+        setDoc(doc(db, 'paradas', p.seq.toString()), p)
+      ));
+    } catch (e) {
+      console.error("Error seeding default paradas", e);
+    }
+    
+    return defaultParadas;
+  }
+  
   return snap.docs.map(d => ({ ...d.data() } as Parada)).sort((a,b) => a.seq - b.seq);
 };
 

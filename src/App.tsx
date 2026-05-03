@@ -228,11 +228,11 @@ const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass, input
              </div>
           </div>
 
-          <div className="flex gap-2 mt-8">
-            <button onClick={() => setOpen(false)} className="flex-1 h-12 bg-zinc-100 text-zinc-500 rounded-xl font-bold text-sm hover:bg-zinc-200 hover:text-zinc-700 transition-colors">
+          <div className="flex flex-col sm:flex-row gap-2 mt-8">
+            <button onClick={() => setOpen(false)} className="w-full sm:flex-1 h-12 bg-zinc-100 text-zinc-500 rounded-xl font-bold text-sm hover:bg-zinc-200 hover:text-zinc-700 transition-colors">
               Cancelar
             </button>
-            <button onClick={handleConfirm} className="flex-[1.5] h-12 bg-zinc-900 text-white rounded-xl font-black text-sm hover:bg-zinc-800 transition-colors shadow-md">
+            <button onClick={handleConfirm} className="w-full sm:flex-[1.5] h-12 bg-zinc-900 text-white rounded-xl font-black text-sm hover:bg-zinc-800 transition-colors shadow-md">
               Confirmar
             </button>
           </div>
@@ -373,6 +373,14 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, a
     setFinishParadas(finishParadas.filter((_, i) => i !== index));
   };
 
+  const editParada = (index: number) => {
+    const paradaToEdit = finishParadas[index];
+    setFinishParadaSelectedCode(paradaToEdit.seq.toString());
+    setFinishParadaStart(paradaToEdit.horaInicio);
+    setFinishParadaEnd(paradaToEdit.horaFim);
+    removeParada(index);
+  };
+
   const onConfirm = async () => {
     if (!finishQtd || !finishTime) {
       toast.error('Preencha a quantidade e hora final.');
@@ -456,45 +464,52 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, a
                       <span className="font-bold text-zinc-900">{parada.seq} - {parada.tipologia}</span>
                       <span className="text-[10px] text-zinc-500">{parada.horaInicio} até {parada.horaFim}</span>
                     </div>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => removeParada(idx)} className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 self-end sm:self-auto">
-                      Remover
-                    </Button>
+                    <div className="flex gap-1 self-end sm:self-auto">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => editParada(idx)} className="h-6 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                        Editar
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => removeParada(idx)} className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-50">
+                        Remover
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
-                <div className="sm:col-span-2 space-y-1">
+              <div className="flex flex-col gap-2 relative">
+                <div className="w-full">
                   <Select value={finishParadaSelectedCode} onValueChange={setFinishParadaSelectedCode}>
-                    <SelectTrigger className="h-10 text-xs bg-white">
+                    <SelectTrigger className="h-auto min-h-10 py-2 text-xs bg-white w-full text-left font-normal [&>span]:line-clamp-none [&>span]:whitespace-normal">
                       <SelectValue placeholder="Motivo da parada" />
                     </SelectTrigger>
                     <SelectContent>
                       {availableParadas.map((p: any) => (
-                        <SelectItem key={p.seq} value={p.seq.toString()} className="text-xs">
+                        <SelectItem key={p.seq} value={p.seq.toString()} className="text-xs [&>span]:whitespace-normal py-2">
                           {p.seq} - {p.tipologia}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
-                  <CustomTimePicker 
-                    value={finishParadaStart} 
-                    onChange={setFinishParadaStart}
-                    placeholder="Início"
-                    wrapperClass="h-10 bg-white"
-                    inputClass="text-xs text-center px-1"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <CustomTimePicker 
-                    value={finishParadaEnd} 
-                    onChange={setFinishParadaEnd}
-                    placeholder="Fim"
-                    wrapperClass="h-10 bg-white"
-                    inputClass="text-xs text-center px-1"
-                  />
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <CustomTimePicker 
+                      value={finishParadaStart} 
+                      onChange={setFinishParadaStart}
+                      placeholder="Início"
+                      wrapperClass="h-10 bg-white"
+                      inputClass="text-xs text-center px-1"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <CustomTimePicker 
+                      value={finishParadaEnd} 
+                      onChange={setFinishParadaEnd}
+                      placeholder="Fim"
+                      wrapperClass="h-10 bg-white"
+                      inputClass="text-xs text-center px-1"
+                    />
+                  </div>
                 </div>
               </div>
               <Button type="button" variant="outline" size="sm" onClick={addParada} className="w-full mt-2 h-8 text-xs font-bold dashed-border">
@@ -504,9 +519,9 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, a
             {/* End Paradas Section */}
             
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Dialog open={isConfirmingFinish} onOpenChange={setIsConfirmingFinish}>
-              <motion.div whileTap={{ scale: 0.95 }} className="flex-1">
+              <motion.div whileTap={{ scale: 0.95 }} className="flex-1 w-full sm:w-auto">
                 <Button size="lg" onClick={onConfirm} disabled={itemLoading} className="w-full h-16 text-lg bg-zinc-900 hover:bg-zinc-800 text-white font-black rounded-xl shadow-lg">
                   {itemLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Finalizar Registro'}
                 </Button>
@@ -518,15 +533,15 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, a
                     Deseja salvar a produção de <span className="font-bold text-zinc-900">{finishQtd} UN</span> para a OP {op.opNumber}?
                   </DialogDescription>
                 </DialogHeader>
-                <DialogFooter className="flex-row gap-3 mt-4">
-                  <Button variant="outline" onClick={() => setIsConfirmingFinish(false)} className="flex-1 h-12 rounded-xl font-bold">Cancelar</Button>
-                  <Button onClick={handleActualFinish} disabled={itemLoading} className="flex-1 h-12 bg-zinc-900 text-white rounded-xl font-black">
+                <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-3 mt-4">
+                  <Button variant="outline" onClick={() => setIsConfirmingFinish(false)} className="flex-1 w-full h-12 rounded-xl font-bold">Cancelar</Button>
+                  <Button onClick={handleActualFinish} disabled={itemLoading} className="flex-1 w-full h-12 bg-zinc-900 text-white rounded-xl font-black">
                     {itemLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sim, Salvar'}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            <Button size="lg" variant="outline" onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishQtdReprocesso(''); }} className="h-16 px-6 text-sm font-bold border-zinc-200/60 rounded-xl">Cancelar</Button>
+            <Button size="lg" variant="outline" onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishQtdReprocesso(''); }} className="w-full sm:w-auto h-16 px-6 text-sm font-bold border-zinc-200/60 rounded-xl">Cancelar</Button>
           </div>
         </div>
       ) : (
@@ -573,7 +588,7 @@ const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setRevertingOp
               <div className="flex flex-wrap gap-1.5">
                 {op.paradas.map((p: any, i: number) => (
                    <span key={i} className="text-[9px] font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded" title={p.tipologia}>
-                     {p.seq} ({p.horaInicio}-{p.horaFim})
+                     {p.seq} - {p.tipologia} ({p.horaInicio}-{p.horaFim})
                    </span>
                 ))}
               </div>
@@ -792,6 +807,15 @@ export default function App() {
     setAvailableProducts(prods);
   };
 
+  const loadParadas = async () => {
+    try {
+      const paradas = await getParadas();
+      setAvailableParadas(paradas);
+    } catch (e) {
+      console.error("Error loading paradas:", e);
+    }
+  };
+
   const watchHoraInicial = watch('horaInicial');
   const watchProduto = watch('produto');
 
@@ -823,8 +847,9 @@ export default function App() {
   const refreshData = async () => {
     try {
       await loadProducts();
+      await loadParadas();
     } catch (e) {
-      console.error("Error loading products:", e);
+      console.error("Error loading data:", e);
     }
   };
 
@@ -1484,7 +1509,7 @@ export default function App() {
                           ¿Desea iniciar la producción para la OP <span className="font-bold text-zinc-900">{startFormData?.opNumber}</span> en la {startFormData?.linha.includes('Linha') ? startFormData?.linha : `Linha ${startFormData?.linha}`}?
                         </DialogDescription>
                       </DialogHeader>
-                      <DialogFooter className="flex-row gap-3 mt-4">
+                      <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-3 mt-4">
                         <Button variant="outline" onClick={() => setShowConfirmStart(false)} className="flex-1 h-12 rounded-xl font-bold">Cancelar</Button>
                         <Button onClick={() => startFormData && onStartOp(startFormData)} disabled={loadingNewOp} className="flex-1 h-12 bg-zinc-900 text-white rounded-xl font-black">
                           {loadingNewOp ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar'}
