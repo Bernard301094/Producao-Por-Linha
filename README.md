@@ -55,4 +55,4 @@ O uso deste software está sob a norma da **Licença MIT (Modificada para Uso Pr
 - **Autor e Criador:** Bernard Eduardo De Freitas Castillo.
 - **Uso Restrito Corporativo:** Este aplicativo é autorizado **exclusivamente e estritamente** para implantação, uso na produção e fluxos operacionais internos da empresa **Vonixx**.
 - Sob os termos definidos, é legalmente proibido seu uso, adaptação comercial aberta, venda, ou distribuição por terceiros fora da Vonixx.
-- Para verificar os termos completos de uso e termos de takesenção de danos de informação, consulte diretamente o arquivo [`LICENSE`](./LICENSE) documentado na raiz deste sistema.
+- Para verificar os termos completos de uso e termos de takesenção de danos de informação, consulte diretamente o arquivo [`LICENSE`](./LICENSE.md) documentado na raiz deste sistema.
