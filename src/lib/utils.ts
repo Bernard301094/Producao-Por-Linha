@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 
 // Utilidad para fusionar clases de Tailwind (shadcn/ui)
 export function cn(...inputs: ClassValue[]) {
@@ -11,27 +11,28 @@ export function cn(...inputs: ClassValue[]) {
 export function useAutoIncrement(action: () => void, delay = 400, intervalSpeed = 80) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Guardamos siempre la versión más reciente de la acción para evitar "stale closures" en React
+  const savedAction = useRef(action);
+  useEffect(() => {
+    savedAction.current = action;
+  }, [action]);
 
   const start = useCallback((e: React.SyntheticEvent) => {
-    // Evita el comportamiento por defecto en móviles (como el scroll o selección)
     if (e.type === 'touchstart') {
       e.preventDefault(); 
     }
     
-    // 1. Ejecutar la acción inmediatamente al tocar
-    action();
+    savedAction.current();
 
-    // 2. Iniciar el temporizador para detectar el "long press"
     timeoutRef.current = setTimeout(() => {
-      // 3. Si sigue presionado después del delay, iniciar la repetición rápida
       intervalRef.current = setInterval(() => {
-        action();
+        savedAction.current();
       }, intervalSpeed);
     }, delay);
-  }, [action, delay, intervalSpeed]);
+  }, [delay, intervalSpeed]);
 
   const stop = useCallback(() => {
-    // Limpiar ambos temporizadores al soltar el botón
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (intervalRef.current) clearInterval(intervalRef.current);
   }, []);
