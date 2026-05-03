@@ -172,6 +172,64 @@ app.post('/api/append', async (req, res) => {
   }
 });
 
+app.post('/api/append-paradas', async (req, res) => {
+  console.log("POST /api/append-paradas received", req.body);
+  try {
+    const {
+      carimbo, op, litragem, produto, linha, turno, paradas
+    } = req.body;
+
+    if (!paradas || !Array.isArray(paradas) || paradas.length === 0) {
+      return res.status(200).json({ success: true, message: 'No paradas to append' });
+    }
+
+    const client = getGraphClient();
+    const { driveId, itemId } = await resolveExcelFile(client);
+    
+    // According to screenshot, the worksheet name is "PARADAS"
+    const msSheetName = 'PARADAS';
+    
+    try {
+      const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
+      const rowCount = usedRange.rowCount;
+      let nextRow = usedRange.rowIndex + rowCount;
+      if (rowCount === 1 && usedRange.values[0][0] === '') nextRow = 0;
+      
+      const newValues = paradas.map(p => [
+        carimbo || new Date().toLocaleDateString('pt-BR'),
+        op || '',
+        formatLitragemText(litragem || ''),
+        produto || '',
+        linha || '',
+        turno || '',
+        p.seq || '',
+        p.tipologia || '',
+        p.horaInicio || '',
+        p.horaFim || ''
+      ]);
+
+      const startRow = nextRow + 1;
+      const endRow = nextRow + newValues.length;
+      const appendRangeStr = `A${startRow}:J${endRow}`;
+      
+      const updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`)
+        .patch({ values: newValues });
+      
+      console.log("OneDrive Append Paradas success");
+      return res.status(200).json({ success: true, message: 'Paradas added via OneDrive', data: updateRes });
+    } catch (e) {
+       throw e;
+    }
+  } catch (error: any) {
+    console.error("Failed to append paradas to OneDrive:", error?.message || error);
+    res.status(500).json({ 
+      success: false, 
+      error: error?.message || String(error),
+      details: error?.body || null
+    });
+  }
+});
+
 app.post('/api/update', async (req, res) => {
   try {
     const { originalData, updates } = req.body;

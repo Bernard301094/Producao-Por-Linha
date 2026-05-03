@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { useRef, useCallback, useEffect } from "react";
+import React, { useRef, useCallback, useEffect } from "react";
 
 // Utilidad para fusionar clases de Tailwind (shadcn/ui)
 export function cn(...inputs: ClassValue[]) {

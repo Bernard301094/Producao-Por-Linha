@@ -2,6 +2,18 @@ import { PRODUCTS } from './data';
 import { db } from './firebase';
 import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, updateDoc, query, where, onSnapshot } from 'firebase/firestore';
 
+export interface Parada {
+  seq: number;
+  tipologia: string;
+  flag: number;
+  detalhamento: string;
+}
+
+export interface ParadaRecord extends Parada {
+  horaInicio: string;
+  horaFim: string;
+}
+
 export interface Operation {
   id: string;
   opNumber: string;
@@ -21,6 +33,7 @@ export interface FinishedOperation extends Operation {
   reportString?: string;
   reportDocId?: string;
   carimbo?: string;
+  paradas?: ParadaRecord[];
 }
 
 const STORAGE_KEYS = {
@@ -57,6 +70,12 @@ export const getOperations = async (): Promise<Operation[]> => {
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Operation));
 };
 
+export const getParadas = async (): Promise<Parada[]> => {
+  const q = query(collection(db, 'paradas'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ ...d.data() } as Parada)).sort((a,b) => a.seq - b.seq);
+};
+
 export const addOperation = async (op: Operation) => {
   await setDoc(doc(db, 'operations', op.id), { ...op, status: 'pending' });
 };
@@ -77,7 +96,8 @@ const isCapacitor = Capacitor.isNativePlatform();
  * We MUST point to the Shared App URL (ais-pre) because the Dev URL (ais-dev) is protected and denies access from the mobile phone.
  * The user must click "Share" in the AI Studio platform to publish the backend.
  */
-const API_BASE = import.meta.env.VITE_API_URL || (isCapacitor ? 'https://ais-pre-lr3elaaqn26vdipvtk4fc5-246875337716.us-east1.run.app' : '');
+// @ts-ignore
+const API_BASE = import.meta.env?.VITE_API_URL || (isCapacitor ? 'https://ais-pre-lr3elaaqn26vdipvtk4fc5-246875337716.us-east1.run.app' : '');
 
 const formatSheetLitragem = (l: string) => {
   if (!l) return '';
@@ -93,6 +113,7 @@ export const markOperationFinished = async (
   quantidade: string,
   horaFinal: string,
   qntReprocesso?: string,
+  paradas?: ParadaRecord[],
   onOneDriveSync?: (success: boolean, error?: string) => void
 ) => {
   const formattedLinha = op.linha ? (isNaN(Number(op.linha)) ? op.linha : `Linha ${op.linha}`) : '';
@@ -110,6 +131,7 @@ export const markOperationFinished = async (
     horaFinal,
     qntReprocesso: qntReprocesso || '',
     carimbo: formatedCarimbo,
+    paradas: paradas || [],
   };
 
   // 1. Write to Firebase FIRST — instant due to offline cache
@@ -143,6 +165,23 @@ export const markOperationFinished = async (
       const errText = await res.text();
       onOneDriveSync?.(false, errText);
     } else {
+      // Sync paradas if exist
+      if (paradas && paradas.length > 0) {
+        const paradasPayload = {
+          carimbo: formatedCarimbo,
+          op: op.opNumber,
+          litragem: formatSheetLitragem(op.litragem || ''),
+          produto: op.produto,
+          linha: formattedLinha,
+          turno: op.turno,
+          paradas: paradas
+        };
+        fetch(`${API_BASE}/api/append-paradas`, {
+          method: 'POST',
+          body: JSON.stringify(paradasPayload),
+          headers: { 'Content-Type': 'application/json' }
+        }).catch(e => console.error("Error syncing paradas:", e));
+      }
       onOneDriveSync?.(true);
     }
   }).catch(error => {

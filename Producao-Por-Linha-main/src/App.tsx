@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord } from './api';
 import { LINHAS } from './data';
 
 // Componentes UI e Ícones
@@ -332,13 +332,46 @@ const QuickCounter = ({ value, onChange, label, className }: any) => {
   );
 };
 
-const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp }: any) => {
+const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, availableParadas }: any) => {
   const [isFinishing, setIsFinishing] = React.useState(false);
   const [finishQtd, setFinishQtd] = React.useState('');
   const [finishQtdReprocesso, setFinishQtdReprocesso] = React.useState('');
   const [finishTime, setFinishTime] = React.useState('');
+  const [finishParadas, setFinishParadas] = React.useState<ParadaRecord[]>([]);
+  
+  const [finishParadaSelectedCode, setFinishParadaSelectedCode] = React.useState('');
+  const [finishParadaStart, setFinishParadaStart] = React.useState('');
+  const [finishParadaEnd, setFinishParadaEnd] = React.useState('');
+  
   const [itemLoading, setItemLoading] = React.useState(false);
   const [isConfirmingFinish, setIsConfirmingFinish] = React.useState(false);
+
+  const addParada = () => {
+    if (!finishParadaSelectedCode || !finishParadaStart || !finishParadaEnd) {
+      toast.error('Preencha o motivo da parada e os horários de início e término.');
+      return;
+    }
+    const paradaBase = availableParadas.find((p: any) => p.seq.toString() === finishParadaSelectedCode);
+    if (!paradaBase) {
+      toast.error('Parada não encontrada.');
+      return;
+    }
+    
+    const newParada: ParadaRecord = {
+      ...paradaBase,
+      horaInicio: finishParadaStart,
+      horaFim: finishParadaEnd,
+    };
+    
+    setFinishParadas([...finishParadas, newParada]);
+    setFinishParadaSelectedCode('');
+    setFinishParadaStart('');
+    setFinishParadaEnd('');
+  };
+
+  const removeParada = (index: number) => {
+    setFinishParadas(finishParadas.filter((_, i) => i !== index));
+  };
 
   const onConfirm = async () => {
     if (!finishQtd || !finishTime) {
@@ -351,11 +384,12 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp }:
   const handleActualFinish = async () => {
     setItemLoading(true);
     try {
-      await handleFinish(op.id, finishQtd, finishTime, finishQtdReprocesso, () => {
+      await handleFinish(op.id, finishQtd, finishTime, finishQtdReprocesso, finishParadas, () => {
         setIsFinishing(false);
         setFinishQtd('');
         setFinishQtdReprocesso('');
         setFinishTime('');
+        setFinishParadas([]);
         setIsConfirmingFinish(false);
       });
     } catch (err: any) {
@@ -410,6 +444,65 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp }:
                 />
               </div>
             </div>
+
+            {/* Paradas Section */}
+            <div className="mt-4 border-t border-zinc-200/60 pt-4">
+              <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-2">Paradas (Opcional)</label>
+              
+              <div className="space-y-2 mb-3">
+                {finishParadas.map((parada, idx) => (
+                  <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 bg-white border border-zinc-200 rounded-lg shadow-sm text-xs">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-zinc-900">{parada.seq} - {parada.tipologia}</span>
+                      <span className="text-[10px] text-zinc-500">{parada.horaInicio} até {parada.horaFim}</span>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => removeParada(idx)} className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 self-end sm:self-auto">
+                      Remover
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+                <div className="sm:col-span-2 space-y-1">
+                  <Select value={finishParadaSelectedCode} onValueChange={setFinishParadaSelectedCode}>
+                    <SelectTrigger className="h-10 text-xs bg-white">
+                      <SelectValue placeholder="Motivo da parada" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableParadas.map((p: any) => (
+                        <SelectItem key={p.seq} value={p.seq.toString()} className="text-xs">
+                          {p.seq} - {p.tipologia}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <CustomTimePicker 
+                    value={finishParadaStart} 
+                    onChange={setFinishParadaStart}
+                    placeholder="Início"
+                    wrapperClass="h-10 bg-white"
+                    inputClass="text-xs text-center px-1"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <CustomTimePicker 
+                    value={finishParadaEnd} 
+                    onChange={setFinishParadaEnd}
+                    placeholder="Fim"
+                    wrapperClass="h-10 bg-white"
+                    inputClass="text-xs text-center px-1"
+                  />
+                </div>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={addParada} className="w-full mt-2 h-8 text-xs font-bold dashed-border">
+                <Plus className="w-3 h-3 mr-1" /> Adicionar Parada
+              </Button>
+            </div>
+            {/* End Paradas Section */}
+            
           </div>
           <div className="flex gap-2">
             <Dialog open={isConfirmingFinish} onOpenChange={setIsConfirmingFinish}>
@@ -472,6 +565,18 @@ const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setRevertingOp
               {op.qntReprocesso && (
                 <p className="text-[10px] font-bold text-amber-700 tracking-tight bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50">Reprocesso: {op.qntReprocesso} UN</p>
               )}
+            </div>
+          )}
+          {op.paradas && op.paradas.length > 0 && (
+            <div className="mt-2 space-y-1">
+              <p className="text-[10px] font-bold text-zinc-500 uppercase">Paradas Registradas ({op.paradas.length})</p>
+              <div className="flex flex-wrap gap-1.5">
+                {op.paradas.map((p: any, i: number) => (
+                   <span key={i} className="text-[9px] font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded" title={p.tipologia}>
+                     {p.seq} ({p.horaInicio}-{p.horaFim})
+                   </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -546,10 +651,15 @@ export default function App() {
   const [loadingRevert, setLoadingRevert] = useState(false);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [availableProducts, setAvailableProducts] = useState<{produto: string, litragem: string}[]>([]);
+  const [availableParadas, setAvailableParadas] = useState<Parada[]>([]);
   const [showProductSuggestions, setShowProductSuggestions] = useState(false);
   const [finishQtd, setFinishQtd] = useState('');
   const [finishQtdReprocesso, setFinishQtdReprocesso] = useState('');
   const [finishTime, setFinishTime] = useState('');
+  const [finishParadas, setFinishParadas] = useState<ParadaRecord[]>([]);
+  const [finishParadaSelectedCode, setFinishParadaSelectedCode] = useState('');
+  const [finishParadaStart, setFinishParadaStart] = useState('');
+  const [finishParadaEnd, setFinishParadaEnd] = useState('');
   
   const [searchLine, setSearchLine] = useState('');
   const [searchEditLine, setSearchEditLine] = useState('');
@@ -889,7 +999,7 @@ export default function App() {
     }
   };
 
-  const handleFinish = async (id: string, qtd: string, time: string, reprocesso: string, onSuccess: () => void) => {
+  const handleFinish = async (id: string, qtd: string, time: string, reprocesso: string, paradas: ParadaRecord[], onSuccess: () => void) => {
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(loginProfile);
       if (!shiftCheck.allowed) {
@@ -910,6 +1020,7 @@ export default function App() {
         qtd,
         time.length === 5 ? `${time}:00` : time,
         reprocesso,
+        paradas,
         (success, error) => {
           if (success) {
             toast.success('Sincronizado com a planilha!');
@@ -1235,6 +1346,7 @@ export default function App() {
                     handleFinish={handleFinish} 
                     openEdit={openEdit} 
                     setDeletingOp={setDeletingOp} 
+                    availableParadas={availableParadas}
                   />
                 ))}
               </div>
