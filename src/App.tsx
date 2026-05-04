@@ -703,12 +703,12 @@ export default function App() {
   return (
     <>
       <Toaster position="top-center" />
-      <div className="min-h-screen bg-[#F9FAFB]">
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_#e2e8f0_0,_#f8fafc_38%,_#f1f5f9_100%)]">
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-zinc-200/60 shadow-sm sticky top-0 z-30 pt-1 sm:pt-2">
+        <header className="bg-white/85 backdrop-blur-xl border-b border-slate-200/70 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sticky top-0 z-30 pt-1 sm:pt-2">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-zinc-900 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-slate-900 to-slate-700 rounded-xl flex items-center justify-center shadow-md shadow-slate-900/25 flex-shrink-0">
                 <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
               <div className="min-w-0 shrink">
@@ -754,11 +754,11 @@ export default function App() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-0 sm:py-4 md:py-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2 sm:py-5 md:py-7">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-4 md:gap-6 items-start">
 
             {/* Pendentes */}
-            <div className={cn('bg-white sm:rounded-2xl shadow-sm sm:ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-4 lg:order-2 -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-zinc-200/60 sm:border-y-0', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
+            <div className={cn('bg-white/95 sm:rounded-2xl shadow-[0_10px_24px_rgba(15,23,42,0.08)] sm:ring-1 ring-slate-200/80 flex flex-col overflow-hidden lg:col-span-4 lg:order-2 -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-slate-200/70 sm:border-y-0', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
               <div className="p-4 border-b border-zinc-100 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 bg-zinc-100 shadow-sm ring-1 ring-zinc-200/50 rounded-lg flex items-center justify-center">
@@ -821,7 +821,7 @@ export default function App() {
             </div>
 
             {/* Concluídas */}
-            <div className={cn('bg-white sm:rounded-2xl shadow-sm sm:ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-5 lg:order-3 -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-zinc-200/60 sm:border-y-0', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
+            <div className={cn('bg-white/95 sm:rounded-2xl shadow-[0_10px_24px_rgba(15,23,42,0.08)] sm:ring-1 ring-slate-200/80 flex flex-col overflow-hidden lg:col-span-5 lg:order-3 -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-slate-200/70 sm:border-y-0', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
               <div className="p-4 border-b border-zinc-100">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">

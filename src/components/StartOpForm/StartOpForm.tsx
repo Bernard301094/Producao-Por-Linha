@@ -85,8 +85,8 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
   }, [setIsTypingProduct, setShowProductSuggestions]);
 
   return (
-    <Card className="bg-white sm:rounded-2xl shadow-sm sm:ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-3 lg:order-1 border-none -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-[calc(100vh-120px)] border-y border-zinc-200/60 sm:border-y-0 w-full">
-      <CardHeader className="bg-zinc-900 border-b border-zinc-800 p-4 space-y-0 shrink-0">
+    <Card className="bg-white/95 sm:rounded-2xl shadow-[0_12px_28px_rgba(15,23,42,0.1)] sm:ring-1 ring-slate-200/80 flex flex-col overflow-hidden lg:col-span-3 lg:order-1 border-none -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-[calc(100vh-120px)] border-y border-slate-200/70 sm:border-y-0 w-full">
+      <CardHeader className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/80 p-4 space-y-0 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Package className="w-4 h-4 text-zinc-300" />
@@ -210,7 +210,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
           
           <Dialog open={showConfirmStart} onOpenChange={setShowConfirmStart}>
             <motion.div whileTap={{ scale: 0.95 }} className="pt-2">
-              <Button type="submit" disabled={loadingNewOp} className="w-full h-16 bg-zinc-900 hover:bg-zinc-800 text-white font-black text-lg rounded-xl shadow-xl transition-all ring-1 ring-zinc-900/10">
+              <Button type="submit" disabled={loadingNewOp} className="w-full h-16 bg-gradient-to-r from-slate-900 to-slate-700 hover:from-slate-800 hover:to-slate-700 text-white font-black text-lg rounded-xl shadow-lg shadow-slate-900/25 transition-all ring-1 ring-slate-900/10">
                 {loadingNewOp ? <Loader2 className="w-6 h-6 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" /> Iniciar Produção</>}
               </Button>
             </motion.div>
