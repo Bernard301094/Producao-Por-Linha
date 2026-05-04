@@ -29,146 +29,125 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   handleLogin
 }) => {
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-5xl bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col lg:flex-row min-h-[600px] ring-1 ring-zinc-200/50">
-        
-        {/* Left Side: Gradient Banner */}
-        <div className="lg:w-2/5 p-8 sm:p-12 hidden lg:flex flex-col justify-between relative overflow-hidden bg-zinc-950">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] opacity-20 mask-image:linear-gradient(to_bottom,white,transparent)]" />
-          <div className="relative z-10">
-            <div className="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/10 shadow-xl mb-8">
-              <Package className="w-8 h-8 text-white" />
+    <main className="min-h-screen w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-10 flex items-center justify-center">
+      <section className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] rounded-[28px] lg:rounded-[32px] overflow-hidden border border-slate-200/70 shadow-[0_24px_80px_rgba(15,23,42,0.14)] bg-white/95">
+        <aside className="relative hidden lg:flex flex-col justify-between bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 p-10 xl:p-12 text-white">
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,rgba(129,140,248,0.8),transparent_45%)]" />
+          <div className="absolute inset-0 opacity-25 bg-[linear-gradient(to_right,#ffffff1c_1px,transparent_1px),linear-gradient(to_bottom,#ffffff16_1px,transparent_1px)] bg-[size:18px_18px]" />
+          <div className="relative z-10 space-y-8">
+            <div className="h-16 w-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center">
+              <Package className="w-8 h-8" />
             </div>
-            <h1 className="text-4xl font-black text-white tracking-tight leading-tight mb-4">
-              Sistema de<br />Produção
-            </h1>
-            <p className="text-zinc-400 font-medium leading-relaxed max-w-sm">
-              Acesse o painel para gerenciar operações, registrar paradas e acompanhar a produtividade da linha em tempo real.
-            </p>
+            <div className="space-y-4">
+              <h1 className="text-4xl xl:text-[44px] font-black tracking-tight leading-[1.05]">Produção por Linha</h1>
+              <p className="text-slate-300 text-base leading-relaxed max-w-md">
+                Plataforma para controle de OPs com registro de paradas e acompanhamento operacional em tempo real.
+              </p>
+            </div>
           </div>
-          <div className="relative z-10">
-            <p className="text-[11px] font-bold tracking-widest uppercase text-zinc-500 font-mono">Vs. 2.0 • Vonixx</p>
-          </div>
-        </div>
+          <p className="relative z-10 text-[11px] font-bold tracking-[0.18em] uppercase text-slate-400">Vonixx • Painel Industrial</p>
+        </aside>
 
-        {/* Right Side: Login Content */}
-        <div className="flex-1 p-6 sm:p-8 lg:p-12 xl:p-16 flex flex-col justify-center bg-white relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full" />
-          
-          <div className="w-full max-w-md mx-auto relative z-10">
-            
-            {/* Mobile/Tablet Branding */}
-            <div className="lg:hidden flex flex-col items-center gap-3 mb-8 pt-2 sm:pt-0 text-center">
-              <div className="w-12 h-12 bg-zinc-950 rounded-2xl flex items-center justify-center shadow-lg shadow-zinc-900/20">
-                <Package className="w-6 h-6 text-white" />
+        <div className="relative bg-white px-4 py-6 sm:p-8 md:p-10 lg:p-12 xl:p-14">
+          <div className="absolute -top-8 -right-8 h-32 w-32 rounded-full bg-indigo-100 blur-3xl" />
+          <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-emerald-100 blur-3xl" />
+
+          <div className="relative z-10 mx-auto w-full max-w-xl">
+            <div className="lg:hidden mb-6 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="h-11 w-11 rounded-xl bg-slate-900 text-white flex items-center justify-center">
+                <Package className="w-5 h-5" />
               </div>
               <div>
-                <h1 className="text-xl font-black text-zinc-950 tracking-tight leading-none">Produção por Linha</h1>
-                <p className="text-[11px] text-zinc-500 font-mono mt-1.5 uppercase tracking-widest font-bold">Vonixx</p>
+                <h2 className="font-black text-slate-900 tracking-tight">Produção por Linha</h2>
+                <p className="text-[11px] uppercase tracking-widest font-bold text-slate-500">Vonixx</p>
               </div>
             </div>
 
-            <div className="mb-8 text-center lg:text-left">
-              <h3 className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">Bem-vindo(a)</h3>
-              <p className="text-sm text-zinc-500 mt-2 font-medium">Acesse seu perfil para continuar.</p>
-            </div>
-            
-            <div className="space-y-6">
-              {!selectedProfile ? (
-                <div>
-                  <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4 text-center lg:text-left">Selecione seu perfil</p>
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                    {profiles.length === 0 && (
-                      <p className="text-xs text-zinc-400 font-medium col-span-2 text-center lg:text-left">
-                        Nenhum perfil encontrado.
-                      </p>
-                    )}
-                    {profiles.map((profile) => (
-                      <button
-                        key={profile}
-                        onClick={() => { setSelectedProfile(profile); setPasswordInput(''); setShowPassword(false); }}
-                        className={cn(
-                          'w-full p-3 sm:p-4 rounded-2xl font-bold text-[13px] sm:text-sm transition-all duration-200 border-2 text-center lg:text-left flex flex-col md:flex-row items-center justify-center md:justify-between group gap-2 md:gap-0',
-                          'bg-white border-zinc-200/80 text-zinc-700 hover:border-zinc-900 hover:text-zinc-950 hover:shadow-md'
-                        )}
-                      >
-                        <span className="flex flex-col md:flex-row items-center gap-1 md:gap-3">
-                          <div className={cn(
-                            "w-8 h-8 rounded-lg flex flex-shrink-0 items-center justify-center border",
-                            "bg-zinc-50 border-zinc-200/60 group-hover:bg-zinc-950 transition-colors"
-                          )}>
-                            <Package className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
-                          </div>
-                          {profile.replace('Turno ', 'Turno ')}
+            <header className="mb-8 text-center lg:text-left">
+              <h3 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-950">Acesse sua conta</h3>
+              <p className="text-sm sm:text-base text-slate-500 mt-2">Selecione seu turno e entre no painel operacional.</p>
+            </header>
+
+            {!selectedProfile ? (
+              <div className="space-y-4">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.16em]">Selecione seu perfil</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {profiles.length === 0 && (
+                    <p className="text-sm text-slate-400 font-medium col-span-full">Nenhum perfil encontrado.</p>
+                  )}
+                  {profiles.map((profile) => (
+                    <button
+                      key={profile}
+                      onClick={() => { setSelectedProfile(profile); setPasswordInput(''); setShowPassword(false); }}
+                      className={cn(
+                        'w-full p-4 rounded-2xl border text-left transition-all duration-200 group flex items-center justify-between gap-3',
+                        'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-[0_10px_24px_rgba(15,23,42,0.08)]'
+                      )}
+                    >
+                      <span className="flex items-center gap-3 min-w-0">
+                        <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 border border-slate-200 group-hover:bg-indigo-50 group-hover:border-indigo-200">
+                          <Package className="w-4 h-4 text-slate-500 group-hover:text-indigo-600" />
                         </span>
-                        <ChevronsUpDown className="w-4 h-4 text-zinc-300 group-hover:text-zinc-600 transition-colors shrink-0 hidden md:block" />
-                      </button>
-                    ))}
+                        <span className="font-bold text-slate-800 truncate">{profile.replace('Turno ', 'Turno ')}</span>
+                      </span>
+                      <ChevronsUpDown className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <button
+                  onClick={() => { setSelectedProfile(null); setPasswordInput(''); }}
+                  className="text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-indigo-700"
+                >
+                  ← Mudar perfil
+                </button>
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex items-center gap-3">
+                  <span className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center">
+                    <Package className="w-5 h-5 text-slate-700" />
+                  </span>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Perfil selecionado</p>
+                    <p className="font-black text-slate-900 text-lg leading-tight">{selectedProfile}</p>
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <button
-                    onClick={() => { setSelectedProfile(null); setPasswordInput(''); }}
-                    className="flex items-center justify-center lg:justify-start gap-1 text-zinc-400 hover:text-zinc-900 text-xs font-bold transition-colors uppercase tracking-wider mx-auto lg:mx-0 w-full lg:w-auto text-center lg:text-left"
-                  >
-                    ← Mudar Perfil
-                  </button>
 
-                  <div className="flex flex-col lg:flex-row items-center gap-4 p-4 bg-white rounded-2xl border border-zinc-200/80 shadow-sm text-center lg:text-left">
-                    <div className={cn(
-                      'w-10 h-10 rounded-xl flex flex-shrink-0 items-center justify-center border',
-                      'bg-zinc-50 border-zinc-200'
-                    )}>
-                      <Package className="w-5 h-5 text-zinc-800" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Perfil Selecionado</p>
-                      <p className="text-base font-black text-zinc-950">{selectedProfile}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 pt-2">
-                     <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest text-center lg:text-left">Senha de Acesso</Label>
-                     <div className="relative max-w-sm mx-auto lg:max-w-none">
-                       <Input
-                         type={showPassword ? 'text' : 'password'}
-                         value={passwordInput}
-                         onChange={e => setPasswordInput(e.target.value)}
-                         onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }}
-                         placeholder="Digite a senha..."
-                         autoFocus
-                         className="w-full h-12 bg-white border-2 border-zinc-200 text-zinc-950 placeholder:text-zinc-400 pr-12 rounded-xl focus-visible:ring-0 focus-visible:border-zinc-950 text-base shadow-sm transition-colors text-center lg:text-left"
-                       />
-                       <button
-                         type="button"
-                         onClick={() => setShowPassword(v => !v)}
-                         className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors"
-                       >
-                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                       </button>
-                     </div>
-                  </div>
-
-                  <div className="pt-4 max-w-sm mx-auto lg:max-w-none">
-                      <Button
-                        onClick={handleLogin}
-                        disabled={loginLoading || !passwordInput}
-                        className={cn(
-                          'w-full h-12 font-black text-base rounded-xl transition-all',
-                          'bg-zinc-950 hover:bg-zinc-800 text-white shadow-md shadow-zinc-950/20'
-                        )}
-                      >
-                        {loginLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Acessar Painel'}
-                      </Button>
+                <div className="space-y-2">
+                  <Label className="text-[11px] uppercase tracking-widest font-black text-slate-500">Senha de acesso</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      value={passwordInput}
+                      onChange={e => setPasswordInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }}
+                      placeholder="Digite a senha..."
+                      autoFocus
+                      className="h-12 sm:h-13 rounded-xl border-2 border-slate-200 pr-12 bg-white text-base"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(v => !v)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
+
+                <Button
+                  onClick={handleLogin}
+                  disabled={loginLoading || !passwordInput}
+                  className="w-full h-12 sm:h-14 rounded-xl text-base font-black bg-gradient-to-r from-indigo-700 to-slate-900 hover:from-indigo-600 hover:to-slate-800 shadow-lg shadow-indigo-900/20"
+                >
+                  {loginLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Entrar no Painel'}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };

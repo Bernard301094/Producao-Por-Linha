@@ -85,8 +85,8 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
   }, [setIsTypingProduct, setShowProductSuggestions]);
 
   return (
-    <Card className="bg-white/95 sm:rounded-2xl shadow-[0_12px_28px_rgba(15,23,42,0.1)] sm:ring-1 ring-slate-200/80 flex flex-col overflow-hidden lg:col-span-3 lg:order-1 border-none -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-[calc(100vh-120px)] border-y border-slate-200/70 sm:border-y-0 w-full">
-      <CardHeader className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/80 p-4 space-y-0 shrink-0">
+    <Card className="panel-shell sm:rounded-2xl flex flex-col overflow-hidden lg:col-span-3 lg:order-1 border-none -mx-3 sm:mx-0 min-h-[calc(100dvh-112px)] lg:min-h-[calc(100vh-120px)] lg:max-h-[calc(100vh-120px)] border-y border-slate-200/70 sm:border-y-0 w-full">
+      <CardHeader className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-900 border-b border-slate-700/70 p-4 space-y-0 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Package className="w-4 h-4 text-zinc-300" />
@@ -95,12 +95,12 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
           <span className="text-[10px] font-mono text-zinc-400 font-bold tracking-widest">Turno {currentTurnForView}</span>
         </div>
       </CardHeader>
-      <CardContent className="p-0 flex-1 overflow-y-auto">
+      <CardContent className="p-0 flex-1 overflow-y-auto overscroll-contain">
         <form onSubmit={handleSubmit(handlePreStartOp, (errors: any) => {
           const errorMsg = Object.values(errors).map((e: any) => e.message).join(', ');
           if (errorMsg) toast.error('Faltam dados: ' + Object.keys(errors).join(', '));
-        })} className="p-4 md:p-6 space-y-4 md:space-y-5">
-          <div className="grid grid-cols-2 gap-3 md:gap-4">
+        })} className="p-4 sm:p-5 md:p-6 space-y-4 md:space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             <div>
               <Label htmlFor="opNumber" className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Nº da OP</Label>
               <Input id="opNumber" {...register('opNumber', { onChange: (e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" className="w-full h-12 md:h-11 px-3 bg-[#F9FAFB] border border-zinc-200/60 rounded-lg text-base md:text-sm font-mono text-zinc-900 focus-visible:ring-1 focus-visible:ring-zinc-400" />
@@ -209,8 +209,8 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
           </div>
           
           <Dialog open={showConfirmStart} onOpenChange={setShowConfirmStart}>
-            <motion.div whileTap={{ scale: 0.95 }} className="pt-2">
-              <Button type="submit" disabled={loadingNewOp} className="w-full h-16 bg-gradient-to-r from-slate-900 to-slate-700 hover:from-slate-800 hover:to-slate-700 text-white font-black text-lg rounded-xl shadow-lg shadow-slate-900/25 transition-all ring-1 ring-slate-900/10">
+            <motion.div whileTap={{ scale: 0.95 }} className="pt-2 sticky bottom-0 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/75 pb-[max(env(safe-area-inset-bottom),0px)]">
+              <Button type="submit" disabled={loadingNewOp} className="w-full h-14 sm:h-16 bg-gradient-to-r from-indigo-700 to-slate-900 hover:from-indigo-600 hover:to-slate-800 text-white font-black text-base sm:text-lg rounded-xl shadow-lg shadow-slate-900/25 transition-all ring-1 ring-slate-900/10">
                 {loadingNewOp ? <Loader2 className="w-6 h-6 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" /> Iniciar Produção</>}
               </Button>
             </motion.div>
