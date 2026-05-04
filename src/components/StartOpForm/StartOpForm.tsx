@@ -85,8 +85,8 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
   }, [setIsTypingProduct, setShowProductSuggestions]);
 
   return (
-    <Card className="bg-white/95 sm:rounded-2xl shadow-[0_12px_28px_rgba(15,23,42,0.1)] sm:ring-1 ring-slate-200/80 flex flex-col overflow-hidden lg:col-span-3 lg:order-1 border-none -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-[calc(100vh-120px)] border-y border-slate-200/70 sm:border-y-0 w-full">
-      <CardHeader className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/80 p-4 space-y-0 shrink-0">
+    <Card className="panel-shell sm:rounded-2xl flex flex-col overflow-hidden lg:col-span-3 lg:order-1 border-none -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-[calc(100vh-120px)] border-y border-slate-200/70 sm:border-y-0 w-full">
+      <CardHeader className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-900 border-b border-slate-700/70 p-4 space-y-0 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Package className="w-4 h-4 text-zinc-300" />

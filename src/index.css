@@ -50,13 +50,13 @@
 }
 
 :root {
-    --background: oklch(0.99 0 0);
+    --background: oklch(0.97 0.01 250);
     --foreground: oklch(0.15 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.15 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.15 0 0);
-    --primary: oklch(0.15 0 0);
+    --primary: oklch(0.38 0.15 257);
     --primary-foreground: oklch(0.99 0 0);
     --secondary: oklch(0.96 0 0);
     --secondary-foreground: oklch(0.15 0 0);
@@ -67,7 +67,7 @@
     --destructive: oklch(0.57 0.2 27);
     --border: oklch(0.92 0 0);
     --input: oklch(0.92 0 0);
-    --ring: oklch(0.85 0 0);
+    --ring: oklch(0.65 0.09 257);
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.55 0 0);
     --chart-3: oklch(0.44 0 0);
@@ -128,4 +128,21 @@
   html {
     @apply font-sans;
     }
+}
+
+
+@layer base {
+  body {
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.14), transparent 35%),
+      radial-gradient(circle at 85% 20%, rgba(16, 185, 129, 0.10), transparent 40%),
+      linear-gradient(180deg, rgba(248,250,252,0.95), rgba(241,245,249,0.95));
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .panel-shell {
+    @apply bg-white/85 backdrop-blur-sm border border-slate-200/80 shadow-[0_16px_40px_rgba(15,23,42,0.08)];
+  }
 }
