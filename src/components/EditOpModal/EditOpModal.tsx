@@ -116,9 +116,9 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                 <CustomTimePicker
                   value={watchEdit('horaInicial')}
                   onChange={(v: string) => setValueEdit('horaInicial', v, { shouldValidate: true })}
-                  clockIconClass="absolute left-4 w-5 h-5 text-zinc-400 pointer-events-none"
+                  clockIconClass="absolute left-3 w-5 h-5 text-zinc-400 pointer-events-none"
                   wrapperClass="bg-[#F9FAFB] h-14 rounded-2xl border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-all shadow-sm focus-within:bg-white"
-                  inputClass="pl-12 pr-4 text-base w-full bg-transparent outline-none flex-1 font-bold"
+                  inputClass="pl-9 pr-2 text-base w-full bg-transparent outline-none flex-1 font-bold"
                 />
               </div>
             </div>
@@ -210,7 +210,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
             </div>
             {'quantidade' in editingOp && (
               <div className="space-y-6 pt-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-5 items-start">
                    <QuickCounter 
                      label="Quantidade (UN)"
                      value={watchEdit('quantidade') || ''}
@@ -221,16 +221,16 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                      value={watchEdit('qntReprocesso') || ''}
                      onChange={(val: string) => setValueEdit('qntReprocesso', val, { shouldValidate: true })}
                    />
-                </div>
-                <div className="space-y-2">
-                  <Label className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Hora Final</Label>
-                  <CustomTimePicker
-                    value={watchEdit('horaFinal')}
-                    onChange={(v: string) => setValueEdit('horaFinal', v, { shouldValidate: true })}
-                    clockIconClass="absolute left-4 w-5 h-5 text-zinc-400 pointer-events-none"
-                    wrapperClass="bg-[#F9FAFB] h-14 rounded-2xl border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-all shadow-sm focus-within:bg-white"
-                    inputClass="pl-12 pr-4 text-base w-full bg-transparent outline-none flex-1 font-bold"
-                  />
+                   <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                     <Label className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Hora Final</Label>
+                     <CustomTimePicker
+                       value={watchEdit('horaFinal')}
+                       onChange={(v: string) => setValueEdit('horaFinal', v, { shouldValidate: true })}
+                       clockIconClass="absolute left-3 w-5 h-5 text-zinc-400 pointer-events-none"
+                       wrapperClass="bg-[#F9FAFB] h-14 rounded-2xl border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-all shadow-sm focus-within:bg-white"
+                       inputClass="pl-9 pr-2 text-base w-full bg-transparent outline-none flex-1 font-bold"
+                     />
+                   </div>
                 </div>
 
                 {/* Paradas Edit Section */}
@@ -242,16 +242,16 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                   
                   <div className="space-y-3 max-h-[300px] overflow-y-auto mb-5 scrollbar-none pr-1">
                     {editParadas.map((parada, idx) => (
-                      <div key={idx} className="group/parada relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-white border border-zinc-200/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                      <div key={idx} className="group/parada relative flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-3 p-4 bg-white border border-zinc-200/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-400 opacity-80" />
-                        <div className="flex flex-col pl-3">
-                          <span className="text-sm font-bold text-zinc-900 leading-tight mb-1.5">{parada.seq} - {parada.tipologia}</span>
-                          <div className="flex items-center gap-1.5 align-middle">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 pl-3 flex-1 min-w-[200px]">
+                          <span className="text-sm font-bold text-zinc-900 leading-tight flex-1 break-words">{parada.seq} - {parada.tipologia}</span>
+                          <div className="flex items-center gap-1.5 align-middle bg-zinc-50 self-start sm:self-auto px-2.5 py-1.5 rounded-md border border-zinc-100 shrink-0">
                             <Clock className="w-3.5 h-3.5 text-zinc-400" />
-                            <span className="text-xs font-semibold text-zinc-500">{parada.horaInicio} até {parada.horaFim}</span>
+                            <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap">{parada.horaInicio} até {parada.horaFim}</span>
                           </div>
                         </div>
-                        <Button type="button" variant="outline" size="sm" onClick={() => removeEditParada(idx)} className="h-10 px-4 text-xs bg-red-50/50 hover:bg-red-50 text-red-600 font-bold border-red-100 rounded-xl shadow-sm self-start sm:self-auto w-full sm:w-auto">
+                        <Button type="button" variant="outline" size="sm" onClick={() => removeEditParada(idx)} className="h-10 px-4 text-xs bg-red-50/50 hover:bg-red-50 text-red-600 font-bold border-red-100 rounded-xl shadow-sm self-start shrink-0 sm:self-auto w-full sm:w-auto pl-3 sm:pl-4">
                           Remover
                         </Button>
                       </div>
@@ -320,12 +320,12 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                       </Select>
                       <div className="grid grid-cols-2 gap-4">
                          <div className="relative">
-                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10"><Clock className="w-4 h-4" /></div>
-                           <CustomTimePicker value={editParadaStart} onChange={setEditParadaStart} placeholder="Início" wrapperClass="h-14 bg-[#F9FAFB] rounded-xl shadow-sm border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors" inputClass="pl-11 pr-2 text-sm text-center font-bold text-zinc-800 bg-transparent focus:ring-0 w-full" />
+                           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10"><Clock className="w-4 h-4" /></div>
+                           <CustomTimePicker value={editParadaStart} onChange={setEditParadaStart} placeholder="Início" wrapperClass="h-14 bg-[#F9FAFB] rounded-xl shadow-sm border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors" inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 bg-transparent focus:ring-0 w-full" />
                          </div>
                          <div className="relative">
-                           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10"><Clock className="w-4 h-4" /></div>
-                           <CustomTimePicker value={editParadaEnd} onChange={setEditParadaEnd} placeholder="Fim" wrapperClass="h-14 bg-[#F9FAFB] rounded-xl shadow-sm border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors" inputClass="pl-11 pr-2 text-sm text-center font-bold text-zinc-800 bg-transparent focus:ring-0 w-full" />
+                           <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10"><Clock className="w-4 h-4" /></div>
+                           <CustomTimePicker value={editParadaEnd} onChange={setEditParadaEnd} placeholder="Fim" wrapperClass="h-14 bg-[#F9FAFB] rounded-xl shadow-sm border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors" inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 bg-transparent focus:ring-0 w-full" />
                          </div>
                       </div>
                       <Button type="button" variant="outline" size="sm" onClick={addEditParada} className="w-full mt-2 h-14 text-sm font-bold border-dashed border-2 border-zinc-200 rounded-xl bg-white hover:bg-zinc-50 text-zinc-700 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-zinc-900/20">

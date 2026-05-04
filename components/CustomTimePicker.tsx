@@ -51,9 +51,9 @@ export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass
 
   return (
     <>
-      {/* Mobile/Tablet Trigger - hidden on lg and above */}
+      {/* Trigger for all devices */}
       <div 
-         className={cn("relative flex items-center bg-[#F9FAFB] border-2 border-zinc-200/80 rounded-2xl focus-within:border-zinc-950 transition-colors shadow-sm focus-within:bg-white overflow-hidden cursor-pointer lg:hidden", wrapperClass)}
+         className={cn("relative flex items-center bg-[#F9FAFB] border-2 border-zinc-200/80 rounded-2xl focus-within:border-zinc-950 transition-colors shadow-sm focus-within:bg-white overflow-hidden cursor-pointer", wrapperClass)}
          onClick={() => setOpen(true)}
       >
          {clockIconClass && <Clock className={clockIconClass} />}
@@ -64,20 +64,6 @@ export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass
            value={value || ''} 
            placeholder={placeholder}
            className={cn("w-full h-full bg-transparent border-none shadow-none focus-visible:ring-0 pointer-events-none px-4 font-bold text-zinc-900", inputClass)} 
-         />
-      </div>
-
-      {/* Desktop Native Input - hidden below lg */}
-      <div 
-         className={cn("relative flex items-center bg-[#F9FAFB] border-2 border-zinc-200/80 rounded-2xl focus-within:border-zinc-950 transition-colors shadow-sm focus-within:bg-white overflow-hidden hidden lg:flex", wrapperClass)}
-      >
-         {clockIconClass && <Clock className={clockIconClass} />}
-         <input 
-           id={id ? `${id}-desktop` : undefined}
-           type="time" 
-           value={value || ''} 
-           onChange={(e) => onChange(e.target.value)}
-           className={cn("w-full h-full bg-transparent border-none shadow-none focus-visible:ring-0 cursor-pointer px-4 font-bold text-zinc-900 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:bg-transparent", inputClass)} 
          />
       </div>
 

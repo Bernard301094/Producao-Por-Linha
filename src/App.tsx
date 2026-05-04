@@ -940,7 +940,7 @@ export default function App() {
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* Header */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 shadow-sm sticky top-0 z-30">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
+          <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 2xl:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
             {/* Logo & App Name */}
             <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-950 rounded-xl sm:rounded-[1.25rem] flex items-center justify-center shadow-lg shadow-zinc-950/10 shrink-0 relative overflow-hidden">
@@ -1016,11 +1016,11 @@ export default function App() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-0 sm:px-4 lg:px-6 py-0 sm:py-6 lg:py-8">
+        <div className="w-full max-w-[1920px] mx-auto px-0 sm:px-4 lg:px-6 2xl:px-8 py-0 sm:py-6 lg:py-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-6 lg:gap-8 items-start">
 
             {/* Pendentes */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 lg:order-2 border-none h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-4 2xl:col-span-4 lg:order-2 border-none h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
               <div className="p-5 sm:p-6 pb-4 sm:pb-5 border-b border-zinc-100 flex flex-col gap-4 bg-zinc-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:14px_14px] opacity-50" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
@@ -1065,7 +1065,7 @@ export default function App() {
             </div>
 
             {/* Nova OP */}
-            <div className={cn('flex flex-col lg:col-span-3 lg:order-1 h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)]', mobileTab !== 'nova' && 'hidden lg:flex')}>
+            <div className={cn('flex flex-col lg:col-span-4 xl:col-span-3 2xl:col-span-3 lg:order-1 h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)]', mobileTab !== 'nova' && 'hidden lg:flex')}>
               <StartOpForm
                 currentTurnForView={currentTurnForView}
                 handleSubmit={handleSubmit}
@@ -1095,7 +1095,7 @@ export default function App() {
             </div>
 
             {/* Concluídas */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-5 lg:order-3 border-none h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-5 2xl:col-span-5 lg:order-3 border-none h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
               <div className="p-5 sm:p-6 pb-4 sm:pb-5 border-b border-zinc-100 flex flex-col gap-4 bg-emerald-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#05966910_1px,transparent_1px),linear-gradient(to_bottom,#05966910_1px,transparent_1px)] bg-[size:14px_14px] opacity-70" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">

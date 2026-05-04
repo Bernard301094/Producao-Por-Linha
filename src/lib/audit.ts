@@ -18,11 +18,19 @@ export interface AuditLog {
 
 export const logAudit = async (log: AuditLog) => {
   try {
-    await addDoc(collection(db, 'audit_logs'), {
+    const dataToSave: any = {
       ...log,
       timestamp: serverTimestamp(),
       computedServerTime: getServerTimeISO(),
+    };
+    
+    Object.keys(dataToSave).forEach(key => {
+      if (dataToSave[key] === undefined) {
+        delete dataToSave[key];
+      }
     });
+
+    await addDoc(collection(db, 'audit_logs'), dataToSave);
   } catch (e) {
     console.error('Failed to log audit', e);
   }

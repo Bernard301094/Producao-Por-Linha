@@ -376,12 +376,13 @@ export const checkSheetConnection = async () => {
   }
 };
 
-export const updateAuthProfile = async (profileName: string, newPassword: string) => {
+export const updateAuthProfile = async (profileName: string, dataOrPassword: string | Record<string, any>) => {
   const now = new Date().toISOString();
   
   let existing: any = null;
+  const safeProfileName = String(profileName).replace(/\//g, '_');
   try {
-    const docRef = doc(db, 'profiles', profileName);
+    const docRef = doc(db, 'profiles', safeProfileName);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       existing = docSnap.data();
@@ -390,16 +391,25 @@ export const updateAuthProfile = async (profileName: string, newPassword: string
     console.warn("Could not fetch profile from firestore", err);
   }
 
-  if (existing && existing.lastChangedAt) {
-    const lastChanged = new Date(existing.lastChangedAt);
-    const differenceInDays = (new Date().getTime() - lastChanged.getTime()) / (1000 * 3600 * 24);
-    // 30 days limit removed per request
+  let newProfile: any = { name: profileName, lastChangedAt: now };
+  
+  if (typeof dataOrPassword === 'string') {
+    newProfile.password = dataOrPassword;
+  } else {
+    newProfile = { ...existing, ...dataOrPassword, name: profileName, lastChangedAt: now };
   }
 
-  const newProfile = { name: profileName, password: newPassword, lastChangedAt: now };
+  // FIx deeply nested corrupted password
+  let currentPassword = newProfile.password;
+  while (currentPassword && typeof currentPassword === 'object') {
+     currentPassword = currentPassword.password;
+  }
+  if (typeof currentPassword === 'string') {
+     newProfile.password = currentPassword;
+  }
   
   try {
-    await setDoc(doc(db, 'profiles', profileName), newProfile, { merge: true });
+    await setDoc(doc(db, 'profiles', safeProfileName), newProfile, { merge: true });
     cacheProfiles = null; // invalidar cache
   } catch (err: any) {
     console.error("Error saving profile to firestore", err);

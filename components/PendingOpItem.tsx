@@ -104,28 +104,28 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   };
 
   return (
-    <div className="group bg-white rounded-3xl p-5 sm:p-6 border border-zinc-200/80 hover:border-zinc-300 hover:shadow-xl transition-all shadow-sm relative overflow-hidden text-left flex flex-col gap-5 mb-5">
+    <div className="group bg-white rounded-3xl p-5 sm:p-6 sm:px-7 border border-zinc-200/80 hover:border-zinc-300 hover:shadow-xl transition-all shadow-sm relative overflow-hidden text-left flex flex-col gap-5 mb-5 hover:scale-[1.01]">
       <div className="absolute top-0 left-0 w-2 h-full bg-amber-400 group-hover:bg-amber-500 transition-colors" />
       
       {/* Header Info */}
-      <div className="flex flex-col gap-3 pl-2">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
-          <div className="flex items-center gap-2 flex-wrap">
-             <span className="text-[10px] font-black tracking-widest text-zinc-600 uppercase bg-zinc-100/80 px-2 py-1 rounded-md border border-zinc-200/80 shadow-sm">OP {op.opNumber}</span>
-             <span className="text-[10px] font-bold text-zinc-500 bg-white px-2 py-1 rounded-md border border-zinc-200 shadow-sm flex items-center justify-center min-w-[3rem]">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
+      <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-3 xl:gap-6 pl-2">
+        <div className="flex flex-col gap-3 flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+             <span className="text-[10px] font-black tracking-widest text-zinc-600 uppercase bg-zinc-100/80 px-2 py-1 rounded-md border border-zinc-200/80 shadow-sm shrink-0">OP {op.opNumber}</span>
+             <span className="text-[10px] font-bold text-zinc-500 bg-white px-2 py-1 rounded-md border border-zinc-200 shadow-sm flex items-center justify-center min-w-[3rem] shrink-0">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
+             {op.litragem && (
+               <span className="text-xs text-zinc-500 font-mono font-bold bg-zinc-50 px-2 py-1 rounded-md border border-zinc-200 shadow-sm shrink-0">{op.litragem}</span>
+             )}
           </div>
-          <div className="flex items-center gap-1.5 text-zinc-600 bg-zinc-50 px-2.5 py-1 rounded-md border border-zinc-200 shadow-sm shrink-0">
-             <Clock className="w-3.5 h-3.5 text-zinc-400" />
-             <span className="text-xs font-bold">{op.horaInicial}</span>
+          <div className="flex flex-col">
+            <h3 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight leading-tight pr-2 xl:pr-0 break-words">{op.produto}</h3>
           </div>
         </div>
-        <div className="flex flex-col mt-1">
-          <h3 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight leading-tight pr-2">{op.produto}</h3>
-          {op.litragem && (
-            <div className="flex items-center mt-2">
-              <span className="text-xs text-zinc-500 font-mono font-bold bg-zinc-50 px-2.5 py-1 rounded-md border border-zinc-200 shadow-sm">{op.litragem}</span>
-            </div>
-          )}
+        <div className="flex xl:flex-col items-center xl:items-end justify-between xl:justify-start gap-3 mt-1 xl:mt-0 shrink-0">
+          <div className="flex items-center gap-1.5 text-zinc-600 bg-zinc-50 px-3 py-1.5 rounded-lg border border-zinc-200 shadow-sm">
+             <Clock className="w-4 h-4 text-zinc-400 shrink-0" />
+             <span className="text-sm font-bold">{op.horaInicial}</span>
+          </div>
         </div>
       </div>
 
@@ -151,16 +151,16 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           <div className="animate-in fade-in slide-in-from-top-2 duration-300 p-4 border-t border-zinc-200/80 bg-zinc-50/50">
             <div className="space-y-3 mb-5">
               {finishParadas.map((parada, idx) => (
-                <div key={idx} className="group/parada relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-white border border-zinc-200/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                <div key={idx} className="group/parada relative flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-3 p-4 bg-white border border-zinc-200/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                   <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-400 opacity-80" />
-                  <div className="flex flex-col pl-3">
-                     <span className="text-sm font-bold text-zinc-900 leading-tight mb-2">{parada.seq} - {parada.tipologia}</span>
-                     <div className="flex items-center gap-1.5 align-middle bg-zinc-50 self-start px-2 py-1 rounded-md border border-zinc-100">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 pl-3 flex-1 min-w-[200px]">
+                     <span className="text-sm font-bold text-zinc-900 leading-tight flex-1 break-words">{parada.seq} - {parada.tipologia}</span>
+                     <div className="flex items-center gap-1.5 align-middle bg-zinc-50 self-start sm:self-auto px-2.5 py-1.5 rounded-md border border-zinc-100 shrink-0">
                        <Clock className="w-3.5 h-3.5 text-zinc-400" />
-                       <span className="text-xs font-semibold text-zinc-500">{parada.horaInicio} até {parada.horaFim}</span>
+                       <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap">{parada.horaInicio} até {parada.horaFim}</span>
                      </div>
                   </div>
-                  <div className="flex gap-2 self-start sm:self-auto w-full sm:w-auto mt-2 sm:mt-0">
+                  <div className="flex gap-2 self-start sm:self-auto w-full sm:w-auto shrink-0 pl-3 sm:pl-0">
                      <Button type="button" variant="outline" size="sm" onClick={() => editParada(idx)} className="flex-1 sm:flex-none h-10 px-4 text-xs bg-white hover:bg-zinc-50 text-zinc-700 font-bold border-2 border-zinc-200/80 rounded-xl shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-zinc-900/20">
                        Editar
                      </Button>
@@ -236,7 +236,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5 relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 z-10 pointer-events-none">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 z-10 pointer-events-none">
                       <Clock className="w-5 h-5 text-zinc-400" />
                     </div>
                     <CustomTimePicker 
@@ -244,11 +244,11 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                       onChange={setFinishParadaStart}
                       placeholder="Início"
                       wrapperClass="h-14 bg-[#F9FAFB] rounded-[1.25rem] shadow-sm border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors"
-                      inputClass="pl-12 pr-2 text-sm text-center font-bold text-zinc-800 bg-transparent focus:ring-0"
+                      inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 bg-transparent focus:ring-0"
                     />
                   </div>
                   <div className="space-y-1.5 relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 z-10 pointer-events-none">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 z-10 pointer-events-none">
                       <Clock className="w-5 h-5 text-zinc-400" />
                     </div>
                     <CustomTimePicker 
@@ -256,7 +256,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                       onChange={setFinishParadaEnd}
                       placeholder="Fim"
                       wrapperClass="h-14 bg-[#F9FAFB] rounded-[1.25rem] shadow-sm border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors"
-                      inputClass="pl-12 pr-2 text-sm text-center font-bold text-zinc-800 bg-transparent focus:ring-0"
+                      inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 bg-transparent focus:ring-0"
                     />
                   </div>
                 </div>
@@ -272,7 +272,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
       {/* Main Actions Block */}
       {isFinishing ? (
         <div className="mt-2 pt-6 border-t border-zinc-200/60 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-5 sm:gap-6 w-full items-start">
             <QuickCounter 
               label="Quantidade (UN)" 
               value={finishQtd} 
@@ -285,14 +285,14 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               onChange={setFinishQtdReprocesso} 
               className="w-full"
             />
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2 sm:col-span-2 lg:col-span-1">
                <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Hora Final</label>
                <CustomTimePicker 
                  value={finishTime} 
                  onChange={setFinishTime} 
-                 clockIconClass="absolute left-4 w-5 h-5 text-zinc-400 pointer-events-none"
+                 clockIconClass="absolute left-3 w-5 h-5 text-zinc-400 pointer-events-none"
                  wrapperClass="h-14 bg-[#F9FAFB] rounded-2xl border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors shadow-sm"
-                 inputClass="pl-12 pr-4 text-base font-bold bg-transparent focus:ring-0"
+                 inputClass="pl-9 pr-4 text-base font-bold bg-transparent focus:ring-0 w-full"
                />
             </div>
           </div>
@@ -361,16 +361,16 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 mt-2 pt-6 border-t border-zinc-200/60">
-          <motion.div whileTap={{ scale: 0.98 }} className="col-span-4 sm:col-span-4">
-            <Button size="lg" onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }} className="w-full h-14 text-sm sm:text-base bg-zinc-950 hover:bg-zinc-800 text-white font-black rounded-xl shadow-xl shadow-zinc-900/10 transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20">
+        <div className="grid grid-cols-4 sm:grid-cols-6 xl:grid-cols-12 gap-3 mt-2 pt-6 border-t border-zinc-200/60">
+          <motion.div whileTap={{ scale: 0.98 }} className="col-span-4 sm:col-span-4 xl:col-span-8">
+            <Button size="lg" onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }} className="w-full h-14 text-sm sm:text-base xl:text-lg bg-zinc-950 hover:bg-zinc-800 text-white font-black rounded-xl shadow-xl shadow-zinc-900/10 transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20">
               <CheckCircle2 className="w-5 h-5 mr-2" /> Concluir OP
             </Button>
           </motion.div>
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => openEdit(op)} title="Editar" className="col-span-2 sm:col-span-1 flex items-center justify-center w-full h-14 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 hover:border-zinc-300 rounded-xl transition-colors border-2 border-zinc-200/80 shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-zinc-900/20 outline-none">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => openEdit(op)} title="Editar" className="col-span-2 sm:col-span-1 xl:col-span-2 flex items-center justify-center w-full h-14 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 hover:border-zinc-300 rounded-xl transition-colors border-2 border-zinc-200/80 shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-zinc-900/20 outline-none">
              <Pencil className="w-5 h-5" />
           </motion.button>
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeletingOp(op)} title="Excluir" className="col-span-2 sm:col-span-1 flex items-center justify-center w-full h-14 text-zinc-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 rounded-xl transition-colors border-2 border-zinc-200/80 shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-red-500/20 outline-none">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeletingOp(op)} title="Excluir" className="col-span-2 sm:col-span-1 xl:col-span-2 flex items-center justify-center w-full h-14 text-zinc-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 rounded-xl transition-colors border-2 border-zinc-200/80 shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-red-500/20 outline-none">
              <Trash2 className="w-5 h-5" />
           </motion.button>
         </div>

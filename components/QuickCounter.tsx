@@ -29,8 +29,8 @@ export const QuickCounter = ({ value, onChange, label, className }: any) => {
   return (
     <div className={cn("space-y-2", className)}>
       {label && <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">{label}</label>}
-      <div className="grid grid-cols-[1fr_1fr_auto_1fr_1fr] gap-1 items-center w-full">
-        <motion.div whileTap={{ scale: 0.95 }} className="w-full">
+      <div className="grid grid-cols-[1fr_1fr_auto_1fr_1fr] lg:flex lg:w-full gap-1 items-center w-full">
+        <motion.div whileTap={{ scale: 0.95 }} className="w-full lg:hidden">
           <Button 
             type="button"
             variant="outline" 
@@ -42,7 +42,7 @@ export const QuickCounter = ({ value, onChange, label, className }: any) => {
           </Button>
         </motion.div>
         
-        <motion.div whileTap={{ scale: 0.95 }} className="w-full">
+        <motion.div whileTap={{ scale: 0.95 }} className="w-full lg:hidden">
           <Button 
             type="button"
             variant="outline" 
@@ -61,10 +61,10 @@ export const QuickCounter = ({ value, onChange, label, className }: any) => {
           value={value} 
           onChange={e => onChange(e.target.value.replace(/\D/g, ''))}
           placeholder="0"
-          className="w-16 sm:w-20 h-14 text-center text-xl sm:text-2xl font-black font-mono bg-[#F9FAFB] border-2 border-l-0 border-zinc-200/80 px-1 rounded-none focus-visible:z-10 focus-visible:border-zinc-950 focus-visible:ring-0 shadow-sm focus:bg-white transition-colors" 
+          className="w-16 sm:w-20 lg:w-full h-14 text-center lg:text-left lg:pl-4 text-xl sm:text-2xl lg:text-base font-black lg:font-bold font-mono lg:font-sans bg-[#F9FAFB] border-2 border-l-0 lg:border-l-2 lg:rounded-2xl border-zinc-200/80 px-1 rounded-none focus-visible:z-10 focus-visible:border-zinc-950 focus-visible:ring-0 shadow-sm focus:bg-white transition-colors" 
         />
 
-        <motion.div whileTap={{ scale: 0.95 }} className="w-full">
+        <motion.div whileTap={{ scale: 0.95 }} className="w-full lg:hidden">
           <Button 
             type="button"
             variant="outline" 
@@ -76,7 +76,7 @@ export const QuickCounter = ({ value, onChange, label, className }: any) => {
           </Button>
         </motion.div>
 
-        <motion.div whileTap={{ scale: 0.95 }} className="w-full">
+        <motion.div whileTap={{ scale: 0.95 }} className="w-full lg:hidden">
           <Button 
             type="button"
             variant="outline" 

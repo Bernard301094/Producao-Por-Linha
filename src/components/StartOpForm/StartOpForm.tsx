@@ -112,9 +112,9 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
         })} className="flex flex-col flex-1 overflow-hidden">
           
           <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
-              
-              <div className="space-y-2.5 relative">
+             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+               
+               <div className="space-y-2.5 relative">
                 <Label htmlFor="opNumber" className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Número da OP</Label>
                 <div className="relative">
                   <Input id="opNumber" {...register('opNumber', { onChange: (e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" className="w-full h-14 pl-4 pr-12 bg-white border-2 border-zinc-200/80 rounded-2xl text-base sm:text-lg font-mono font-black text-zinc-900 focus-visible:ring-0 focus-visible:border-zinc-950 transition-all shadow-sm placeholder:font-medium placeholder:text-zinc-300" />
@@ -129,14 +129,14 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   id="horaInicial"
                   value={watch('horaInicial')}
                   onChange={(v: string) => setValue('horaInicial', v, { shouldValidate: true })}
-                  clockIconClass="absolute left-4 w-5 h-5 text-zinc-400 pointer-events-none"
+                  clockIconClass="absolute left-3 w-5 h-5 text-zinc-400 pointer-events-none"
                   wrapperClass="bg-white rounded-2xl h-14 border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-all shadow-sm"
-                  inputClass="pl-12 pr-4 text-base font-bold bg-transparent focus:ring-0 placeholder:font-medium placeholder:text-zinc-300"
+                  inputClass="pl-9 pr-2 w-full text-base font-bold bg-transparent focus:ring-0 placeholder:font-medium placeholder:text-zinc-300"
                 />
                 {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.horaInicial.message as string}</p>}
               </div>
 
-              <div className="relative space-y-2.5 md:col-span-2" ref={novaOpRef}>
+              <div className="relative space-y-2.5 sm:col-span-2" ref={novaOpRef}>
                 <Label htmlFor="produto" className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Produto Fabricado</Label>
                 <input id="produto" {...register('produto')} readOnly={!isTypingProduct} onClick={() => setShowProductSuggestions(true)} autoComplete="off" onFocus={() => setShowProductSuggestions(true)} placeholder="Digite para buscar..." className="flex h-14 w-full rounded-2xl border-2 border-zinc-200/80 bg-white px-4 py-2 text-base font-bold text-zinc-900 transition-all placeholder:text-zinc-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-zinc-950 shadow-sm" />
                 {showProductSuggestions && (
@@ -169,7 +169,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 {errors.produto && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.produto.message as string}</p>}
               </div>
 
-              <div className="space-y-2.5 md:col-span-2">
+              <div className="space-y-2.5 sm:col-span-2">
                 <Label className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Linha de Produção</Label>
                 <input type="hidden" {...register('linha')} />
                 <Popover open={openLineSelect} onOpenChange={setOpenLineSelect}>
