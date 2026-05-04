@@ -1,6 +1,6 @@
 {
-  "name": "Produção por Linha",
-  "short_name": "Produção",
+  "name": "Diário de Bordo",
+  "short_name": "Diário de Bordo",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

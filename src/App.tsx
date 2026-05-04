@@ -730,7 +730,7 @@ export default function App() {
               </div>
               <div className="min-w-0 flex flex-col justify-center">
                 <h1 className="text-base sm:text-lg font-black text-zinc-950 tracking-tight leading-none truncate mb-1.5">
-                  Produção
+                  Diário de Bordo
                 </h1>
                 <div className="flex items-center gap-2">
                   <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-2 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight">
@@ -778,17 +778,17 @@ export default function App() {
         </header>
 
         {/* Mobile Tab Bar */}
-        <div className="lg:hidden sticky top-[57px] z-20 bg-white/90 backdrop-blur-md border-b border-zinc-200/60 shadow-sm">
+        <div className="lg:hidden sticky top-16 z-20 bg-white border-b border-zinc-200/80 shadow-sm">
           <div className="flex">
             {(['pendentes', 'nova', 'concluidas'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setMobileTab(tab)}
                 className={cn(
-                  'flex-1 py-2.5 text-[11px] font-black uppercase tracking-wider transition-colors',
+                  'flex-1 h-14 text-xs font-black uppercase tracking-wider transition-colors',
                   mobileTab === tab
-                    ? 'text-zinc-900 border-b-2 border-zinc-900 bg-zinc-50/50'
-                    : 'text-zinc-400 hover:text-zinc-600'
+                    ? 'text-zinc-950 border-b-2 border-zinc-950 bg-zinc-50'
+                    : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50/50'
                 )}
               >
                 {tab === 'pendentes' ? `Pendentes (${visiblePendingOps.length})` : tab === 'nova' ? 'Nova OP' : `Concluídas (${visibleFinishedOps.length})`}
@@ -797,11 +797,11 @@ export default function App() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-0 sm:py-4 md:py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-4 md:gap-6 items-start">
+        <div className="max-w-7xl mx-auto px-0 sm:px-4 lg:px-6 py-0 sm:py-6 lg:py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-6 lg:gap-8 items-start">
 
             {/* Pendentes */}
-            <div className={cn('bg-white sm:rounded-3xl shadow-lg sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 lg:order-2 border-none -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-zinc-200/60 sm:border-y-0 relative', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 lg:order-2 border-none h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
               <div className="p-5 sm:p-6 pb-4 sm:pb-5 border-b border-zinc-100 flex flex-col gap-4 bg-zinc-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:14px_14px] opacity-50" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
@@ -846,7 +846,7 @@ export default function App() {
             </div>
 
             {/* Nova OP */}
-            <div className={cn('flex flex-col lg:col-span-3 lg:order-1 -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)]', mobileTab !== 'nova' && 'hidden lg:flex')}>
+            <div className={cn('flex flex-col lg:col-span-3 lg:order-1 h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)]', mobileTab !== 'nova' && 'hidden lg:flex')}>
               <StartOpForm
                 currentTurnForView={currentTurnForView}
                 handleSubmit={handleSubmit}
@@ -876,7 +876,7 @@ export default function App() {
             </div>
 
             {/* Concluídas */}
-            <div className={cn('bg-white sm:rounded-3xl shadow-lg sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-5 lg:order-3 border-none -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-zinc-200/60 sm:border-y-0 relative', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-5 lg:order-3 border-none h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
               <div className="p-5 sm:p-6 pb-4 sm:pb-5 border-b border-zinc-100 flex flex-col gap-4 bg-emerald-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#05966910_1px,transparent_1px),linear-gradient(to_bottom,#05966910_1px,transparent_1px)] bg-[size:14px_14px] opacity-70" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
@@ -929,7 +929,7 @@ export default function App() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deletingOp} onOpenChange={(o: boolean) => { if (!o) setDeletingOp(null); }}>
-        <DialogContent className="max-w-[400px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
           <DialogHeader className="text-center space-y-2 mb-8">
             <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200/50 shadow-sm">
               <Trash2 className="w-8 h-8" />
@@ -950,7 +950,7 @@ export default function App() {
 
       {/* Revert to Pending Confirmation Dialog */}
       <Dialog open={!!revertingOp} onOpenChange={(o: boolean) => { if (!o) setRevertingOp(null); }}>
-        <DialogContent className="max-w-[400px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
           <DialogHeader className="text-center space-y-2 mb-8">
             <div className="w-16 h-16 bg-amber-100/50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200/50 shadow-sm">
               <RotateCcw className="w-8 h-8" />

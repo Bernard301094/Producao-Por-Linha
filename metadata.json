@@ -1,6 +1,6 @@
 {
-  "name": "Produção Por Linha",
-  "description": "App para apontamento de Produção por Linha (Vonixx)",
+  "name": "Diário de Bordo",
+  "description": "App para apontamento de Diário de Bordo (Vonixx)",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

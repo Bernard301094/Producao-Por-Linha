@@ -2,7 +2,7 @@
   <img src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" alt="GHBanner" width="1200" height="475" />
 </div>
 
-# Apontamento de Produção por Linha (Vonixx)
+# Apontamento de Diário de Bordo (Vonixx)
 
 Um aplicativo profissional para gestão, controle e apontamento produtivo industrial desenvolvido nativamente para atender às necessidades produtivas das linhas de produção da Vonixx. O aplicativo visa substituir controles manuais por uma interface digital dinâmica e em tempo real.
 

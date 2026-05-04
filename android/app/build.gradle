@@ -7,19 +7,29 @@ android {
         applicationId "com.vonixx.producao"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
     signingConfigs {
+        debug {
+            // Configuração para garantir que builds debug tenham a mesma assinatura mesmo ao mudar de PC
+            // Opcional: pode-se apontar para uma debug.keystore explícita no repo
+        }
         release {
-            storeFile file(System.getenv("KEYSTORE_FILE") ?: "release.keystore")
-            storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
-            keyAlias System.getenv("KEY_ALIAS") ?: ""
-            keyPassword System.getenv("KEY_PASSWORD") ?: ""
+            def keystorePropertiesFile = rootProject.file("keystore.properties")
+            def keystoreProperties = new Properties()
+            if (keystorePropertiesFile.exists()) {
+                keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+            }
+
+            storeFile file(System.getenv("KEYSTORE_FILE") ?: keystoreProperties['storeFile'] ?: "release.keystore")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: keystoreProperties['storePassword'] ?: ""
+            keyAlias System.getenv("KEY_ALIAS") ?: keystoreProperties['keyAlias'] ?: ""
+            keyPassword System.getenv("KEY_PASSWORD") ?: keystoreProperties['keyPassword'] ?: ""
         }
     }
     buildTypes {

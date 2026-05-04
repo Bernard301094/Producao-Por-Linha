@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Produção Por Linha</string>
-    <string name="title_activity_main">Produção Por Linha</string>
+    <string name="app_name">Diário de Bordo</string>
+    <string name="title_activity_main">Diário de Bordo</string>
     <string name="package_name">com.vonixx.producao</string>
     <string name="custom_url_scheme">com.vonixx.producao</string>
 </resources>

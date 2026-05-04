@@ -38,7 +38,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
 }) => {
   return (
     <Dialog open={changePasswordOpen} onOpenChange={(o) => { if (!o) setChangePasswordOpen(false); }}>
-      <DialogContent className="max-w-sm rounded-2xl shadow-xl border-zinc-200/60 flex flex-col pt-8">
+      <DialogContent className="w-[calc(100%-1.5rem)] max-w-sm rounded-2xl shadow-xl border-zinc-200/60 flex flex-col pt-8">
         <DialogHeader>
           <DialogTitle className="text-base font-black text-zinc-900 text-center">Mudar Senha - {loginProfile}</DialogTitle>
         </DialogHeader>

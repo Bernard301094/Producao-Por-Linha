@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.vonixx.producao',
-  appName: 'Produção Por Linha',
+  appName: 'Diário de Bordo',
   webDir: 'dist',
   plugins: {
     CapacitorHttp: {
