@@ -1,0 +1,30 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "operations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "carimboInicial", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "operations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "turno", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "operations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "carimbo", "order": "ASCENDING" },
+        { "fieldPath": "turno", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

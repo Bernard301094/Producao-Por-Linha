@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, updateDoc, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, updateDoc, query, where, onSnapshot, limit, orderBy } from 'firebase/firestore';
 
 export interface Parada {
   seq: number;
@@ -37,18 +37,33 @@ export interface FinishedOperation extends Operation {
 }
 
 export const subscribeToOperations = (callback: (ops: Operation[]) => void) => {
-  const q = query(collection(db, 'operations'), where('status', '==', 'pending'));
+  const q = query(
+    collection(db, 'operations'), 
+    where('status', '==', 'pending'),
+    limit(500)
+  );
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Operation)));
   });
 };
 
 export const subscribeToFinishedOps = (callback: (ops: FinishedOperation[]) => void) => {
-  const q = query(collection(db, 'operations'), where('status', '==', 'finished'));
+  const q = query(
+    collection(db, 'operations'), 
+    where('status', '==', 'finished'),
+    orderBy('carimboInicial', 'desc'),
+    limit(150)
+  );
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as FinishedOperation)));
   });
 };
+
+// --- Cache variables for Master Data ---
+let cacheParadas: Parada[] | null = null;
+let cacheLinhas: string[] | null = null;
+let cacheProfiles: {name: string}[] | null = null;
+let cacheProdutos: {produto: string, litragem: string}[] | null = null;
 
 export const getOperations = async (): Promise<Operation[]> => {
   const q = query(collection(db, 'operations'), where('status', '==', 'pending'));
@@ -57,9 +72,11 @@ export const getOperations = async (): Promise<Operation[]> => {
 };
 
 export const getParadas = async (): Promise<Parada[]> => {
+  if (cacheParadas) return cacheParadas;
   const q = query(collection(db, 'paradas'));
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ ...d.data() } as Parada)).sort((a,b) => a.seq - b.seq);
+  cacheParadas = snap.docs.map(d => ({ ...d.data() } as Parada)).sort((a,b) => a.seq - b.seq);
+  return cacheParadas;
 };
 
 export const addOperation = async (op: Operation) => {
@@ -188,26 +205,33 @@ export const markOperationFinished = async (
 };
 
 export const getProducts = async (): Promise<{produto: string, litragem: string}[]> => {
+  if (cacheProdutos) return cacheProdutos;
   const q = query(collection(db, 'produtos'));
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ produto: d.data().produto || d.id, litragem: d.data().litragem || '' })).sort((a,b) => a.produto.localeCompare(b.produto));
+  cacheProdutos = snap.docs.map(d => ({ produto: d.data().produto || d.id, litragem: d.data().litragem || '' })).sort((a,b) => a.produto.localeCompare(b.produto));
+  return cacheProdutos;
 };
 
 export const getLinhas = async (): Promise<string[]> => {
+  if (cacheLinhas) return cacheLinhas;
   const q = query(collection(db, 'linhas'));
   const snap = await getDocs(q);
-  return snap.docs.map(d => d.data().nome || d.id).sort((a, b) => a.localeCompare(b));
+  cacheLinhas = snap.docs.map(d => d.data().nome || d.id).sort((a, b) => a.localeCompare(b));
+  return cacheLinhas;
 };
 
 export const addProduct = async (produto: string, litragem: string) => {
   await setDoc(doc(db, 'produtos', produto.toUpperCase()), { produto: produto.toUpperCase(), litragem });
+  cacheProdutos = null; // invalidar cache
 };
 
 export const removeFinishedOperation = async (id: string, _turno: string) => {
-  const docSnap = await getDocs(query(collection(db, 'operations'), where('__name__', '==', id)));
+  const opDocRef = doc(db, 'operations', id);
+  const docSnap = await getDoc(opDocRef);
+  
   let apiError = null;
-  if (!docSnap.empty) {
-    const data = docSnap.docs[0].data();
+  if (docSnap.exists()) {
+    const data = docSnap.data();
     try {
       const resp = await fetch(`${API_BASE}/api/delete`, {
         method: 'POST',
@@ -224,7 +248,7 @@ export const removeFinishedOperation = async (id: string, _turno: string) => {
   }
   
   try {
-    await deleteDoc(doc(db, 'operations', id));
+    await deleteDoc(opDocRef);
   } catch (firebaseErr: any) {
     console.error("Firebase deleteDoc failed", firebaseErr);
     throw new Error(`Erro ao deletar da nuvem: ${firebaseErr.message}`);
@@ -237,9 +261,10 @@ export const removeFinishedOperation = async (id: string, _turno: string) => {
 };
 
 export const moveFinishedToPending = async (id: string, turno: string) => {
-  const docSnap = await getDocs(query(collection(db, 'operations'), where('__name__', '==', id)));
-  if (!docSnap.empty) {
-    const data = docSnap.docs[0].data() as FinishedOperation;
+  const opDocRef = doc(db, 'operations', id);
+  const docSnap = await getDoc(opDocRef);
+  if (docSnap.exists()) {
+    const data = docSnap.data() as FinishedOperation;
     
     // Attempt to remove from spreadsheet
     try {
@@ -266,14 +291,15 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
       paradas: data.paradas || []
     };
 
-    await setDoc(doc(db, 'operations', id), newOp);
+    await setDoc(opDocRef, newOp);
   }
 };
 
 export const updateFinishedOperation = async (oldId: string, data: Partial<FinishedOperation>, _turno: string) => {
-  const docSnap = await getDocs(query(collection(db, 'operations'), where('__name__', '==', oldId)));
-  if (!docSnap.empty) {
-    const original = docSnap.docs[0].data();
+  const opDocRef = doc(db, 'operations', oldId);
+  const docSnap = await getDoc(opDocRef);
+  if (docSnap.exists()) {
+    const original = docSnap.data();
     try {
       await fetch(`${API_BASE}/api/update`, {
         method: 'POST',
@@ -286,7 +312,7 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
     } catch (e) {
       console.error('Update API error', e);
     }
-    await updateDoc(doc(db, 'operations', oldId), data);
+    await updateDoc(opDocRef, data);
   }
 };
 
@@ -294,27 +320,36 @@ export const updateOperation = async (id: string, data: Partial<Operation>) => {
   await updateDoc(doc(db, 'operations', id), data);
 };
 
-export const getReportForDateAndShift = async (_date: string, _shift: string) => {
-  const q = query(collection(db, 'operations'), where('status', '==', 'finished'));
+export const getReportForDateAndShift = async (date: string, shift: string) => {
+  const q = query(
+    collection(db, 'operations'), 
+    where('status', '==', 'finished'),
+    where('carimbo', '==', date),
+    where('turno', '==', shift)
+  );
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as FinishedOperation));
 };
 
 export const clearTurnoRecords = async (turno: string) => {
-  const q = query(collection(db, 'operations'), where('turno', '==', turno));
+  const q = query(
+    collection(db, 'operations'), 
+    where('status', '==', 'finished'),
+    where('turno', '==', turno)
+  );
   const snap = await getDocs(q);
   for (const item of snap.docs) {
-    if (item.data().status === 'finished') {
-       await deleteDoc(doc(db, 'operations', item.id));
-    }
+    await deleteDoc(doc(db, 'operations', item.id));
   }
 };
 
 
 export const getProfiles = async (): Promise<{name: string}[]> => {
+  if (cacheProfiles) return cacheProfiles;
   const q = query(collection(db, 'profiles'));
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ name: d.id })).sort((a,b) => a.name.localeCompare(b.name));
+  cacheProfiles = snap.docs.map(d => ({ name: d.id })).sort((a,b) => a.name.localeCompare(b.name));
+  return cacheProfiles;
 };
 
 export const getAuthProfile = async (profileName: string) => {
@@ -368,6 +403,7 @@ export const updateAuthProfile = async (profileName: string, newPassword: string
   
   try {
     await setDoc(doc(db, 'profiles', profileName), newProfile, { merge: true });
+    cacheProfiles = null; // invalidar cache
   } catch (err: any) {
     console.error("Error saving profile to firestore", err);
     throw new Error(`Erro ao salvar na nuvem: ${err?.message || err}`);

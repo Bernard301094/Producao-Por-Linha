@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -20,9 +20,11 @@ import { PendingOpItem } from '../components/PendingOpItem';
 import { FinishedOpItem } from '../components/FinishedOpItem';
 import { LoginScreen } from './components/LoginScreen/LoginScreen';
 import { StartOpForm } from './components/StartOpForm/StartOpForm';
-import { EditOpModal } from './components/EditOpModal/EditOpModal';
-import { ChangePasswordModal } from './components/ChangePasswordModal/ChangePasswordModal';
 import { cn, useAutoIncrement } from './lib/utils';
+
+// Lazy loading modals to improve initial load performance
+const EditOpModal = React.lazy(() => import('./components/EditOpModal/EditOpModal').then(module => ({ default: module.EditOpModal })));
+const ChangePasswordModal = React.lazy(() => import('./components/ChangePasswordModal/ChangePasswordModal').then(module => ({ default: module.ChangePasswordModal })));
 import { toast, Toaster } from 'sonner';
 import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -100,6 +102,14 @@ const startOpSchema = z.object({
 });
 
 type StartOpFormValues = z.infer<typeof startOpSchema>;
+
+const matchesSearch = (op: { opNumber?: string; linha?: string; produto?: string }, q: string) => {
+  if (!q.trim()) return true;
+  const lower = q.toLowerCase();
+  return (op.opNumber || '').toLowerCase().includes(lower) || 
+         (op.linha || '').toLowerCase().includes(lower) || 
+         (op.produto || '').toLowerCase().includes(lower);
+};
 
 export default function App() {
   function extractLitragem(produto: string): string {
@@ -220,7 +230,7 @@ export default function App() {
     };
   }, []);
 
-  const openEdit = (op: Operation | FinishedOperation) => {
+  const openEdit = useCallback((op: Operation | FinishedOperation) => {
     setEditingOp(op);
     setEditParadas(op.paradas || []);
     setEditParadaSelectedCode('');
@@ -236,7 +246,7 @@ export default function App() {
       horaFinal: (op as FinishedOperation).horaFinal || '',
       qntReprocesso: (op as FinishedOperation).qntReprocesso || ''
     });
-  };
+  }, [resetEdit]);
 
   const onEditOp = async (data: any) => {
     if (loginProfile) {
@@ -396,10 +406,15 @@ export default function App() {
 
   const refreshData = async () => {
     try {
-      await loadProducts();
-      await loadParadas();
-      await loadLinhas();
-      await loadProfiles();
+      const t0 = performance.now();
+      await Promise.all([
+        loadProducts(),
+        loadParadas(),
+        loadLinhas(),
+        loadProfiles()
+      ]);
+      const t1 = performance.now();
+      console.log(`[Performance] refreshData carregou em ${(t1 - t0).toFixed(2)}ms`);
     } catch (e) {
       console.error("Error loading data:", e);
     }
@@ -430,10 +445,6 @@ export default function App() {
       setValue('turno', storedProfile.replace('Turno ', ''));
     }
   }, [setValue]);
-
-  useEffect(() => {
-    refreshData();
-  }, [loginProfile]);
 
   // Login
   const handleLogin = async () => {
@@ -574,7 +585,7 @@ export default function App() {
     }
   };
 
-  const handleFinish = async (id: string, qtd: string, time: string, reprocesso: string, paradas: ParadaRecord[], onSuccess: () => void) => {
+  const handleFinish = useCallback(async (op: Operation, qtd: string, time: string, reprocesso: string, paradas: ParadaRecord[], onSuccess: () => void) => {
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(loginProfile);
       if (!shiftCheck.allowed) {
@@ -584,9 +595,6 @@ export default function App() {
     }
 
     if (!qtd || !time) { toast.error('Preencha a quantidade e hora final.'); return; }
-
-    const op = operations.find(o => o.id === id);
-    if (!op) { toast.error('Operação não encontrada.'); return; }
 
     const paradasToSave: ParadaRecord[] = 
       paradas.length > 0 ? paradas : (op.paradas || []);
@@ -613,7 +621,7 @@ export default function App() {
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar.');
     }
-  };
+  }, [loginProfile]);
 
   const confirmRevert = async () => {
     if (loginProfile) {
@@ -650,14 +658,6 @@ export default function App() {
     if (!op.carimboInicial) return sameTurn;
     return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
   }), [operations, currentTurnForView, logicalToday]);
-
-  const matchesSearch = (op: { opNumber?: string; linha?: string; produto?: string }, q: string) => {
-    if (!q.trim()) return true;
-    const lower = q.toLowerCase();
-    return (op.opNumber || '').toLowerCase().includes(lower) || 
-           (op.linha || '').toLowerCase().includes(lower) || 
-           (op.produto || '').toLowerCase().includes(lower);
-  };
 
   const visiblePendingOps = useMemo(() => myPendingOps.filter(op => matchesSearch(op, searchPending)), [myPendingOps, searchPending]);
   const visibleFinishedOps = useMemo(() => myFinishedOps.filter(op => matchesSearch(op, searchFinished)), [myFinishedOps, searchFinished]);
@@ -972,56 +972,62 @@ export default function App() {
       </Dialog>
 
       {/* Edit OP Dialog */}
-      <EditOpModal
-        editingOp={editingOp}
-        setEditingOp={setEditingOp}
-        handleSubmitEdit={handleSubmitEdit}
-        onEditOp={onEditOp}
-        registerEdit={registerEdit}
-        watchEdit={watchEdit}
-        setValueEdit={setValueEdit}
-        isTypingEditProduct={isTypingEditProduct}
-        setIsTypingEditProduct={setIsTypingEditProduct}
-        showEditProductSuggestions={showEditProductSuggestions}
-        setShowEditProductSuggestions={setShowEditProductSuggestions}
-        filteredEditProducts={filteredEditProducts}
-        openEditLineSelect={openEditLineSelect}
-        setOpenEditLineSelect={setOpenEditLineSelect}
-        searchEditLine={searchEditLine}
-        setSearchEditLine={setSearchEditLine}
-        allLinhas={allLinhas}
-        setCustomLinhas={setCustomLinhas}
-        loginProfile={loginProfile}
-        editParadas={editParadas}
-        setEditParadas={setEditParadas}
-        addEditParada={addEditParada}
-        removeEditParada={removeEditParada}
-        loadingEdit={loadingEdit}
-        editParadaSelectedCode={editParadaSelectedCode}
-        setEditParadaSelectedCode={setEditParadaSelectedCode}
-        editParadaStart={editParadaStart}
-        setEditParadaStart={setEditParadaStart}
-        editParadaEnd={editParadaEnd}
-        setEditParadaEnd={setEditParadaEnd}
-        availableParadas={availableParadas}
-      />
+      <React.Suspense fallback={null}>
+        {editingOp && (
+          <EditOpModal
+            editingOp={editingOp}
+            setEditingOp={setEditingOp}
+            handleSubmitEdit={handleSubmitEdit}
+            onEditOp={onEditOp}
+            registerEdit={registerEdit}
+            watchEdit={watchEdit}
+            setValueEdit={setValueEdit}
+            isTypingEditProduct={isTypingEditProduct}
+            setIsTypingEditProduct={setIsTypingEditProduct}
+            showEditProductSuggestions={showEditProductSuggestions}
+            setShowEditProductSuggestions={setShowEditProductSuggestions}
+            filteredEditProducts={filteredEditProducts}
+            openEditLineSelect={openEditLineSelect}
+            setOpenEditLineSelect={setOpenEditLineSelect}
+            searchEditLine={searchEditLine}
+            setSearchEditLine={setSearchEditLine}
+            allLinhas={allLinhas}
+            setCustomLinhas={setCustomLinhas}
+            loginProfile={loginProfile}
+            editParadas={editParadas}
+            setEditParadas={setEditParadas}
+            addEditParada={addEditParada}
+            removeEditParada={removeEditParada}
+            loadingEdit={loadingEdit}
+            editParadaSelectedCode={editParadaSelectedCode}
+            setEditParadaSelectedCode={setEditParadaSelectedCode}
+            editParadaStart={editParadaStart}
+            setEditParadaStart={setEditParadaStart}
+            editParadaEnd={editParadaEnd}
+            setEditParadaEnd={setEditParadaEnd}
+            availableParadas={availableParadas}
+          />
+        )}
 
-      {/* Change Password Dialog */}
-      <ChangePasswordModal
-        changePasswordOpen={changePasswordOpen}
-        setChangePasswordOpen={setChangePasswordOpen}
-        loginProfile={loginProfile!}
-        showChangerPassword={showChangerPassword}
-        setShowChangerPassword={setShowChangerPassword}
-        changerOldPassword={changerOldPassword}
-        setChangerOldPassword={setChangerOldPassword}
-        newPassword={newPassword}
-        setNewPassword={setNewPassword}
-        confirmNewPassword={confirmNewPassword}
-        setConfirmNewPassword={setConfirmNewPassword}
-        handleChangePassword={handleChangePassword}
-        changingPasswordLoading={changingPasswordLoading}
-      />
+        {/* Change Password Dialog */}
+        {changePasswordOpen && (
+          <ChangePasswordModal
+            changePasswordOpen={changePasswordOpen}
+            setChangePasswordOpen={setChangePasswordOpen}
+            loginProfile={loginProfile!}
+            showChangerPassword={showChangerPassword}
+            setShowChangerPassword={setShowChangerPassword}
+            changerOldPassword={changerOldPassword}
+            setChangerOldPassword={setChangerOldPassword}
+            newPassword={newPassword}
+            setNewPassword={setNewPassword}
+            confirmNewPassword={confirmNewPassword}
+            setConfirmNewPassword={setConfirmNewPassword}
+            handleChangePassword={handleChangePassword}
+            changingPasswordLoading={changingPasswordLoading}
+          />
+        )}
+      </React.Suspense>
     </>
   );
 }

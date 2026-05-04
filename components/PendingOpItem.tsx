@@ -80,7 +80,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   const handleActualFinish = async () => {
     setItemLoading(true);
     try {
-      await handleFinish(op.id, finishQtd, finishTime, finishQtdReprocesso, finishParadas, () => {
+      await handleFinish(op, finishQtd, finishTime, finishQtdReprocesso, finishParadas, () => {
         setIsFinishing(false);
         setFinishQtd('');
         setFinishQtdReprocesso('');
