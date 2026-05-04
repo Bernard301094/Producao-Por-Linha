@@ -1,4 +1,3 @@
-import { PRODUCTS } from './data';
 import { db } from './firebase';
 import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, updateDoc, query, where, onSnapshot } from 'firebase/firestore';
 
@@ -37,20 +36,6 @@ export interface FinishedOperation extends Operation {
   paradas?: ParadaRecord[];
 }
 
-const STORAGE_KEYS = {
-  PRODUCTS: 'v-ops-products',
-};
-
-// LOCAL STORAGE HELPERS
-const getLocal = <T>(key: string): T[] => {
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : [];
-};
-
-const saveLocal = (key: string, data: any) => {
-  localStorage.setItem(key, JSON.stringify(data));
-};
-
 export const subscribeToOperations = (callback: (ops: Operation[]) => void) => {
   const q = query(collection(db, 'operations'), where('status', '==', 'pending'));
   return onSnapshot(q, (snap) => {
@@ -74,33 +59,6 @@ export const getOperations = async (): Promise<Operation[]> => {
 export const getParadas = async (): Promise<Parada[]> => {
   const q = query(collection(db, 'paradas'));
   const snap = await getDocs(q);
-  
-  if (snap.empty) {
-    const defaultParadas: Parada[] = [
-      { seq: 1, tipologia: 'TROCA DE FORMATO (SETUP)' },
-      { seq: 2, tipologia: 'MANUTENÇÃO MECÂNICA' },
-      { seq: 3, tipologia: 'MANUTENÇÃO ELÉTRICA' },
-      { seq: 4, tipologia: 'FALTA DE MATERIAL/INSUMO' },
-      { seq: 5, tipologia: 'LIMPEZA/HIGIENIZAÇÃO' },
-      { seq: 6, tipologia: 'REFEIÇÃO / INTERVALO' },
-      { seq: 7, tipologia: 'FALTA DE ENERGIA / UTILIDADES' },
-      { seq: 8, tipologia: 'REUNIÃO / TREINAMENTO' },
-      { seq: 9, tipologia: 'AGUARDANDO CQ (QUALIDADE)' },
-      { seq: 10, tipologia: 'INOPERANTE / FALTA DE DEMANDA' }
-    ];
-    
-    // Seed the database
-    try {
-      await Promise.all(defaultParadas.map(p => 
-        setDoc(doc(db, 'paradas', p.seq.toString()), p)
-      ));
-    } catch (e) {
-      console.error("Error seeding default paradas", e);
-    }
-    
-    return defaultParadas;
-  }
-  
   return snap.docs.map(d => ({ ...d.data() } as Parada)).sort((a,b) => a.seq - b.seq);
 };
 
@@ -152,6 +110,13 @@ export const markOperationFinished = async (
   const YYYY = now.getFullYear();
   const formatedCarimbo = `${DD}/${MM}/${YYYY}`;
 
+  const paradasFinais: ParadaRecord[] = 
+    (paradas && paradas.length > 0) 
+      ? paradas 
+      : (op.paradas && op.paradas.length > 0) 
+        ? op.paradas 
+        : [];
+
   const finishedOp: FinishedOperation = {
     ...op,
     linha: formattedLinha,
@@ -159,12 +124,16 @@ export const markOperationFinished = async (
     horaFinal,
     qntReprocesso: qntReprocesso || '',
     carimbo: formatedCarimbo,
-    paradas: (paradas && paradas.length > 0) ? paradas : (op.paradas || []),
+    paradas: paradasFinais,
   };
 
   // 1. Write to Firebase FIRST — instant due to offline cache
   try {
-    await updateDoc(doc(db, 'operations', op.id), { ...finishedOp, status: 'finished' });
+    await updateDoc(doc(db, 'operations', op.id), { 
+      ...finishedOp, 
+      status: 'finished',
+      paradas: paradasFinais,
+    });
   } catch (firebaseErr: any) {
     console.error("Firebase updateDoc failed", firebaseErr);
     throw new Error(`Erro ao salvar na nuvem: ${firebaseErr.message}`);
@@ -219,22 +188,19 @@ export const markOperationFinished = async (
 };
 
 export const getProducts = async (): Promise<{produto: string, litragem: string}[]> => {
-  const localProds = getLocal<{produto: string, litragem: string}>(STORAGE_KEYS.PRODUCTS);
-  
-  const DEFAULT_PRODUCTS = PRODUCTS.map(([produto, litragem]) => ({ produto, litragem }));
+  const q = query(collection(db, 'produtos'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ produto: d.data().produto || d.id, litragem: d.data().litragem || '' })).sort((a,b) => a.produto.localeCompare(b.produto));
+};
 
-  const map = new Map<string, {produto: string, litragem: string}>();
-  DEFAULT_PRODUCTS.forEach(p => map.set(`${p.produto.toUpperCase()}`, p));
-  localProds.forEach(p => map.set(`${p.produto.toUpperCase()}`, p));
-
-  return Array.from(map.values()).sort((a,b) => a.produto.localeCompare(b.produto));
+export const getLinhas = async (): Promise<string[]> => {
+  const q = query(collection(db, 'linhas'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => d.data().nome || d.id).sort((a, b) => a.localeCompare(b));
 };
 
 export const addProduct = async (produto: string, litragem: string) => {
-  const prods = getLocal<{produto: string, litragem: string}>(STORAGE_KEYS.PRODUCTS);
-  if (!prods.find(p => p.produto === produto)) {
-    saveLocal(STORAGE_KEYS.PRODUCTS, [...prods, { produto, litragem }]);
-  }
+  await setDoc(doc(db, 'produtos', produto.toUpperCase()), { produto: produto.toUpperCase(), litragem });
 };
 
 export const removeFinishedOperation = async (id: string, _turno: string) => {
@@ -345,6 +311,12 @@ export const clearTurnoRecords = async (turno: string) => {
 };
 
 
+export const getProfiles = async (): Promise<{name: string}[]> => {
+  const q = query(collection(db, 'profiles'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ name: d.id })).sort((a,b) => a.name.localeCompare(b.name));
+};
+
 export const getAuthProfile = async (profileName: string) => {
   try {
     const docRef = doc(db, 'profiles', profileName);
@@ -355,10 +327,7 @@ export const getAuthProfile = async (profileName: string) => {
   } catch (err) {
     console.error("Firestore get profile error", err);
   }
-
-  const customAuth = getLocal<any>('v-ops-auth') || [];
-  const profile = customAuth.find((p: any) => p.name === profileName);
-  return profile || null;
+  return null;
 };
 
 export const checkSheetConnection = async () => {
@@ -387,11 +356,6 @@ export const updateAuthProfile = async (profileName: string, newPassword: string
     console.warn("Could not fetch profile from firestore", err);
   }
 
-  if (!existing) {
-    const customAuth = getLocal<any>('v-ops-auth') || [];
-    existing = customAuth.find((p: any) => p.name === profileName);
-  }
-
   if (existing && existing.lastChangedAt) {
     const lastChanged = new Date(existing.lastChangedAt);
     const differenceInDays = (new Date().getTime() - lastChanged.getTime()) / (1000 * 3600 * 24);
@@ -408,8 +372,4 @@ export const updateAuthProfile = async (profileName: string, newPassword: string
     console.error("Error saving profile to firestore", err);
     throw new Error(`Erro ao salvar na nuvem: ${err?.message || err}`);
   }
-
-  const customAuth = getLocal<any>('v-ops-auth') || [];
-  const filtered = customAuth.filter((p: any) => p.name !== profileName);
-  saveLocal('v-ops-auth', [...filtered, newProfile]);
 };
