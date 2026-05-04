@@ -29,7 +29,12 @@ import { toast, Toaster } from 'sonner';
 import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'motion/react';
 
-function getActiveTurno(now: Date = new Date()): string {
+import { getServerTime, syncServerTime, getServerTimeISO } from './lib/time';
+import { logAudit } from './lib/audit';
+
+const SHIFT_TOLERANCE_MINUTES = 10;
+
+function getActiveTurno(now: Date = getServerTime()): string {
   const logicalDate = new Date(now.getTime() - 6 * 60 * 60 * 1000);
   const logicalTimeZeroed = Date.UTC(logicalDate.getFullYear(), logicalDate.getMonth(), logicalDate.getDate());
   
@@ -49,7 +54,7 @@ function getActiveTurno(now: Date = new Date()): string {
   }
 }
 
-function getLogicalDateStr(now: Date = new Date()): string {
+function getLogicalDateStr(now: Date = getServerTime()): string {
   const logicalDate = new Date(now.getTime() - 6 * 60 * 60 * 1000);
   return format(logicalDate, 'yyyy-MM-dd');
 }
@@ -58,13 +63,56 @@ function getSuggestedShift(now: Date, horaInicial: string): string {
   return getActiveTurno(now).replace('Turno ', '');
 }
 
-function isShiftAllowed(profile: string): { allowed: boolean, reason?: string } {
-  const activeTurno = getActiveTurno();
-  if (profile === activeTurno) {
-      return { allowed: true };
-  } else {
-      return { allowed: false, reason: `Fora do horário. O turno atual é o ${activeTurno}` };
+export function getShiftCycleId(time: Date): string {
+  const logicalDate = new Date(time.getTime() - 6 * 60 * 60 * 1000);
+  const logicalDateStr = format(logicalDate, 'yyyy-MM-dd');
+  const h = time.getHours();
+  const isDayTime = h >= 6 && h < 18;
+  return `${logicalDateStr}-${isDayTime ? 'DAY' : 'NIGHT'}`;
+}
+
+export type ShiftCheckResult = { 
+  allowed: boolean; 
+  reason?: string; 
+  toleranceApplied?: boolean;
+  activeTurno: string;
+  shiftCycleId?: string;
+};
+
+export function isShiftAllowed(profile: string): ShiftCheckResult {
+  const now = getServerTime();
+  const activeTurno = getActiveTurno(now);
+  
+  if (profile === 'Supervisor') {
+      return { allowed: true, activeTurno, shiftCycleId: getShiftCycleId(now) };
   }
+
+  if (profile === activeTurno) {
+      return { allowed: true, activeTurno, shiftCycleId: getShiftCycleId(now) };
+  }
+  
+  // Check Tolerance
+  const pastToleranceTime = new Date(now.getTime() - SHIFT_TOLERANCE_MINUTES * 60000);
+  const futureToleranceTime = new Date(now.getTime() + SHIFT_TOLERANCE_MINUTES * 60000);
+  
+  const activeInPast = getActiveTurno(pastToleranceTime);
+  const activeInFuture = getActiveTurno(futureToleranceTime);
+  
+  if (profile === activeInPast) {
+      return { allowed: true, toleranceApplied: true, activeTurno, shiftCycleId: getShiftCycleId(pastToleranceTime) };
+  }
+  
+  if (profile === activeInFuture) {
+      return { allowed: true, toleranceApplied: true, activeTurno, shiftCycleId: getShiftCycleId(futureToleranceTime) };
+  }
+
+  const outSince = format(now.getHours() >= 18 || now.getHours() < 6 ? new Date(now.setHours(18,0,0,0)) : new Date(now.setHours(6,0,0,0)), 'HH:mm');
+
+  return { 
+    allowed: false, 
+    activeTurno,
+    reason: `Fora do horário. O turno atual é o ${activeTurno}. Você está fora do horário do seu perfil desde ${outSince}. Se for uma emergência, contate o supervisor.`
+  };
 }
 
 // Parsea un string compacto "opNumber|linha|produto|litragem|quantidade|horaInicial|horaFinal|qntReprocesso"
@@ -249,67 +297,83 @@ export default function App() {
   }, [resetEdit]);
 
   const onEditOp = async (data: any) => {
-    if (loginProfile) {
-      const shiftCheck = isShiftAllowed(loginProfile);
-      if (!shiftCheck.allowed) {
-        toast.error('Seu turno já foi encerrado.');
-        return;
-      }
-    }
+    const doEditOp = async () => {
+      if (!editingOp) return;
+      setLoadingEdit(true);
+      try {
+        const matchedProduct = availableProducts.find(
+          p => (p.produto || '').trim().toUpperCase() === (data.produto || '').trim().toUpperCase()
+        );
+        const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto || '');
 
-    if (!editingOp) return;
-    setLoadingEdit(true);
-    try {
-      const matchedProduct = availableProducts.find(
-        p => (p.produto || '').trim().toUpperCase() === (data.produto || '').trim().toUpperCase()
-      );
-      const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto || '');
+        const normalizeTime = (t: string) =>
+          t && t.length === 5 ? `${t}:00` : t;
 
-      const normalizeTime = (t: string) =>
-        t && t.length === 5 ? `${t}:00` : t;
+        const linhaRaw = data.linha || '';
+        const formattedLinha = linhaRaw
+          ? isNaN(Number(linhaRaw)) ? linhaRaw : `Linha ${linhaRaw}`
+          : editingOp.linha;
 
-      const linhaRaw = data.linha || '';
-      const formattedLinha = linhaRaw
-        ? isNaN(Number(linhaRaw)) ? linhaRaw : `Linha ${linhaRaw}`
-        : editingOp.linha;
-
-      if ('quantidade' in editingOp) {
-        const turno = editingOp.turno || currentTurnForView;
-        await updateFinishedOperation(
-          editingOp.id,
-          {
+        if ('quantidade' in editingOp) {
+          const turno = editingOp.turno || currentTurnForView;
+          await updateFinishedOperation(
+            editingOp.id,
+            {
+              opNumber: data.opNumber,
+              produto: data.produto,
+              litragem: derivedLitragem,
+              linha: formattedLinha,
+              turno: data.turno || turno,
+              horaInicial: normalizeTime(data.horaInicial),
+              quantidade: data.quantidade,
+              horaFinal: normalizeTime(data.horaFinal),
+              qntReprocesso: data.qntReprocesso,
+              paradas: editParadas,
+            },
+            turno
+          );
+          toast.success('OP concluída actualizada.');
+        } else {
+          await updateOperation(editingOp.id, {
             opNumber: data.opNumber,
             produto: data.produto,
             litragem: derivedLitragem,
             linha: formattedLinha,
-            turno: data.turno || turno,
+            turno: data.turno,
             horaInicial: normalizeTime(data.horaInicial),
-            quantidade: data.quantidade,
-            horaFinal: normalizeTime(data.horaFinal),
-            qntReprocesso: data.qntReprocesso,
             paradas: editParadas,
-          },
-          turno
-        );
-        toast.success('OP concluída actualizada.');
-      } else {
-        await updateOperation(editingOp.id, {
-          opNumber: data.opNumber,
-          produto: data.produto,
-          litragem: derivedLitragem,
-          linha: formattedLinha,
-          turno: data.turno,
-          horaInicial: normalizeTime(data.horaInicial),
-          paradas: editParadas,
+          });
+          toast.success('OP actualizada.');
+        }
+        
+        logAudit({
+          userProfile: loginProfile || 'UNKNOWN',
+          action: 'EDIT_OP',
+          expectedShift: loginProfile || 'UNKNOWN',
+          activeShift: isShiftAllowed(loginProfile || 'UNKNOWN').activeTurno,
+          serverTimestamp: getServerTimeISO(),
+          result: isShiftAllowed(loginProfile || 'UNKNOWN').allowed ? (isShiftAllowed(loginProfile || 'UNKNOWN').toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
+          opReference: data.opNumber,
+          reason: overrideReason || undefined
         });
-        toast.success('OP actualizada.');
+
+        setEditingOp(null);
+      } catch (err: any) {
+        toast.error('Erro ao editar: ' + err.message);
+      } finally {
+        setLoadingEdit(false);
       }
-      setEditingOp(null);
-    } catch (err: any) {
-      toast.error('Erro ao editar: ' + err.message);
-    } finally {
-      setLoadingEdit(false);
+    };
+
+    if (loginProfile) {
+      const shiftCheck = isShiftAllowed(loginProfile);
+      if (!shiftCheck.allowed) {
+        requireSupervisorOverride(() => doEditOp());
+        return;
+      }
     }
+    
+    doEditOp();
   };
 
   const addEditParada = () => {
@@ -375,6 +439,34 @@ export default function App() {
     }
   };
 
+  const checkAndClearProfileShift = async (profile: string) => {
+    const shiftCheck = isShiftAllowed(profile);
+    if (shiftCheck.allowed && shiftCheck.shiftCycleId) {
+       const r = await import('./api');
+       const profileData = await r.getAuthProfile(profile);
+       if (profileData && profileData.lastClearedShiftId !== shiftCheck.shiftCycleId) {
+          console.log(`Clearing records for ${profile} at cycle ${shiftCheck.shiftCycleId}`);
+          await r.clearTurnoRecords(profile.replace('Turno ', ''));
+          await r.updateAuthProfile(profile, { ...profileData, lastClearedShiftId: shiftCheck.shiftCycleId });
+       }
+    }
+  };
+
+  useEffect(() => {
+    if (loginProfile) {
+      checkAndClearProfileShift(loginProfile);
+    }
+  }, [loginProfile]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (loginProfile) {
+        checkAndClearProfileShift(loginProfile);
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [loginProfile]);
+
   const watchHoraInicial = watch('horaInicial');
   const watchProduto = watch('produto');
 
@@ -408,6 +500,7 @@ export default function App() {
     try {
       const t0 = performance.now();
       await Promise.all([
+        syncServerTime(),
         loadProducts(),
         loadParadas(),
         loadLinhas(),
@@ -451,7 +544,17 @@ export default function App() {
     if (!selectedProfile) return;
     
     const shiftCheck = isShiftAllowed(selectedProfile);
+    
     if (!shiftCheck.allowed) {
+      logAudit({
+        userProfile: selectedProfile,
+        action: 'LOGIN',
+        expectedShift: selectedProfile,
+        activeShift: shiftCheck.activeTurno,
+        serverTimestamp: getServerTimeISO(),
+        result: 'BLOCKED',
+        reason: shiftCheck.reason
+      });
       toast.error(shiftCheck.reason);
       return;
     }
@@ -469,6 +572,14 @@ export default function App() {
       }
 
       if (passwordInput.trim() === correctPassword) {
+        logAudit({
+          userProfile: selectedProfile,
+          action: 'LOGIN',
+          expectedShift: selectedProfile,
+          activeShift: shiftCheck.activeTurno,
+          serverTimestamp: getServerTimeISO(),
+          result: shiftCheck.toleranceApplied ? 'TOLERANCE' : 'ALLOWED'
+        });
         localStorage.setItem('loginProfile', selectedProfile);
         setLoginProfile(selectedProfile);
         setValue('turno', selectedProfile.replace('Turno ', ''));
@@ -524,13 +635,17 @@ export default function App() {
     if (loginProfile) {
       try {
         const shiftCheck = isShiftAllowed(loginProfile);
-        if (!shiftCheck.allowed) {
-          const turno = loginProfile.replace('Turno ', '');
-          const r = await import('./api');
-          await r.clearTurnoRecords(turno);
-        }
+        
+        logAudit({
+          userProfile: loginProfile,
+          action: 'LOGOUT',
+          expectedShift: loginProfile,
+          activeShift: shiftCheck.activeTurno,
+          serverTimestamp: getServerTimeISO(),
+          result: 'ALLOWED'
+        });
       } catch (e) {
-        console.error("Failed to clear turno records", e);
+        console.error("Failed to log logout", e);
       }
     }
     localStorage.removeItem('loginProfile');
@@ -547,10 +662,31 @@ export default function App() {
   const onStartOp = async (data: StartOpFormValues) => {
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(loginProfile);
+      
       if (!shiftCheck.allowed) {
+        logAudit({
+          userProfile: loginProfile,
+          action: 'START_OP',
+          expectedShift: loginProfile,
+          activeShift: shiftCheck.activeTurno,
+          serverTimestamp: getServerTimeISO(),
+          result: 'BLOCKED',
+          reason: shiftCheck.reason,
+          opReference: data.opNumber
+        });
         toast.error('Seu turno já foi encerrado.');
         return;
       }
+      
+      logAudit({
+        userProfile: loginProfile,
+        action: 'START_OP',
+        expectedShift: loginProfile,
+        activeShift: shiftCheck.activeTurno,
+        serverTimestamp: getServerTimeISO(),
+        result: shiftCheck.toleranceApplied ? 'TOLERANCE' : 'ALLOWED',
+        opReference: data.opNumber
+      });
     }
 
     if (operations.some(op => op.opNumber === data.opNumber)) {
@@ -588,10 +724,16 @@ export default function App() {
   const handleFinish = useCallback(async (op: Operation, qtd: string, time: string, reprocesso: string, paradas: ParadaRecord[], onSuccess: () => void) => {
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(loginProfile);
-      if (!shiftCheck.allowed) {
-        toast.error('Seu turno já foi encerrado.');
-        return;
-      }
+      logAudit({
+        userProfile: loginProfile,
+        action: 'FINISH_OP',
+        expectedShift: loginProfile,
+        activeShift: shiftCheck.activeTurno,
+        serverTimestamp: getServerTimeISO(),
+        result: shiftCheck.allowed ? (shiftCheck.toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
+        reason: shiftCheck.allowed ? undefined : 'Permitido fechamento de OP post-corte funcionalmente',
+        opReference: op.opNumber
+      });
     }
 
     if (!qtd || !time) { toast.error('Preencha a quantidade e hora final.'); return; }
@@ -624,28 +766,89 @@ export default function App() {
   }, [loginProfile]);
 
   const confirmRevert = async () => {
+    const doRevert = async () => {
+      if (!revertingOp) return;
+      setLoadingRevert(true);
+      try {
+        await moveFinishedToPending(revertingOp.id, revertingOp.turno || currentTurnForView);
+        
+        logAudit({
+          userProfile: loginProfile || 'UNKNOWN',
+          action: 'REVERT_OP',
+          expectedShift: loginProfile || 'UNKNOWN',
+          activeShift: isShiftAllowed(loginProfile || 'UNKNOWN').activeTurno,
+          serverTimestamp: getServerTimeISO(),
+          result: isShiftAllowed(loginProfile || 'UNKNOWN').allowed ? (isShiftAllowed(loginProfile || 'UNKNOWN').toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
+          opReference: revertingOp.opNumber,
+          reason: overrideReason || undefined
+        });
+
+        toast.success('OP movida de volta para Pendentes.');
+      } catch (err: any) {
+        toast.error('Erro ao reverter: ' + err.message);
+      } finally {
+        setLoadingRevert(false);
+        setRevertingOp(null);
+      }
+    };
+
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(loginProfile);
       if (!shiftCheck.allowed) {
-        toast.error('Seu turno já foi encerrado.');
+        requireSupervisorOverride(() => doRevert());
         return;
       }
     }
+    
+    doRevert();
+  };
 
-    if (!revertingOp) return;
-    setLoadingRevert(true);
+  // Override Supervisor States
+  const [overrideModalOpen, setOverrideModalOpen] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
+  const [overridePassword, setOverridePassword] = useState("");
+  const [pendingOverrideAction, setPendingOverrideAction] = useState<(() => void) | null>(null);
+
+  const requireSupervisorOverride = (action: () => void) => {
+    setPendingOverrideAction(() => action);
+    setOverrideModalOpen(true);
+  };
+
+  const handleOverrideSubmit = async () => {
+    if (!overrideReason.trim()) {
+      toast.error('O motivo é obrigatório.');
+      return;
+    }
+    if (!overridePassword.trim()) {
+      toast.error('Senha do supervisor é obrigatória.');
+      return;
+    }
+    
+    // Check Supervisor password
     try {
-      await moveFinishedToPending(revertingOp.id, revertingOp.turno || currentTurnForView);
-      toast.success('OP movida de volta para Pendentes.');
-    } catch (err: any) {
-      toast.error('Erro ao reverter: ' + err.message);
-    } finally {
-      setLoadingRevert(false);
-      setRevertingOp(null);
+      const supervisorProfile = await getAuthProfile("Supervisor");
+      const correctPw = supervisorProfile?.password || supervisorProfile?.senha || "admin123";
+      if (overridePassword !== correctPw) {
+        toast.error('Senha de supervisor incorreta!');
+        return;
+      }
+      
+      // Execute the pending action
+      if (pendingOverrideAction) {
+        pendingOverrideAction();
+      }
+      
+      setOverrideModalOpen(false);
+      setOverrideReason("");
+      setOverridePassword("");
+      setPendingOverrideAction(null);
+    } catch(e) {
+      console.error(e);
+      toast.error("Erro ao validar supervisor.");
     }
   };
 
-  const logicalToday = getLogicalDateStr(new Date());
+  const logicalToday = getLogicalDateStr(getServerTime());
 
   const myFinishedOps = useMemo(() => finishedOps.filter(op => {
     const sameTurn = op.turno === currentTurnForView;
@@ -665,30 +868,46 @@ export default function App() {
   const visibleTotalUnidades = visibleFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0);
 
   const confirmDelete = async () => {
+    const doDelete = async () => {
+      if (!deletingOp) return;
+      setLoadingDelete(true);
+      try {
+        if ('quantidade' in deletingOp) {
+          await removeFinishedOperation(deletingOp.id, deletingOp.turno || currentTurnForView);
+          toast.success('Registro removido.');
+        } else {
+          await removeOperation(deletingOp.id);
+          toast.message('Operação removida.');
+        }
+        
+        logAudit({
+          userProfile: loginProfile || 'UNKNOWN',
+          action: 'DELETE_OP',
+          expectedShift: loginProfile || 'UNKNOWN',
+          activeShift: isShiftAllowed(loginProfile || 'UNKNOWN').activeTurno,
+          serverTimestamp: getServerTimeISO(),
+          result: isShiftAllowed(loginProfile || 'UNKNOWN').allowed ? (isShiftAllowed(loginProfile || 'UNKNOWN').toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
+          opReference: deletingOp.opNumber,
+          reason: overrideReason || undefined
+        });
+
+      } catch (err: any) {
+        toast.error('Erro ao remover: ' + err.message);
+      } finally {
+        setLoadingDelete(false);
+        setDeletingOp(null);
+      }
+    };
+
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(loginProfile);
       if (!shiftCheck.allowed) {
-        toast.error('Seu turno já foi encerrado.');
+        requireSupervisorOverride(() => doDelete());
         return;
       }
     }
-
-    if (!deletingOp) return;
-    setLoadingDelete(true);
-    try {
-      if ('quantidade' in deletingOp) {
-        await removeFinishedOperation(deletingOp.id, deletingOp.turno || currentTurnForView);
-        toast.success('Registro removido.');
-      } else {
-        await removeOperation(deletingOp.id);
-        toast.message('Operação removida.');
-      }
-    } catch (err: any) {
-      toast.error('Erro ao remover: ' + err.message);
-    } finally {
-      setLoadingDelete(false);
-      setDeletingOp(null);
-    }
+    
+    doDelete();
   };
 
   // ─── Tela de Login ────────────────────────────────────────────────────────
@@ -965,6 +1184,49 @@ export default function App() {
               {loadingRevert ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Confirmar Reversão'}
             </Button>
             <Button variant="ghost" onClick={() => setRevertingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
+               Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Override Supervisor Dialog */}
+      <Dialog open={overrideModalOpen} onOpenChange={setOverrideModalOpen}>
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
+          <DialogHeader className="text-center space-y-2 mb-8">
+            <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200/50 shadow-sm">
+              <KeyRound className="w-8 h-8" />
+            </div>
+            <DialogTitle className="text-2xl font-black text-zinc-950 tracking-tight">Autorização Necessária</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mb-8">
+             <p className="text-sm text-zinc-500 font-medium text-center">Seu turno já foi encerrado. Esta ação requer autorização do supervisor.</p>
+             <div className="space-y-1.5 flex flex-col">
+               <Label className="text-sm font-bold text-zinc-800">Senha do Supervisor</Label>
+               <Input
+                 type="password"
+                 placeholder="Digite a senha"
+                 className="h-14 px-4 bg-zinc-50 border-0 ring-1 ring-zinc-200/50 focus-visible:ring-2 focus-visible:ring-zinc-900 rounded-xl"
+                 value={overridePassword}
+                 onChange={(e) => setOverridePassword(e.target.value)}
+               />
+             </div>
+             <div className="space-y-1.5 flex flex-col mt-4">
+               <Label className="text-sm font-bold text-zinc-800">Motivo da Exceção</Label>
+               <Input
+                 type="text"
+                 placeholder="Ex: Correção de OP atrasada"
+                 className="h-14 px-4 bg-zinc-50 border-0 ring-1 ring-zinc-200/50 focus-visible:ring-2 focus-visible:ring-zinc-900 rounded-xl"
+                 value={overrideReason}
+                 onChange={(e) => setOverrideReason(e.target.value)}
+               />
+             </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-col gap-3">
+            <Button onClick={handleOverrideSubmit} className="w-full h-14 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-base font-black shadow-xl shadow-red-500/20 focus-visible:ring-4 focus-visible:ring-red-500/20 transition-all">
+              Autorizar Ação
+            </Button>
+            <Button variant="ghost" onClick={() => { setOverrideModalOpen(false); setPendingOverrideAction(null); }} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
                Cancelar
             </Button>
           </DialogFooter>

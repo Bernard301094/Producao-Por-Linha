@@ -334,7 +334,6 @@ export const getReportForDateAndShift = async (date: string, shift: string) => {
 export const clearTurnoRecords = async (turno: string) => {
   const q = query(
     collection(db, 'operations'), 
-    where('status', '==', 'finished'),
     where('turno', '==', turno)
   );
   const snap = await getDocs(q);
@@ -394,9 +393,7 @@ export const updateAuthProfile = async (profileName: string, newPassword: string
   if (existing && existing.lastChangedAt) {
     const lastChanged = new Date(existing.lastChangedAt);
     const differenceInDays = (new Date().getTime() - lastChanged.getTime()) / (1000 * 3600 * 24);
-    if (differenceInDays < 30) {
-      throw new Error(`A senha só pode ser alterada uma vez a cada 30 dias. Tente novamente em ${Math.ceil(30 - differenceInDays)} dias.`);
-    }
+    // 30 days limit removed per request
   }
 
   const newProfile = { name: profileName, password: newPassword, lastChangedAt: now };

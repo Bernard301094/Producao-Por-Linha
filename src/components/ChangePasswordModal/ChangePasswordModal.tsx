@@ -79,7 +79,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               onKeyDown={e => { if (e.key === 'Enter') handleChangePassword(); }}
             />
           </div>
-          <p className="text-[11px] text-zinc-500 font-medium">A senha só pode ser alterada a cada 30 dias. Utilize a mesma senha nos demais dispositivos caso seja alterada.</p>
+          <p className="text-[11px] text-zinc-500 font-medium">Utilize a mesma senha nos demais dispositivos caso seja alterada.</p>
         </div>
         <DialogFooter className="gap-2 pt-2">
           <Button variant="outline" type="button" onClick={() => setChangePasswordOpen(false)} className="rounded-xl border-zinc-200/60 font-medium w-full">Cancelar</Button>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
-import { CheckCircle2, Clock, Pencil, Trash2, ChevronDown, ChevronUp, Plus, Loader2 } from 'lucide-react';
+import { CheckCircle2, Clock, Pencil, Trash2, ChevronDown, ChevronUp, Plus, Loader2, Search } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
@@ -25,6 +25,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   const [finishParadaSelectedCode, setFinishParadaSelectedCode] = useState('');
   const [finishParadaStart, setFinishParadaStart] = useState('');
   const [finishParadaEnd, setFinishParadaEnd] = useState('');
+  const [searchParadaText, setSearchParadaText] = useState('');
   
   const [itemLoading, setItemLoading] = useState(false);
   const [isConfirmingFinish, setIsConfirmingFinish] = useState(false);
@@ -197,19 +198,39 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                           : <span className="text-zinc-400 font-bold text-sm sm:text-base flex items-center pr-2"><ChevronDown className="w-5 h-5 mr-3 shrink-0 text-zinc-300" />Toque para selecionar...</span>}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="max-h-[50vh] w-[calc(100vw-3rem)] sm:w-[--radix-select-trigger-width] overflow-hidden rounded-[1.5rem] p-2 shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl">
-                      {availableParadas.map((p: any) => (
+                    <SelectContent className="max-h-[50vh] w-[calc(100vw-3rem)] sm:w-[--radix-select-trigger-width] overflow-y-auto overflow-x-hidden rounded-[1.5rem] p-2 shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50">
+                      <div className="p-2 border-b border-zinc-100/80 sticky top-0 bg-white/95 backdrop-blur-xl z-[60] -m-2 mb-2">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                          <input 
+                            type="text" 
+                            placeholder="Buscar parada..." 
+                            className="w-full h-10 pl-9 pr-4 bg-zinc-50 border border-zinc-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 placeholder:text-zinc-400"
+                            value={searchParadaText}
+                            onChange={(e) => setSearchParadaText(e.target.value)}
+                            onKeyDown={(e) => e.stopPropagation()}
+                            onClick={(e) => e.stopPropagation()}
+                            onTouchStart={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
+                      {availableParadas.filter((p: any) => p.tipologia.toLowerCase().includes(searchParadaText.toLowerCase()) || p.seq.toString().includes(searchParadaText)).map((p: any) => (
                         <SelectItem key={p.seq} value={p.seq.toString()} className="group outline-none py-3 px-3 rounded-2xl mb-1 last:mb-0 cursor-pointer focus:bg-[#F9FAFB] focus:text-zinc-950 transition-all border border-transparent focus:border-zinc-200/80 data-[state=checked]:bg-zinc-950 data-[state=checked]:text-white data-[state=checked]:focus:bg-zinc-950 data-[state=checked]:focus:text-white items-start sm:items-center">
                           <div className="flex items-center sm:items-center gap-3.5 pr-2 w-full flex-1">
                             <span className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-100 text-zinc-600 font-black text-xs group-focus:bg-white group-focus:text-zinc-950 group-data-[state=checked]:bg-white/20 group-data-[state=checked]:text-white group-focus:shadow-sm border border-zinc-200/60 group-data-[state=checked]:border-white/10 transition-all">
                               {p.seq}
                             </span>
-                            <span className="font-bold text-sm sm:text-sm text-zinc-700 group-focus:text-zinc-950 group-data-[state=checked]:text-white break-words text-left flex-1 leading-snug pt-0.5 sm:pt-0">
+                            <span className="font-bold text-sm sm:text-sm text-zinc-700 group-focus:text-zinc-950 group-data-[state=checked]:text-white whitespace-normal break-words [&]:line-clamp-none text-left flex-1 leading-snug pt-0.5 sm:pt-0">
                               {p.tipologia}
                             </span>
                           </div>
                         </SelectItem>
                       ))}
+                      {availableParadas.filter((p: any) => p.tipologia.toLowerCase().includes(searchParadaText.toLowerCase()) || p.seq.toString().includes(searchParadaText)).length === 0 && (
+                        <div className="py-6 text-center text-sm font-medium text-zinc-500">
+                          Nenhuma parada encontrada.
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
