@@ -29,8 +29,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   handleLogin
 }) => {
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-5xl bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col lg:flex-row min-h-[600px] ring-1 ring-zinc-200/50">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-6xl panel-shell rounded-3xl overflow-hidden flex flex-col lg:flex-row min-h-[620px]">
         
         {/* Left Side: Gradient Banner */}
         <div className="lg:w-2/5 p-8 sm:p-12 hidden lg:flex flex-col justify-between relative overflow-hidden bg-zinc-950">
@@ -52,7 +52,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         </div>
 
         {/* Right Side: Login Content */}
-        <div className="flex-1 p-6 sm:p-8 lg:p-12 xl:p-16 flex flex-col justify-center bg-white relative">
+        <div className="flex-1 p-6 sm:p-8 lg:p-12 xl:p-16 flex flex-col justify-center bg-white/80 backdrop-blur-sm relative">
           <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full" />
           
