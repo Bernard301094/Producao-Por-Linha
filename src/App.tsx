@@ -154,8 +154,20 @@ export default function App() {
   const [finishParadaStart, setFinishParadaStart] = useState('');
   const [finishParadaEnd, setFinishParadaEnd] = useState('');
   
-  const [profiles, setProfiles] = useState<string[]>([]);
-  const [fetchedLinhas, setFetchedLinhas] = useState<string[]>([]);
+  const [profiles, setProfiles] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('v-ops-profiles');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return ['Turno A', 'Turno B', 'Turno C', 'Turno D'];
+  });
+  const [fetchedLinhas, setFetchedLinhas] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('v-ops-linhas');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return Array.from({ length: 16 }, (_, i) => `Linha ${String(i + 1).padStart(2, '0')}`);
+  });
 
   const [searchLine, setSearchLine] = useState('');
   const [searchEditLine, setSearchEditLine] = useState('');
@@ -336,6 +348,7 @@ export default function App() {
     try {
       const linhas = await getLinhas();
       setFetchedLinhas(linhas);
+      localStorage.setItem('v-ops-linhas', JSON.stringify(linhas));
     } catch (e) {
       console.error("Error loading linhas:", e);
     }
@@ -344,7 +357,9 @@ export default function App() {
   const loadProfiles = async () => {
     try {
       const profls = await getProfiles();
-      setProfiles(profls.map(p => p.name));
+      const names = profls.map(p => p.name);
+      setProfiles(names);
+      localStorage.setItem('v-ops-profiles', JSON.stringify(names));
     } catch (e) {
       console.error("Error loading profiles:", e);
     }
@@ -445,7 +460,7 @@ export default function App() {
       if (passwordInput.trim() === correctPassword) {
         localStorage.setItem('loginProfile', selectedProfile);
         setLoginProfile(selectedProfile);
-        if (selectedProfile !== 'Supervisor') setValue('turno', selectedProfile.replace('Turno ', ''));
+        setValue('turno', selectedProfile.replace('Turno ', ''));
         setPasswordInput('');
         setSelectedProfile(null);
       } else {
@@ -705,29 +720,57 @@ export default function App() {
       <Toaster position="top-center" />
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-zinc-200/60 shadow-sm sticky top-0 z-30 pt-1 sm:pt-2">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-zinc-900 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
-                <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+        <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 shadow-sm sticky top-0 z-30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-4">
+            {/* Logo & App Name */}
+            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-950 rounded-xl sm:rounded-[1.25rem] flex items-center justify-center shadow-lg shadow-zinc-950/10 shrink-0 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:8px_8px] opacity-20" />
+                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white relative z-10" />
               </div>
-              <div className="min-w-0 shrink">
-                <h1 className="text-sm md:text-base font-black text-zinc-900 tracking-tight leading-none truncate">Produção</h1>
-                <p className="text-[9px] sm:text-[10px] text-zinc-500 font-mono tracking-tight mt-0.5 truncate">{today}</p>
+              <div className="min-w-0 flex flex-col justify-center">
+                <h1 className="text-base sm:text-lg font-black text-zinc-950 tracking-tight leading-none truncate mb-1.5">
+                  Produção
+                </h1>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-2 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight">
+                    {today}
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2">
-              <div className="hidden sm:flex items-center gap-1.5 bg-zinc-100/80 border border-zinc-200/60 rounded-md sm:rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 max-w-[100px] md:max-w-none overflow-hidden shrink border-dashed">
-                <span className="text-[9px] sm:text-[11px] font-black text-zinc-700 uppercase tracking-wider truncate">{loginProfile}</span>
+
+            {/* Actions Block */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Profile Badge (Desktop only) */}
+              <div className="hidden sm:flex items-center bg-zinc-50 border-2 border-zinc-200/80 rounded-xl px-3 h-10 max-w-[160px] truncate shadow-sm">
+                <span className="text-xs font-black text-zinc-700 uppercase tracking-widest truncate">
+                  {loginProfile}
+                </span>
               </div>
-              <div className="flex items-center shrink-0">
-                <button onClick={() => setChangePasswordOpen(true)} className="flex items-center justify-center text-zinc-400 hover:text-zinc-800 w-8 h-8 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-lg hover:bg-zinc-100 transition-colors shrink-0" title="Mudar Senha">
-                  <KeyRound className="w-4 h-4 sm:mr-1.5 shrink-0" />
-                  <span className="hidden sm:inline-block text-xs font-semibold">Senha</span>
+
+              <div className="flex items-center gap-1 sm:gap-1.5 bg-white border-2 border-zinc-200/80 rounded-xl sm:rounded-2xl p-1 shadow-sm">
+                {/* Change Password Button */}
+                <button 
+                  onClick={() => setChangePasswordOpen(true)} 
+                  className="group flex items-center justify-center gap-2 text-zinc-500 hover:text-zinc-950 px-3 h-10 sm:h-11 rounded-lg sm:rounded-xl hover:bg-zinc-100 transition-all focus-visible:ring-2 focus-visible:ring-zinc-950/20 focus-visible:outline-none" 
+                  title="Alterar Senha"
+                >
+                  <KeyRound className="w-5 h-5 sm:w-4 sm:h-4 shrink-0 transition-transform group-hover:scale-110" />
+                  <span className="hidden sm:inline-block text-sm font-bold tracking-tight">Senha</span>
                 </button>
-                <button onClick={handleLogout} className="flex items-center justify-center text-zinc-400 hover:text-red-600 w-8 h-8 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-lg hover:bg-red-50 transition-colors shrink-0" title="Sair">
-                  <LogOut className="w-4 h-4 sm:mr-1.5 shrink-0" />
-                  <span className="hidden sm:inline-block text-xs font-semibold">Sair</span>
+                
+                {/* Divider */}
+                <div className="w-[2px] h-5 bg-zinc-200/80 rounded-full" />
+
+                {/* Logout Button */}
+                <button 
+                  onClick={handleLogout} 
+                  className="group flex items-center justify-center gap-2 text-zinc-500 hover:text-red-600 px-3 h-10 sm:h-11 rounded-lg sm:rounded-xl hover:bg-red-50 hover:border-red-100 border border-transparent transition-all focus-visible:ring-2 focus-visible:ring-red-500/20 focus-visible:outline-none" 
+                  title="Sair da Conta"
+                >
+                  <LogOut className="w-5 h-5 sm:w-4 sm:h-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+                  <span className="hidden sm:inline-block text-sm font-bold tracking-tight">Sair</span>
                 </button>
               </div>
             </div>
@@ -758,24 +801,36 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-4 md:gap-6 items-start">
 
             {/* Pendentes */}
-            <div className={cn('bg-white sm:rounded-2xl shadow-sm sm:ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-4 lg:order-2 -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-zinc-200/60 sm:border-y-0', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
-              <div className="p-4 border-b border-zinc-100 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 bg-zinc-100 shadow-sm ring-1 ring-zinc-200/50 rounded-lg flex items-center justify-center">
-                    <ClipboardList className="w-3.5 h-3.5 text-zinc-600" />
+            <div className={cn('bg-white sm:rounded-3xl shadow-lg sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 lg:order-2 border-none -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-zinc-200/60 sm:border-y-0 relative', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
+              <div className="p-5 sm:p-6 pb-4 sm:pb-5 border-b border-zinc-100 flex flex-col gap-4 bg-zinc-950/5 relative overflow-hidden shrink-0">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:14px_14px] opacity-50" />
+                <div className="flex items-center justify-between gap-2 relative z-10 w-full">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white shadow-sm ring-1 ring-zinc-200/80 rounded-xl flex items-center justify-center">
+                      <ClipboardList className="w-5 h-5 text-zinc-700" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm sm:text-base font-black text-zinc-900 tracking-tight">Pendentes</span>
+                      <span className="text-[10px] sm:text-xs font-semibold text-zinc-500 uppercase tracking-widest">{visiblePendingOps.length} {visiblePendingOps.length === 1 ? 'registro' : 'registros'}</span>
+                    </div>
                   </div>
-                  <span className="text-xs font-black text-zinc-900 uppercase tracking-wider">Pendentes</span>
-                  <span className="bg-zinc-100/80 text-zinc-600 ring-1 ring-zinc-200/60 text-[10px] font-black px-2 py-0.5 rounded-full">{visiblePendingOps.length}</span>
+                </div>
+                <div className="relative z-10">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                    <Search className="w-4 h-4" />
+                  </div>
+                  <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Pesquisar produto, linha..." className="w-full h-12 pl-9 pr-3 bg-white border-2 border-zinc-200/80 rounded-xl text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-0 shadow-sm transition-all" />
                 </div>
               </div>
-              <div className="px-3 py-2 border-b border-zinc-100">
-                <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Buscar OP, produto, linha..." className="w-full h-10 sm:h-9 px-3 bg-[#F9FAFB] border border-zinc-200/60 rounded-lg text-[13px] sm:text-xs text-zinc-600 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 transition-shadow" />
-              </div>
-              <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-zinc-50/50">
                 {visiblePendingOps.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-zinc-300">
-                    <ClipboardList className="w-10 h-10 mb-2" />
-                    <p className="text-xs font-semibold text-zinc-400">Nenhuma OP pendente</p>
+                  <div className="flex flex-col items-center justify-center h-full min-h-[250px] py-12 text-zinc-400 text-center animate-in fade-in duration-500">
+                    <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-4">
+                      <ClipboardList className="w-8 h-8 text-zinc-300" />
+                    </div>
+                    <p className="text-sm font-black text-zinc-600 mb-1">Nada por aqui</p>
+                    <p className="text-xs font-medium text-zinc-500 max-w-[200px]">Não há OPs pendentes aguardando fechamento.</p>
                   </div>
                 ) : visiblePendingOps.map(op => (
                   <PendingOpItem 
@@ -821,30 +876,40 @@ export default function App() {
             </div>
 
             {/* Concluídas */}
-            <div className={cn('bg-white sm:rounded-2xl shadow-sm sm:ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-5 lg:order-3 -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-zinc-200/60 sm:border-y-0', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
-              <div className="p-4 border-b border-zinc-100">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 bg-zinc-900 rounded-lg flex items-center justify-center">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+            <div className={cn('bg-white sm:rounded-3xl shadow-lg sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-5 lg:order-3 border-none -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-zinc-200/60 sm:border-y-0 relative', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
+              <div className="p-5 sm:p-6 pb-4 sm:pb-5 border-b border-zinc-100 flex flex-col gap-4 bg-emerald-950/5 relative overflow-hidden shrink-0">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#05966910_1px,transparent_1px),linear-gradient(to_bottom,#05966910_1px,transparent_1px)] bg-[size:14px_14px] opacity-70" />
+                <div className="flex items-center justify-between gap-2 relative z-10 w-full">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white shadow-sm ring-1 ring-emerald-200/80 rounded-xl flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     </div>
-                    <span className="text-xs font-black text-zinc-900 uppercase tracking-wider">Concluídas</span>
-                    <span className="bg-zinc-100/80 ring-1 ring-zinc-200/60 text-zinc-600 text-[10px] font-black px-2 py-0.5 rounded-full">{visibleFinishedOps.length}</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm sm:text-base font-black text-zinc-900 tracking-tight">Concluídas</span>
+                      <span className="text-[10px] sm:text-xs font-semibold text-zinc-500 uppercase tracking-widest">{visibleFinishedOps.length} {visibleFinishedOps.length === 1 ? 'registro' : 'registros'}</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Total Produzido</p>
-                    <p className="text-sm font-black text-zinc-900 font-mono tracking-tight">{visibleTotalUnidades.toLocaleString()} UN</p>
+                  <div className="text-right bg-white px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm">
+                    <p className="text-[9px] sm:text-[10px] text-emerald-600/70 uppercase tracking-widest font-black mb-0.5">Total Produzido</p>
+                    <p className="text-sm sm:text-base font-black text-emerald-700 tracking-tighter leading-none">{visibleTotalUnidades.toLocaleString()} UN</p>
                   </div>
                 </div>
+                <div className="relative z-10">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                    <Search className="w-4 h-4" />
+                  </div>
+                  <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Pesquisar OP ou produto..." className="w-full h-12 pl-9 pr-3 bg-white border-2 border-zinc-200/80 rounded-xl text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-emerald-600 focus:ring-0 shadow-sm transition-all" />
+                </div>
               </div>
-              <div className="px-3 py-2 border-b border-zinc-100">
-                <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Buscar OP, produto, linha..." className="w-full h-10 sm:h-9 px-3 bg-[#F9FAFB] border border-zinc-200/60 rounded-lg text-[13px] sm:text-xs text-zinc-600 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400" />
-              </div>
-              <div className="flex-1 overflow-y-auto p-3 space-y-2">
+
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-zinc-50/50">
                 {visibleFinishedOps.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-zinc-300">
-                    <CheckCircle2 className="w-10 h-10 mb-2" />
-                    <p className="text-xs font-semibold text-zinc-400">Nenhuma OP concluída</p>
+                  <div className="flex flex-col items-center justify-center h-full min-h-[250px] py-12 text-zinc-400 text-center animate-in fade-in duration-500">
+                    <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-4">
+                      <CheckCircle2 className="w-8 h-8 text-zinc-300" />
+                    </div>
+                    <p className="text-sm font-black text-zinc-600 mb-1">Nada por aqui</p>
+                    <p className="text-xs font-medium text-zinc-500 max-w-[200px]">Nenhuma operação foi concluída neste turno ainda.</p>
                   </div>
                 ) : visibleFinishedOps.map((op) => (
                   <FinishedOpItem
@@ -856,8 +921,6 @@ export default function App() {
                   />
                 ))}
               </div>
-              <div className="p-3 border-t border-zinc-100 lg:hidden">
-              </div>
             </div>
 
           </div>
@@ -866,15 +929,20 @@ export default function App() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deletingOp} onOpenChange={(o: boolean) => { if (!o) setDeletingOp(null); }}>
-        <DialogContent className="max-w-sm rounded-2xl shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-black text-zinc-900">Confirmar exclusão</DialogTitle>
+        <DialogContent className="max-w-[400px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
+          <DialogHeader className="text-center space-y-2 mb-8">
+            <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200/50 shadow-sm">
+              <Trash2 className="w-8 h-8" />
+            </div>
+            <DialogTitle className="text-2xl font-black text-zinc-950 tracking-tight">Confirmar Exclusão</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-zinc-600">Tem certeza que deseja remover esta operação? Esta ação não pode ser desfeita.</p>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setDeletingOp(null)} className="rounded-xl border-zinc-200/60">Cancelar</Button>
-            <Button onClick={confirmDelete} disabled={loadingDelete} className="bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-sm">
-              {loadingDelete ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Remover'}
+          <p className="text-base text-zinc-500 font-medium text-center mb-8 px-4">Tem certeza que deseja remover esta operação? <strong className="text-zinc-900">Esta ação não pode ser desfeita.</strong></p>
+          <DialogFooter className="flex-col sm:flex-col gap-3">
+            <Button onClick={confirmDelete} disabled={loadingDelete} className="w-full h-14 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-base font-black shadow-xl shadow-red-500/20 focus-visible:ring-4 focus-visible:ring-red-500/20 transition-all">
+              {loadingDelete ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Sim, Remover Operação'}
+            </Button>
+            <Button variant="ghost" onClick={() => setDeletingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
+               Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -882,17 +950,22 @@ export default function App() {
 
       {/* Revert to Pending Confirmation Dialog */}
       <Dialog open={!!revertingOp} onOpenChange={(o: boolean) => { if (!o) setRevertingOp(null); }}>
-        <DialogContent className="max-w-sm rounded-2xl shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-black text-zinc-900">Voltar para Pendentes?</DialogTitle>
+        <DialogContent className="max-w-[400px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
+          <DialogHeader className="text-center space-y-2 mb-8">
+            <div className="w-16 h-16 bg-amber-100/50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200/50 shadow-sm">
+              <RotateCcw className="w-8 h-8" />
+            </div>
+            <DialogTitle className="text-2xl font-black text-zinc-950 tracking-tight">Reverter OP</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-zinc-600">
-            A OP <span className="font-bold text-zinc-900">{revertingOp?.opNumber}</span> será removida de Concluídas e voltará para a lista de Pendentes. O registro na planilha também será removido.
+          <p className="text-base text-zinc-500 font-medium text-center mb-8">
+            A OP <span className="font-bold text-zinc-900">{revertingOp?.opNumber}</span> será removida de Concluídas e voltará para a lista de Pendentes. O registro na planilha será removido.
           </p>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setRevertingOp(null)} className="rounded-xl border-zinc-200/60">Cancelar</Button>
-            <Button onClick={confirmRevert} disabled={loadingRevert} className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-sm">
-              {loadingRevert ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar'}
+          <DialogFooter className="flex-col sm:flex-col gap-3">
+            <Button onClick={confirmRevert} disabled={loadingRevert} className="w-full h-14 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl text-base font-black shadow-xl shadow-zinc-900/20 focus-visible:ring-4 focus-visible:ring-zinc-900/20 transition-all">
+              {loadingRevert ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Confirmar Reversão'}
+            </Button>
+            <Button variant="ghost" onClick={() => setRevertingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
+               Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>

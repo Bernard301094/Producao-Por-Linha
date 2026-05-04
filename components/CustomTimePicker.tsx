@@ -53,7 +53,7 @@ export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass
     <>
       {/* Mobile/Tablet Trigger - hidden on lg and above */}
       <div 
-         className={cn("relative flex items-center bg-white border border-zinc-200/60 rounded-md focus-within:ring-1 focus-within:ring-zinc-400 overflow-hidden cursor-pointer lg:hidden", wrapperClass)}
+         className={cn("relative flex items-center bg-[#F9FAFB] border-2 border-zinc-200/80 rounded-2xl focus-within:border-zinc-950 transition-colors shadow-sm focus-within:bg-white overflow-hidden cursor-pointer lg:hidden", wrapperClass)}
          onClick={() => setOpen(true)}
       >
          {clockIconClass && <Clock className={clockIconClass} />}
@@ -63,13 +63,13 @@ export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass
            readOnly
            value={value || ''} 
            placeholder={placeholder}
-           className={cn("w-full h-full bg-transparent border-none shadow-none focus-visible:ring-0 pointer-events-none px-3 font-mono text-zinc-900", inputClass)} 
+           className={cn("w-full h-full bg-transparent border-none shadow-none focus-visible:ring-0 pointer-events-none px-4 font-bold text-zinc-900", inputClass)} 
          />
       </div>
 
       {/* Desktop Native Input - hidden below lg */}
       <div 
-         className={cn("relative flex items-center bg-white border border-zinc-200/60 rounded-md focus-within:ring-1 focus-within:ring-zinc-400 overflow-hidden hidden lg:flex", wrapperClass)}
+         className={cn("relative flex items-center bg-[#F9FAFB] border-2 border-zinc-200/80 rounded-2xl focus-within:border-zinc-950 transition-colors shadow-sm focus-within:bg-white overflow-hidden hidden lg:flex", wrapperClass)}
       >
          {clockIconClass && <Clock className={clockIconClass} />}
          <input 
@@ -77,7 +77,7 @@ export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass
            type="time" 
            value={value || ''} 
            onChange={(e) => onChange(e.target.value)}
-           className={cn("w-full h-full bg-transparent border-none shadow-none focus-visible:ring-0 cursor-pointer px-3 font-mono text-zinc-900 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:bg-transparent", inputClass)} 
+           className={cn("w-full h-full bg-transparent border-none shadow-none focus-visible:ring-0 cursor-pointer px-4 font-bold text-zinc-900 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:bg-transparent", inputClass)} 
          />
       </div>
 
@@ -87,10 +87,10 @@ export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass
            setTimeout(() => hourRef.current?.focus(), 100);
         }
       }}>
-        <DialogContent className="max-w-[280px] rounded-3xl p-5 shadow-2xl border-zinc-200/60 bg-white [&>button]:hidden">
-          <DialogTitle className="text-center text-sm font-black text-zinc-900 mb-4 tracking-tight">Definir Horário</DialogTitle>
+        <DialogContent className="max-w-[320px] rounded-[2rem] p-6 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 [&>button]:hidden">
+          <DialogTitle className="text-center text-xl font-black text-zinc-950 mb-6 tracking-tight">Definir Horário</DialogTitle>
           
-          <div className="flex items-center justify-center gap-3 mb-6 mt-2">
+          <div className="flex items-center justify-center gap-3 mb-8">
              <div className="relative">
                <input 
                  ref={hourRef}
@@ -105,11 +105,11 @@ export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass
                     if (h > 23) h = 23;
                     setHour(h.toString().padStart(2, '0'));
                  }}
-                 className="w-20 h-24 text-5xl font-black text-center text-zinc-900 bg-[#F9FAFB] border-2 border-zinc-200/80 rounded-2xl focus:border-amber-500 focus:bg-amber-50/50 focus:ring-0 focus:outline-none transition-colors selection:bg-amber-200"
+                 className="w-24 h-24 text-5xl font-black text-center text-zinc-900 bg-[#F9FAFB] border-2 border-zinc-200/80 rounded-[1.25rem] focus:border-zinc-950 focus:bg-white focus:ring-0 focus:outline-none transition-all shadow-sm selection:bg-zinc-200"
                />
-               <span className="absolute -bottom-5 left-0 w-full text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Hora</span>
+               <span className="absolute -bottom-6 left-0 w-full text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest">Hora</span>
              </div>
-             <span className="text-3xl font-black text-zinc-400 self-start mt-5">:</span>
+             <span className="text-4xl font-black text-zinc-300 self-start mt-4">:</span>
              <div className="relative">
                <input 
                  ref={minRef}
@@ -124,18 +124,18 @@ export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass
                     if (m > 59) m = 59;
                     setMinute(m.toString().padStart(2, '0'));
                  }}
-                 className="w-20 h-24 text-5xl font-black text-center text-zinc-900 bg-[#F9FAFB] border-2 border-zinc-200/80 rounded-2xl focus:border-amber-500 focus:bg-amber-50/50 focus:ring-0 focus:outline-none transition-colors selection:bg-amber-200"
+                 className="w-24 h-24 text-5xl font-black text-center text-zinc-900 bg-[#F9FAFB] border-2 border-zinc-200/80 rounded-[1.25rem] focus:border-zinc-950 focus:bg-white focus:ring-0 focus:outline-none transition-all shadow-sm selection:bg-zinc-200"
                />
-               <span className="absolute -bottom-5 left-0 w-full text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Min.</span>
+               <span className="absolute -bottom-6 left-0 w-full text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest">Min.</span>
              </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-2 mt-8">
-            <button onClick={() => setOpen(false)} className="w-full sm:flex-1 h-12 bg-zinc-100 text-zinc-500 rounded-xl font-bold text-sm hover:bg-zinc-200 hover:text-zinc-700 transition-colors">
-              Cancelar
-            </button>
-            <button onClick={handleConfirm} className="w-full sm:flex-[1.5] h-12 bg-zinc-900 text-white rounded-xl font-black text-sm hover:bg-zinc-800 transition-colors shadow-md">
+          <div className="flex flex-col gap-3 mt-4">
+            <button onClick={handleConfirm} className="w-full h-14 bg-zinc-950 text-white rounded-2xl font-black text-base hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-900/10 focus-visible:ring-4 focus-visible:ring-zinc-900/20">
               Confirmar
+            </button>
+            <button onClick={() => setOpen(false)} className="w-full h-14 bg-white text-zinc-500 rounded-2xl font-bold text-base hover:bg-zinc-100 hover:text-zinc-900 transition-colors focus-visible:ring-2 focus-visible:ring-zinc-900/20">
+              Cancelar
             </button>
           </div>
         </DialogContent>
