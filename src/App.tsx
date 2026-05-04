@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { cn, useAutoIncrement } from './lib/utils';
 import { toast, Toaster } from 'sonner';
-import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus } from 'lucide-react';
+import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const PROFILES: Record<string, string> = {
@@ -245,7 +245,6 @@ const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass, input
 
 
 const QuickCounter = ({ value, onChange, label, className }: any) => {
-  // Creamos los handlers para cada botón leyendo el valor más reciente de las props
   const handleMinus10 = useAutoIncrement(() => {
     const current = parseInt(value || '0', 10);
     onChange(Math.max(0, current - 10).toString());
@@ -269,28 +268,28 @@ const QuickCounter = ({ value, onChange, label, className }: any) => {
   return (
     <div className={cn("space-y-1.5", className)}>
       {label && <label className="text-[10px] font-bold text-zinc-500 uppercase">{label}</label>}
-      <div className="flex items-center gap-1 sm:gap-1.5">
-        <motion.div whileTap={{ scale: 0.95 }} className="flex-[0.8] sm:flex-1">
+      <div className="grid grid-cols-[1fr_1fr_auto_1fr_1fr] sm:grid-cols-[1fr_1fr_auto_1fr_1fr] gap-1 sm:gap-1.5 items-center w-full">
+        <motion.div whileTap={{ scale: 0.95 }} className="w-full">
           <Button 
             type="button"
             variant="outline" 
-            {...handleMinus10} // Inyectamos el hook aquí
+            {...handleMinus10}
             onContextMenu={(e) => e.preventDefault()}
-            className="w-full h-12 text-[10px] sm:text-xs font-bold border-2 border-zinc-200 bg-white px-1 select-none touch-none"
+            className="w-full h-12 text-[10px] sm:text-xs font-bold border-2 border-zinc-200 bg-white px-0 select-none touch-none"
           >
             -10
           </Button>
         </motion.div>
         
-        <motion.div whileTap={{ scale: 0.95 }} className="flex-[0.8] sm:flex-1">
+        <motion.div whileTap={{ scale: 0.95 }} className="w-full">
           <Button 
             type="button"
             variant="outline" 
-            {...handleMinus1} // Inyectamos el hook aquí
+            {...handleMinus1}
             onContextMenu={(e) => e.preventDefault()}
-            className="w-full h-12 border-2 border-zinc-200 bg-white select-none touch-none"
+            className="w-full h-12 border-2 border-zinc-200 bg-white px-0 select-none touch-none"
           >
-            <Minus className="w-4 h-4" />
+            <Minus className="w-4 h-4 mx-auto" />
           </Button>
         </motion.div>
 
@@ -301,28 +300,28 @@ const QuickCounter = ({ value, onChange, label, className }: any) => {
           value={value} 
           onChange={e => onChange(e.target.value.replace(/\D/g, ''))}
           placeholder="0"
-          className="w-16 sm:w-20 h-12 text-center text-lg font-black font-mono bg-zinc-100 border-2 border-zinc-200" 
+          className="w-14 sm:w-16 h-12 text-center text-lg md:text-xl font-black font-mono bg-zinc-100 border-2 border-zinc-200 px-1" 
         />
 
-        <motion.div whileTap={{ scale: 0.95 }} className="flex-[0.8] sm:flex-1">
+        <motion.div whileTap={{ scale: 0.95 }} className="w-full">
           <Button 
             type="button"
             variant="outline" 
-            {...handlePlus1} // Inyectamos el hook aquí
+            {...handlePlus1}
             onContextMenu={(e) => e.preventDefault()}
-            className="w-full h-12 border-2 border-zinc-200 bg-white select-none touch-none"
+            className="w-full h-12 border-2 border-zinc-200 bg-white px-0 select-none touch-none"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 mx-auto" />
           </Button>
         </motion.div>
 
-        <motion.div whileTap={{ scale: 0.95 }} className="flex-[0.8] sm:flex-1">
+        <motion.div whileTap={{ scale: 0.95 }} className="w-full">
           <Button 
             type="button"
             variant="outline" 
-            {...handlePlus10} // Inyectamos el hook aquí
+            {...handlePlus10}
             onContextMenu={(e) => e.preventDefault()}
-            className="w-full h-12 text-[10px] sm:text-xs font-bold border-2 border-zinc-200 bg-white px-1 select-none touch-none"
+            className="w-full h-12 text-[10px] sm:text-xs font-bold border-2 border-zinc-200 bg-white px-0 select-none touch-none"
           >
             +10
           </Button>
@@ -337,14 +336,19 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, a
   const [finishQtd, setFinishQtd] = React.useState('');
   const [finishQtdReprocesso, setFinishQtdReprocesso] = React.useState('');
   const [finishTime, setFinishTime] = React.useState('');
-  const [finishParadas, setFinishParadas] = React.useState<ParadaRecord[]>([]);
+  const [finishParadas, setFinishParadas] = React.useState<ParadaRecord[]>(op.paradas || []);
   
+  React.useEffect(() => {
+    setFinishParadas(op.paradas || []);
+  }, [op.paradas]);
+
   const [finishParadaSelectedCode, setFinishParadaSelectedCode] = React.useState('');
   const [finishParadaStart, setFinishParadaStart] = React.useState('');
   const [finishParadaEnd, setFinishParadaEnd] = React.useState('');
   
   const [itemLoading, setItemLoading] = React.useState(false);
   const [isConfirmingFinish, setIsConfirmingFinish] = React.useState(false);
+  const [showParadas, setShowParadas] = React.useState(false);
 
   const addParada = () => {
     if (!finishParadaSelectedCode || !finishParadaStart || !finishParadaEnd) {
@@ -363,14 +367,18 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, a
       horaFim: finishParadaEnd,
     };
     
-    setFinishParadas([...finishParadas, newParada]);
+    const newParadas = [...finishParadas, newParada];
+    setFinishParadas(newParadas);
+    updateOperation(op.id, { paradas: newParadas }).catch(console.error);
     setFinishParadaSelectedCode('');
     setFinishParadaStart('');
     setFinishParadaEnd('');
   };
 
   const removeParada = (index: number) => {
-    setFinishParadas(finishParadas.filter((_, i) => i !== index));
+    const newParadas = finishParadas.filter((_, i) => i !== index);
+    setFinishParadas(newParadas);
+    updateOperation(op.id, { paradas: newParadas }).catch(console.error);
   };
 
   const editParada = (index: number) => {
@@ -415,18 +423,124 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, a
   };
 
   return (
-    <div className="bg-zinc-50/50 rounded-xl p-3 border border-zinc-200/60 hover:border-zinc-300 transition-colors shadow-sm">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[10px] font-black text-zinc-700 bg-zinc-200/60 border border-zinc-300/40 px-2 py-0.5 rounded-md font-mono">OP {op.opNumber}</span>
-            <span className="text-[10px] text-zinc-400 font-mono">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
+    <div className="group bg-white rounded-2xl p-4 sm:p-5 border border-zinc-200/80 hover:border-zinc-300 hover:shadow-md transition-all shadow-sm relative overflow-hidden text-left flex flex-col gap-4 mt-2 mb-2">
+      <div className="absolute top-0 left-0 w-1.5 h-full bg-zinc-300/80 group-hover:bg-zinc-400 transition-colors" />
+      <div className="flex flex-col gap-1 pl-1">
+        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+          <span className="text-[10px] font-black tracking-widest text-zinc-500 uppercase bg-zinc-100/80 px-2 py-0.5 rounded-md border border-zinc-200/60 shadow-sm">OP {op.opNumber}</span>
+          <span className="text-[10px] font-bold text-zinc-400 bg-white px-2 py-0.5 rounded-md border border-zinc-200/60">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
+        </div>
+        <h3 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight leading-snug">{op.produto}</h3>
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          {op.litragem && <span className="text-[10px] text-zinc-500 font-mono font-bold bg-zinc-50 px-1.5 py-0.5 rounded border border-zinc-200">{op.litragem}</span>}
+          <div className="flex items-center gap-1.5 text-zinc-500 bg-zinc-50 px-2 py-0.5 rounded border border-zinc-200 shadow-sm">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Início</span>
+            <span className="text-[11px] font-bold text-zinc-700">{op.horaInicial}</span>
           </div>
-          <p className="text-sm font-bold text-zinc-900 truncate">{op.produto}</p>
-          {op.litragem && <p className="text-[10px] text-zinc-500 font-mono tracking-tight">{op.litragem}</p>}
-          <p className="text-[10px] text-zinc-400 mt-0.5 font-medium">Início: {op.horaInicial}</p>
         </div>
       </div>
+      <div className="mt-4 border-t border-zinc-200/60 pt-4">
+        <div 
+          className="flex items-center justify-between cursor-pointer group mb-2"
+          onClick={() => setShowParadas(!showParadas)}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-bold text-zinc-700 uppercase tracking-wider group-hover:text-zinc-900 transition-colors">Paradas</span>
+            <div className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", finishParadas.length > 0 ? "bg-amber-100 text-amber-700" : "bg-zinc-100 text-zinc-500")}>
+              {finishParadas.length} item(s)
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-zinc-400 group-hover:text-zinc-600 group-hover:bg-zinc-100 rounded-full transition-all">
+            {showParadas ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </Button>
+        </div>
+        
+        {showParadas && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300 mt-3 relative">
+            <div className="space-y-2 mb-4">
+              {finishParadas.map((parada, idx) => (
+                <div key={idx} className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white border border-zinc-200 rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+                  <div className="flex flex-col pl-2">
+                    <span className="text-[13px] sm:text-xs font-bold text-zinc-900 leading-tight mb-1">{parada.seq} - {parada.tipologia}</span>
+                    <div className="flex items-center gap-1.5 align-middle">
+                      <Clock className="w-3 h-3 text-zinc-400" />
+                      <span className="text-[11px] font-medium text-zinc-500">{parada.horaInicio} até {parada.horaFim}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 self-end sm:self-auto border-t border-zinc-100 sm:border-0 pt-2 sm:pt-0 w-full sm:w-auto">
+                    <Button type="button" variant="ghost" size="sm" onClick={() => editParada(idx)} className="flex-1 sm:flex-none h-8 px-3 text-xs bg-zinc-50 hover:bg-zinc-100 text-zinc-600 font-semibold border border-zinc-200/60">
+                      Editar
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => removeParada(idx)} className="flex-1 sm:flex-none h-8 px-3 text-xs bg-red-50 hover:bg-red-100 text-red-600 font-semibold border border-red-100">
+                      Remover
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {finishParadas.length === 0 && (
+                <div className="flex flex-col items-center justify-center p-4 bg-zinc-50/50 border border-zinc-200/50 border-dashed rounded-xl text-zinc-400 text-xs">
+                   Nenhuma parada
+                </div>
+              )}
+            </div>
+
+            <div className="bg-zinc-50 border border-zinc-200/80 rounded-xl p-3 sm:p-4 shadow-sm relative">
+              <p className="text-[11px] font-bold text-zinc-600 uppercase tracking-widest mb-3">Adicionar Parada</p>
+              <div className="flex flex-col gap-3">
+                <div className="w-full">
+                  <Select value={finishParadaSelectedCode} onValueChange={setFinishParadaSelectedCode}>
+                    <SelectTrigger className="h-auto min-h-12 sm:min-h-10 py-2.5 sm:py-2 text-[13px] sm:text-xs bg-white w-full text-left font-medium text-zinc-700 shadow-sm border-zinc-200 focus:ring-zinc-900 [&_[data-slot=select-value]]:line-clamp-none [&_[data-slot=select-value]]:whitespace-normal whitespace-normal rounded-xl sm:rounded-lg">
+                      <SelectValue placeholder="Selecione o motivo da parada">
+                        {finishParadaSelectedCode 
+                          ? `${finishParadaSelectedCode} - ${availableParadas.find((p: any) => p.seq.toString() === finishParadaSelectedCode)?.tipologia || ''}`
+                          : <span className="text-zinc-400">Selecione o motivo da parada</span>}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {availableParadas.map((p: any) => (
+                        <SelectItem key={p.seq} value={p.seq.toString()} className="text-[13px] sm:text-xs [&>*]:whitespace-normal whitespace-normal py-2.5 sm:py-2 border-b border-zinc-100 last:border-0 h-auto min-h-12 sm:min-h-10 text-left">
+                          {p.seq} - <span className="font-medium text-zinc-700">{p.tipologia}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5 relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 z-10 pointer-events-none">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <CustomTimePicker 
+                      value={finishParadaStart} 
+                      onChange={setFinishParadaStart}
+                      placeholder="Início"
+                      wrapperClass="h-12 sm:h-10 bg-white rounded-xl sm:rounded-lg shadow-sm border border-zinc-200"
+                      inputClass="text-[14px] sm:text-[13px] text-center px-1 font-bold text-zinc-800"
+                    />
+                  </div>
+                  <div className="space-y-1.5 relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 z-10 pointer-events-none">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <CustomTimePicker 
+                      value={finishParadaEnd} 
+                      onChange={setFinishParadaEnd}
+                      placeholder="Fim"
+                      wrapperClass="h-12 sm:h-10 bg-white rounded-xl sm:rounded-lg shadow-sm border border-zinc-200"
+                      inputClass="text-[14px] sm:text-[13px] text-center px-1 font-bold text-zinc-800"
+                    />
+                  </div>
+                </div>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={addParada} className="w-full mt-4 h-11 sm:h-10 text-[13px] sm:text-xs font-bold dashed-border rounded-xl sm:rounded-lg bg-white hover:bg-zinc-100 text-zinc-700">
+                <Plus className="w-4 h-4 mr-1.5" /> Adicionar à lista
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {isFinishing ? (
         <div className="mt-3 pt-3 border-t border-zinc-200/60 space-y-4">
           <div className="space-y-4">
@@ -452,72 +566,6 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, a
                 />
               </div>
             </div>
-
-            {/* Paradas Section */}
-            <div className="mt-4 border-t border-zinc-200/60 pt-4">
-              <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-2">Paradas (Opcional)</label>
-              
-              <div className="space-y-2 mb-3">
-                {finishParadas.map((parada, idx) => (
-                  <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 bg-white border border-zinc-200 rounded-lg shadow-sm text-xs">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-zinc-900">{parada.seq} - {parada.tipologia}</span>
-                      <span className="text-[10px] text-zinc-500">{parada.horaInicio} até {parada.horaFim}</span>
-                    </div>
-                    <div className="flex gap-1 self-end sm:self-auto">
-                      <Button type="button" variant="ghost" size="sm" onClick={() => editParada(idx)} className="h-6 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                        Editar
-                      </Button>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => removeParada(idx)} className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-50">
-                        Remover
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-col gap-2 relative">
-                <div className="w-full">
-                  <Select value={finishParadaSelectedCode} onValueChange={setFinishParadaSelectedCode}>
-                    <SelectTrigger className="h-auto min-h-10 py-2 text-xs bg-white w-full text-left font-normal [&>span]:line-clamp-none [&>span]:whitespace-normal">
-                      <SelectValue placeholder="Motivo da parada" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableParadas.map((p: any) => (
-                        <SelectItem key={p.seq} value={p.seq.toString()} className="text-xs [&>span]:whitespace-normal py-2">
-                          {p.seq} - {p.tipologia}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <CustomTimePicker 
-                      value={finishParadaStart} 
-                      onChange={setFinishParadaStart}
-                      placeholder="Início"
-                      wrapperClass="h-10 bg-white"
-                      inputClass="text-xs text-center px-1"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <CustomTimePicker 
-                      value={finishParadaEnd} 
-                      onChange={setFinishParadaEnd}
-                      placeholder="Fim"
-                      wrapperClass="h-10 bg-white"
-                      inputClass="text-xs text-center px-1"
-                    />
-                  </div>
-                </div>
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={addParada} className="w-full mt-2 h-8 text-xs font-bold dashed-border">
-                <Plus className="w-3 h-3 mr-1" /> Adicionar Parada
-              </Button>
-            </div>
-            {/* End Paradas Section */}
-            
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <Dialog open={isConfirmingFinish} onOpenChange={setIsConfirmingFinish}>
@@ -526,33 +574,67 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, a
                   {itemLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Finalizar Registro'}
                 </Button>
               </motion.div>
-              <DialogContent className="max-w-[340px] rounded-3xl">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-black">Confirmar Registro</DialogTitle>
-                  <DialogDescription className="text-zinc-500 font-medium pt-2">
-                    Deseja salvar a produção de <span className="font-bold text-zinc-900">{finishQtd} UN</span> para a OP {op.opNumber}?
+              <DialogContent className="w-[calc(100%-2rem)] max-w-[360px] rounded-[28px] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
+                <DialogHeader className="text-center space-y-2 mb-6">
+                  <DialogTitle className="text-2xl font-black text-zinc-900 tracking-tight">Confirmar Registro</DialogTitle>
+                  <DialogDescription className="text-zinc-500 font-medium text-[15px] leading-relaxed mx-auto max-w-[260px]">
+                    Deseja salvar a produção registrada?
                   </DialogDescription>
                 </DialogHeader>
-                <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-3 mt-4">
-                  <Button variant="outline" onClick={() => setIsConfirmingFinish(false)} className="flex-1 w-full h-12 rounded-xl font-bold">Cancelar</Button>
-                  <Button onClick={handleActualFinish} disabled={itemLoading} className="flex-1 w-full h-12 bg-zinc-900 text-white rounded-xl font-black">
-                    {itemLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sim, Salvar'}
+
+                <div className="flex items-center justify-center gap-2 mb-6 flex-wrap sm:flex-nowrap">
+                  <div className="flex flex-col items-center justify-center flex-1 h-20 bg-zinc-50/80 border border-zinc-200/50 rounded-2xl shadow-sm">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">OP</span>
+                    <span className="text-lg sm:text-xl font-black text-zinc-900 tracking-tight">{op.opNumber}</span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center flex-[1.2] h-20 bg-emerald-50/80 border border-emerald-200/50 rounded-2xl shadow-sm">
+                    <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-0.5">QTD (UN)</span>
+                    <span className="text-lg sm:text-xl font-black text-emerald-700 tracking-tight">{finishQtd}</span>
+                  </div>
+                  {finishQtdReprocesso && parseInt(finishQtdReprocesso) > 0 && (
+                     <div className="flex flex-col items-center justify-center flex-1 h-20 bg-amber-50/80 border border-amber-200/50 rounded-2xl shadow-sm">
+                       <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-0.5">REP</span>
+                       <span className="text-lg sm:text-xl font-black text-amber-700 tracking-tight">{finishQtdReprocesso}</span>
+                     </div>
+                  )}
+                </div>
+
+                {finishParadas && finishParadas.length > 0 && (
+                  <div className="mb-6 bg-zinc-50 rounded-xl p-3 border border-zinc-200/60 max-h-32 overflow-y-auto">
+                    <p className="text-[10px] font-black tracking-widest text-zinc-500 uppercase mb-2 text-center">Paradas Incluídas</p>
+                    <div className="space-y-1.5 flex flex-col items-center">
+                      {finishParadas.map((p, i) => (
+                        <div key={i} className="text-xs font-semibold text-zinc-700 text-center">
+                          <span className="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px] mr-1.5">{p.seq}</span>
+                          {p.horaInicio} - {p.horaFim}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2.5">
+                  <Button onClick={handleActualFinish} disabled={itemLoading} className="w-full h-[56px] sm:h-14 bg-zinc-900 hover:bg-zinc-800 text-white rounded-2xl text-[16px] font-black shadow-lg shadow-zinc-900/20 ring-1 ring-zinc-900/10">
+                    {itemLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Sim, Salvar'}
                   </Button>
-                </DialogFooter>
+                  <Button variant="ghost" onClick={() => setIsConfirmingFinish(false)} className="w-full h-[52px] sm:h-12 rounded-2xl text-[15px] font-bold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900">
+                    Cancelar
+                  </Button>
+                </div>
               </DialogContent>
             </Dialog>
             <Button size="lg" variant="outline" onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishQtdReprocesso(''); }} className="w-full sm:w-auto h-16 px-6 text-sm font-bold border-zinc-200/60 rounded-xl">Cancelar</Button>
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-2 mt-3 p-1 rounded-xl">
-          <motion.div whileTap={{ scale: 0.95 }} className="flex-1">
-            <Button size="sm" onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }} className="w-full h-10 text-xs bg-zinc-900 hover:bg-zinc-800 ring-1 ring-zinc-900/10 shadow-sm text-white font-bold rounded-lg">
-              <CheckCircle2 className="w-4 h-4 mr-2" /> Concluir OP
+        <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-zinc-200/60">
+          <motion.div whileTap={{ scale: 0.95 }} className="w-full sm:w-auto sm:flex-1">
+            <Button size="lg" onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }} className="w-full h-12 sm:h-11 text-sm sm:text-[13px] bg-zinc-900 hover:bg-zinc-800 ring-1 ring-zinc-900/10 shadow-sm text-white font-bold rounded-xl sm:rounded-lg">
+              <CheckCircle2 className="w-5 h-5 sm:w-4 sm:h-4 mr-2" /> Concluir OP
             </Button>
           </motion.div>
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => openEdit(op)} title="Editar" className="flex items-center justify-center w-10 h-10 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors border border-zinc-200 shadow-sm bg-white"><Pencil className="w-4 h-4" /></motion.button>
-          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setDeletingOp(op)} title="Excluir" className="flex items-center justify-center w-10 h-10 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-zinc-200 shadow-sm bg-white"><Trash2 className="w-4 h-4" /></motion.button>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => openEdit(op)} title="Editar" className="flex items-center justify-center w-12 h-12 sm:w-11 sm:h-11 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl sm:rounded-lg transition-colors border border-zinc-200 shadow-sm bg-white shrink-0"><Pencil className="w-5 h-5 sm:w-4 sm:h-4" /></motion.button>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => setDeletingOp(op)} title="Excluir" className="flex items-center justify-center w-12 h-12 sm:w-11 sm:h-11 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl sm:rounded-lg transition-colors border border-zinc-200 shadow-sm bg-white shrink-0"><Trash2 className="w-5 h-5 sm:w-4 sm:h-4" /></motion.button>
         </div>
       )}
     </div>
@@ -561,63 +643,92 @@ const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, a
 
 const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setRevertingOp }: any) => {
   return (
-    <div className="bg-zinc-50/50 rounded-xl p-3 border border-zinc-200/60 hover:border-zinc-300 transition-colors shadow-sm">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[10px] font-black text-zinc-900 bg-white ring-1 ring-zinc-200 px-2 py-0.5 rounded-md font-mono">OP {op.opNumber}</span>
-            <span className="text-[10px] text-zinc-500 font-mono font-medium">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
-          </div>
-          <p className="text-xs font-bold text-zinc-900 truncate">{op.produto}</p>
-          {op.litragem && <p className="text-[10px] text-zinc-500 font-mono tracking-tight">{op.litragem}</p>}
-          <div className="flex items-center gap-3 mt-1">
-            <span className="text-[10px] text-zinc-400 font-medium">Início: {op.horaInicial}</span>
-            {op.horaFinal && <span className="text-[10px] text-zinc-400 font-medium">Fim: {op.horaFinal}</span>}
-          </div>
-          {op.quantidade && (
-            <div className="flex gap-2 items-center mt-1">
-              <p className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">{parseInt(op.quantidade).toLocaleString()} UN</p>
-              {op.qntReprocesso && (
-                <p className="text-[10px] font-bold text-amber-700 tracking-tight bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50">Reprocesso: {op.qntReprocesso} UN</p>
-              )}
+    <div className="group bg-white rounded-2xl p-4 sm:p-5 border border-zinc-200/80 hover:border-zinc-300 hover:shadow-md transition-all shadow-sm relative overflow-hidden flex flex-col mt-2 mb-2">
+      <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/80 group-hover:bg-emerald-500 transition-colors" />
+      
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[11px] font-black tracking-widest text-emerald-700 uppercase bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/60 shadow-sm">OP {op.opNumber}</span>
+        <span className="text-[11px] font-bold text-zinc-400 bg-white px-2.5 py-1 rounded-lg border border-zinc-200">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
+      </div>
+
+      <div className="text-center w-full my-2">
+        <h3 className="text-[17px] sm:text-[19px] font-black text-zinc-900 tracking-tight leading-snug line-clamp-2 px-2">{op.produto}</h3>
+        {op.litragem && (
+          <span className="inline-block mt-2 text-[11px] text-zinc-500 font-mono font-bold bg-zinc-50 px-2 py-0.5 rounded-md border border-zinc-200">{op.litragem}</span>
+        )}
+      </div>
+
+      {op.quantidade && (
+        <div className="flex justify-center mt-2 mb-4">
+          <div className="inline-flex items-center divide-x divide-emerald-200/50 bg-emerald-50/50 border border-emerald-100 rounded-xl overflow-hidden shadow-sm">
+            <div className="px-4 py-2 text-center bg-white">
+              <span className="block text-[8px] font-black text-emerald-600/70 uppercase tracking-widest mb-0.5">UNIDADES</span>
+              <span className="block text-xl font-black text-emerald-600 tracking-tighter leading-none">{parseInt(op.quantidade).toLocaleString()}</span>
             </div>
-          )}
-          {op.paradas && op.paradas.length > 0 && (
-            <div className="mt-2 space-y-1">
-              <p className="text-[10px] font-bold text-zinc-500 uppercase">Paradas Registradas ({op.paradas.length})</p>
-              <div className="flex flex-wrap gap-1.5">
-                {op.paradas.map((p: any, i: number) => (
-                   <span key={i} className="text-[9px] font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded" title={p.tipologia}>
-                     {p.seq} - {p.tipologia} ({p.horaInicio}-{p.horaFim})
-                   </span>
-                ))}
+            {op.qntReprocesso && parseInt(op.qntReprocesso) > 0 && (
+              <div className="px-4 py-2 text-center bg-amber-50/30">
+                <span className="block text-[8px] font-black text-amber-500/80 uppercase tracking-widest mb-0.5">REPROCESSO</span>
+                <span className="block text-lg font-black text-amber-600 tracking-tighter leading-none">{parseInt(op.qntReprocesso).toLocaleString()}</span>
               </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      <div className="bg-zinc-50/80 rounded-xl p-3 border border-zinc-100/80 mt-1">
+        <div className="flex items-center justify-around text-center divide-x divide-zinc-200/60">
+          <div className="flex-1">
+            <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1 pointer-events-none">Início</span>
+            <span className="block text-[12px] font-black text-zinc-700">{op.horaInicial}</span>
+          </div>
+          {op.horaFinal && (
+            <div className="flex-1">
+              <span className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1 pointer-events-none">Fim</span>
+              <span className="block text-[12px] font-black text-zinc-700">{op.horaFinal}</span>
             </div>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-zinc-200/60 overflow-x-auto scrollbar-none">
-        <div className="flex-1" />
+
+        {op.paradas && op.paradas.length > 0 && (
+          <div className="mt-3">
+            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mb-2">Paradas Registradas ({op.paradas.length})</p>
+            <div className="flex flex-col gap-1.5">
+              {op.paradas.map((p: any, i: number) => (
+                 <div key={i} className="flex items-center gap-2 bg-white border border-zinc-200/80 px-2 py-1.5 rounded-lg shadow-sm">
+                   <div className="flex flex-col flex-1 min-w-0">
+                     <span className="text-[10px] font-bold text-zinc-700 truncate">{p.seq} - {p.tipologia}</span>
+                   </div>
+                   <div className="flex items-center gap-1 text-[9px] font-bold text-zinc-400 whitespace-nowrap bg-zinc-50 px-1.5 py-0.5 rounded">
+                     <Clock className="w-2.5 h-2.5" />
+                     {p.horaInicio} às {p.horaFim}
+                   </div>
+                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-zinc-100 overflow-x-auto scrollbar-none">
         <button
           onClick={() => openEdit(op)}
           title="Editar"
-          className="flex items-center gap-1.5 px-2.5 h-8 bg-white border border-zinc-200 text-[10px] text-zinc-600 font-bold hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors shadow-sm uppercase tracking-wider whitespace-nowrap"
+          className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 h-11 sm:h-10 px-3 bg-white border border-zinc-200 text-xs text-zinc-600 font-bold hover:text-zinc-900 hover:bg-zinc-100 rounded-xl sm:rounded-lg transition-colors shadow-sm uppercase tracking-wider whitespace-nowrap shrink-0"
         >
-          <Pencil className="w-3 h-3 md:w-3.5 md:h-3.5" /> Editar
+          <Pencil className="w-4 h-4" /> Editar
         </button>
         <button
           onClick={() => setRevertingOp(op)}
           title="Voltar para Pendentes"
-          className="flex items-center gap-1.5 px-2.5 h-8 bg-white border border-zinc-200 text-[10px] text-zinc-600 font-bold hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200 rounded-lg transition-colors shadow-sm uppercase tracking-wider whitespace-nowrap"
+          className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 h-11 sm:h-10 px-3 bg-white border border-zinc-200 text-xs text-zinc-600 font-bold hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200 rounded-xl sm:rounded-lg transition-colors shadow-sm uppercase tracking-wider whitespace-nowrap shrink-0"
         >
-          <RotateCcw className="w-3 h-3 md:w-3.5 md:h-3.5" /> Pendentes
+          <RotateCcw className="w-4 h-4" /> Pendentes
         </button>
         <button
           onClick={() => setDeletingOp(op)}
           title="Excluir"
-          className="flex items-center justify-center min-w-8 w-8 h-8 bg-white border border-zinc-200 text-zinc-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 rounded-lg transition-colors shadow-sm"
+          className="flex items-center justify-center shrink-0 w-11 h-11 sm:min-w-10 sm:w-10 sm:h-10 bg-white border border-zinc-200 text-zinc-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 rounded-xl sm:rounded-lg transition-colors shadow-sm"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
     </div>
@@ -668,6 +779,7 @@ export default function App() {
   const [availableProducts, setAvailableProducts] = useState<{produto: string, litragem: string}[]>([]);
   const [availableParadas, setAvailableParadas] = useState<Parada[]>([]);
   const [showProductSuggestions, setShowProductSuggestions] = useState(false);
+  const [isTypingProduct, setIsTypingProduct] = useState(false);
   const [finishQtd, setFinishQtd] = useState('');
   const [finishQtdReprocesso, setFinishQtdReprocesso] = useState('');
   const [finishTime, setFinishTime] = useState('');
@@ -694,6 +806,10 @@ export default function App() {
   const allLinhas = useMemo(() => Array.from(new Set([...LINHAS, ...customLinhas])), [customLinhas]);
 
   const [editingOp, setEditingOp] = useState<Operation | FinishedOperation | null>(null);
+  const [editParadas, setEditParadas] = useState<ParadaRecord[]>([]);
+  const [editParadaSelectedCode, setEditParadaSelectedCode] = useState('');
+  const [editParadaStart, setEditParadaStart] = useState('');
+  const [editParadaEnd, setEditParadaEnd] = useState('');
   const [deletingOp, setDeletingOp] = useState<Operation | FinishedOperation | null>(null);
   const [revertingOp, setRevertingOp] = React.useState<FinishedOperation | null>(null);
   const [showConfirmStart, setShowConfirmStart] = useState(false);
@@ -708,9 +824,11 @@ export default function App() {
     function handleClickOutside(event: MouseEvent | TouchEvent) {
       if (novaOpRef.current && !novaOpRef.current.contains(event.target as Node)) {
         setShowProductSuggestions(false);
+        setIsTypingProduct(false);
       }
       if (editOpRef.current && !editOpRef.current.contains(event.target as Node)) {
         setShowEditProductSuggestions(false);
+        setIsTypingEditProduct(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -723,6 +841,10 @@ export default function App() {
 
   const openEdit = (op: Operation | FinishedOperation) => {
     setEditingOp(op);
+    setEditParadas(op.paradas || []);
+    setEditParadaSelectedCode('');
+    setEditParadaStart('');
+    setEditParadaEnd('');
     resetEdit({
       opNumber: op.opNumber,
       produto: op.produto,
@@ -774,6 +896,7 @@ export default function App() {
             quantidade: data.quantidade,
             horaFinal: normalizeTime(data.horaFinal),
             qntReprocesso: data.qntReprocesso,
+            paradas: editParadas,
           },
           turno
         );
@@ -786,6 +909,7 @@ export default function App() {
           linha: formattedLinha,
           turno: data.turno,
           horaInicial: normalizeTime(data.horaInicial),
+          paradas: editParadas,
         });
         toast.success('OP actualizada.');
       }
@@ -795,6 +919,29 @@ export default function App() {
     } finally {
       setLoadingEdit(false);
     }
+  };
+
+  const addEditParada = () => {
+    if (!editParadaSelectedCode || !editParadaStart || !editParadaEnd) {
+      toast.error('Preencha o motivo da parada e os horários de início e término.');
+      return;
+    }
+    const selected = availableParadas.find((p: any) => p.seq.toString() === editParadaSelectedCode);
+    if (!selected) return;
+    const newParada: ParadaRecord = {
+      seq: selected.seq,
+      tipologia: selected.tipologia,
+      horaInicio: editParadaStart,
+      horaFim: editParadaEnd,
+    };
+    setEditParadas([...editParadas, newParada]);
+    setEditParadaSelectedCode('');
+    setEditParadaStart('');
+    setEditParadaEnd('');
+  };
+
+  const removeEditParada = (index: number) => {
+    setEditParadas(editParadas.filter((_, i) => i !== index));
   };
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<StartOpFormValues>({
@@ -825,6 +972,7 @@ export default function App() {
   }, [watchProduto, availableProducts]);
 
   const [showEditProductSuggestions, setShowEditProductSuggestions] = useState(false);
+  const [isTypingEditProduct, setIsTypingEditProduct] = useState(false);
   const filteredEditProducts = useMemo(() => {
     if (!watchEditProduto) return availableProducts;
     return availableProducts.filter(p => (p.produto || '').toLowerCase().includes((watchEditProduto || '').toLowerCase()));
@@ -1296,27 +1444,31 @@ export default function App() {
       <Toaster position="top-center" />
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-zinc-200/60 shadow-sm sticky top-0 z-30">
-          <div className="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-3 md:gap-4">
-              <div className="w-9 h-9 bg-zinc-900 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
-                <Package className="w-4 h-4 text-white" />
+        <header className="bg-white/80 backdrop-blur-md border-b border-zinc-200/60 shadow-sm sticky top-0 z-30 pt-1 sm:pt-2">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-zinc-900 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0">
+                <Package className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
-              <div>
-                <h1 className="text-sm md:text-base font-black text-zinc-900 tracking-tight leading-none">Produção</h1>
-                <p className="text-[10px] text-zinc-500 font-mono tracking-tight mt-0.5 mt-0.5">{today}</p>
+              <div className="min-w-0 shrink">
+                <h1 className="text-sm md:text-base font-black text-zinc-900 tracking-tight leading-none truncate">Produção</h1>
+                <p className="text-[9px] sm:text-[10px] text-zinc-500 font-mono tracking-tight mt-0.5 truncate">{today}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="hidden md:flex items-center gap-1.5 bg-zinc-100/80 border border-zinc-200/60 rounded-lg px-3 py-1.5">
-                <span className="text-[11px] font-black text-zinc-700 uppercase tracking-wider">{loginProfile}</span>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="hidden sm:flex items-center gap-1.5 bg-zinc-100/80 border border-zinc-200/60 rounded-md sm:rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 max-w-[100px] md:max-w-none overflow-hidden shrink border-dashed">
+                <span className="text-[9px] sm:text-[11px] font-black text-zinc-700 uppercase tracking-wider truncate">{loginProfile}</span>
               </div>
-              <button onClick={() => setChangePasswordOpen(true)} className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-800 text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-zinc-100 transition-colors" title="Mudar Senha">
-                <KeyRound className="w-4 h-4" />
-              </button>
-              <button onClick={handleLogout} className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-800 text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-zinc-100 transition-colors" title="Sair">
-                <LogOut className="w-4 h-4" />
-              </button>
+              <div className="flex items-center shrink-0">
+                <button onClick={() => setChangePasswordOpen(true)} className="flex items-center justify-center text-zinc-400 hover:text-zinc-800 w-8 h-8 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-lg hover:bg-zinc-100 transition-colors shrink-0" title="Mudar Senha">
+                  <KeyRound className="w-4 h-4 sm:mr-1.5 shrink-0" />
+                  <span className="hidden sm:inline-block text-xs font-semibold">Senha</span>
+                </button>
+                <button onClick={handleLogout} className="flex items-center justify-center text-zinc-400 hover:text-red-600 w-8 h-8 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-lg hover:bg-red-50 transition-colors shrink-0" title="Sair">
+                  <LogOut className="w-4 h-4 sm:mr-1.5 shrink-0" />
+                  <span className="hidden sm:inline-block text-xs font-semibold">Sair</span>
+                </button>
+              </div>
             </div>
           </div>
         </header>
@@ -1341,11 +1493,11 @@ export default function App() {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-3 md:px-6 py-4 md:py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 items-start">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-0 sm:py-4 md:py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-4 md:gap-6 items-start">
 
             {/* Pendentes */}
-            <div className={cn('bg-white rounded-2xl shadow-sm ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-4 lg:order-2', mobileTab !== 'pendentes' && 'hidden lg:flex')} style={{ maxHeight: 'calc(100vh - 120px)' }}>
+            <div className={cn('bg-white sm:rounded-2xl shadow-sm sm:ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-4 lg:order-2 -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-zinc-200/60 sm:border-y-0', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
               <div className="p-4 border-b border-zinc-100 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 bg-zinc-100 shadow-sm ring-1 ring-zinc-200/50 rounded-lg flex items-center justify-center">
@@ -1356,7 +1508,7 @@ export default function App() {
                 </div>
               </div>
               <div className="px-3 py-2 border-b border-zinc-100">
-                <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Buscar OP, produto, linha..." className="w-full h-8 px-3 bg-[#F9FAFB] border border-zinc-200/60 rounded-lg text-xs text-zinc-600 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 transition-shadow" />
+                <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Buscar OP, produto, linha..." className="w-full h-10 sm:h-9 px-3 bg-[#F9FAFB] border border-zinc-200/60 rounded-lg text-[13px] sm:text-xs text-zinc-600 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 transition-shadow" />
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {visiblePendingOps.length === 0 ? (
@@ -1378,7 +1530,7 @@ export default function App() {
             </div>
 
             {/* Nova OP */}
-            <Card className={cn('bg-white rounded-2xl shadow-sm ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-3 lg:order-1 border-none', mobileTab !== 'nova' && 'hidden lg:flex')} style={{ maxHeight: 'calc(100vh - 120px)' }}>
+            <Card className={cn('bg-white sm:rounded-2xl shadow-sm sm:ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-3 lg:order-1 border-none -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-zinc-200/60 sm:border-y-0', mobileTab !== 'nova' && 'hidden lg:flex')}>
               <CardHeader className="bg-zinc-900 border-b border-zinc-800 p-4 space-y-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1414,21 +1566,26 @@ export default function App() {
                   </div>
                   <div className="relative" ref={novaOpRef}>
                     <Label htmlFor="produto" className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Produto</Label>
-                    <input id="produto" {...register('produto')} autoComplete="off" onFocus={() => setShowProductSuggestions(true)} placeholder="Ex: ALUMAX 5L" className="flex h-12 md:h-11 w-full rounded-lg border border-zinc-200/60 bg-[#F9FAFB] px-3 py-2 text-base md:text-sm text-zinc-900 transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400" />
+                    <input id="produto" {...register('produto')} readOnly={!isTypingProduct} onClick={() => setShowProductSuggestions(true)} autoComplete="off" onFocus={() => setShowProductSuggestions(true)} placeholder="Ex: ALUMAX 5L" className="flex h-12 md:h-11 w-full rounded-lg border border-zinc-200/60 bg-[#F9FAFB] px-3 py-2 text-base md:text-sm text-zinc-900 transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400" />
                     {showProductSuggestions && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200/60 rounded-lg shadow-xl max-h-56 overflow-y-auto p-1 ring-1 ring-zinc-900/5">
+                        {!isTypingProduct && (
+                          <div onClick={(e) => { e.preventDefault(); setIsTypingProduct(true); setTimeout(() => document.getElementById('produto')?.focus(), 50); }} className="cursor-pointer px-3 py-2.5 text-sm text-zinc-600 font-bold hover:bg-zinc-100 hover:text-zinc-900 rounded-md flex items-center justify-center gap-2 mb-1 border border-zinc-200/50 bg-zinc-50/50">
+                            <Search className="w-4 h-4" /> Buscar ou digitar Produto...
+                          </div>
+                        )}
                         {filteredProducts.length > 0 ? filteredProducts.map(p => (
-                          <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); }} className="cursor-pointer px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 rounded-md flex items-center justify-between gap-2 font-medium">
+                          <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); setIsTypingProduct(false); }} className="cursor-pointer px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 rounded-md flex items-center justify-between gap-2 font-medium">
                             <span>{p.produto}</span>
                             {p.litragem && <span className="text-[10px] text-zinc-400 font-mono tracking-tight shrink-0">{p.litragem}</span>}
                           </div>
                         )) : watch('produto') ? (
-                           <div className="px-3 py-2 text-sm text-zinc-500 font-medium cursor-pointer hover:bg-zinc-50 rounded-md" onClick={() => setShowProductSuggestions(false)}>
+                           <div className="px-3 py-2 text-sm text-zinc-500 font-medium cursor-pointer hover:bg-zinc-50 rounded-md" onClick={() => { setShowProductSuggestions(false); setIsTypingProduct(false); }}>
                               Adicionar novo produto "{watch('produto')}"
                            </div>
                         ) : (
-                           <div className="px-3 py-2 text-sm text-zinc-500 font-medium">
-                              Digite para buscar...
+                           <div className="px-3 py-2 text-sm text-zinc-500 font-medium text-center">
+                              Digite na busca acima...
                            </div>
                         )}
                       </div>
@@ -1502,19 +1659,35 @@ export default function App() {
                         {loadingNewOp ? <Loader2 className="w-6 h-6 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" /> Iniciar Produção</>}
                       </Button>
                     </motion.div>
-                    <DialogContent className="max-w-[340px] rounded-3xl">
-                      <DialogHeader>
-                        <DialogTitle className="text-xl font-black">Confirmar Início</DialogTitle>
-                        <DialogDescription className="text-zinc-500 font-medium pt-2">
-                          ¿Desea iniciar la producción para la OP <span className="font-bold text-zinc-900">{startFormData?.opNumber}</span> en la {startFormData?.linha.includes('Linha') ? startFormData?.linha : `Linha ${startFormData?.linha}`}?
+                    <DialogContent className="w-[calc(100%-2rem)] max-w-[360px] rounded-[28px] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
+                      <DialogHeader className="text-center space-y-2 mb-6">
+                        <DialogTitle className="text-2xl font-black text-zinc-900 tracking-tight">Confirmar Início</DialogTitle>
+                        <DialogDescription className="text-zinc-500 font-medium text-[15px] leading-relaxed mx-auto max-w-[260px]">
+                          Deseja iniciar a produção da seguinte OP?
                         </DialogDescription>
                       </DialogHeader>
-                      <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-3 mt-4">
-                        <Button variant="outline" onClick={() => setShowConfirmStart(false)} className="flex-1 h-12 rounded-xl font-bold">Cancelar</Button>
-                        <Button onClick={() => startFormData && onStartOp(startFormData)} disabled={loadingNewOp} className="flex-1 h-12 bg-zinc-900 text-white rounded-xl font-black">
-                          {loadingNewOp ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirmar'}
+
+                      <div className="flex items-center justify-center gap-3 mb-8">
+                        <div className="flex flex-col items-center justify-center flex-1 h-24 bg-zinc-50/80 border border-zinc-200/50 rounded-2xl shadow-sm">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">OP</span>
+                          <span className="text-2xl font-black text-zinc-900 tracking-tight">{startFormData?.opNumber}</span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center flex-1 h-24 bg-zinc-50/80 border border-zinc-200/50 rounded-2xl shadow-sm">
+                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-0.5">Linha</span>
+                          <span className="text-2xl font-black text-zinc-900 tracking-tight">
+                            {startFormData?.linha.replace('Linha ', '').trim()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2.5">
+                        <Button onClick={() => startFormData && onStartOp(startFormData)} disabled={loadingNewOp} className="w-full h-[56px] sm:h-14 bg-zinc-900 hover:bg-zinc-800 text-white rounded-2xl text-[16px] font-black shadow-lg shadow-zinc-900/20 ring-1 ring-zinc-900/10">
+                          {loadingNewOp ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Sim, Iniciar'}
                         </Button>
-                      </DialogFooter>
+                        <Button variant="ghost" onClick={() => setShowConfirmStart(false)} className="w-full h-[52px] sm:h-12 rounded-2xl text-[15px] font-bold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900">
+                          Cancelar
+                        </Button>
+                      </div>
                     </DialogContent>
                   </Dialog>
                 </form>
@@ -1522,7 +1695,7 @@ export default function App() {
             </Card>
 
             {/* Concluídas */}
-            <div className={cn('bg-white rounded-2xl shadow-sm ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-5 lg:order-3', mobileTab !== 'concluidas' && 'hidden lg:flex')} style={{ maxHeight: 'calc(100vh - 120px)' }}>
+            <div className={cn('bg-white sm:rounded-2xl shadow-sm sm:ring-1 ring-zinc-200/60 flex flex-col overflow-hidden lg:col-span-5 lg:order-3 -mx-3 sm:mx-0 h-[calc(100dvh-130px)] lg:h-auto lg:max-h-[calc(100vh-120px)] border-y border-zinc-200/60 sm:border-y-0', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
               <div className="p-4 border-b border-zinc-100">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -1539,7 +1712,7 @@ export default function App() {
                 </div>
               </div>
               <div className="px-3 py-2 border-b border-zinc-100">
-                <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Buscar OP, produto, linha..." className="w-full h-8 px-3 bg-[#F9FAFB] border border-zinc-200/60 rounded-lg text-xs text-zinc-600 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400" />
+                <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Buscar OP, produto, linha..." className="w-full h-10 sm:h-9 px-3 bg-[#F9FAFB] border border-zinc-200/60 rounded-lg text-[13px] sm:text-xs text-zinc-600 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400" />
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {visibleFinishedOps.length === 0 ? (
@@ -1601,16 +1774,16 @@ export default function App() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingOp} onOpenChange={(o: boolean) => { if (!o) setEditingOp(null); }}>
-        <DialogContent className="max-w-lg rounded-2xl shadow-xl border-zinc-200/60">
-          <DialogHeader>
-            <DialogTitle className="text-base font-black text-zinc-900">Editar Operação</DialogTitle>
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-lg rounded-[24px] sm:rounded-3xl p-5 sm:p-7 shadow-2xl border-zinc-200/60 max-h-[90vh] overflow-y-auto scrollbar-none">
+          <DialogHeader className="mb-2">
+            <DialogTitle className="text-xl sm:text-2xl font-black text-zinc-900 tracking-tight">Editar Operação</DialogTitle>
           </DialogHeader>
           {editingOp && (
             <form onSubmit={handleSubmitEdit(onEditOp)} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Nº da OP</Label>
-                  <Input type="text" inputMode="numeric" pattern="[0-9]*" {...registerEdit('opNumber', { onChange: (e) => e.target.value = e.target.value.replace(/[^0-9]/g, '') })} className="w-full h-11 md:h-10 px-3 py-2 bg-[#F9FAFB] border border-zinc-200/60 rounded-md text-base md:text-sm font-mono text-zinc-900 focus-visible:ring-1 focus-visible:ring-zinc-400" />
+                  <Input type="text" inputMode="numeric" pattern="[0-9]*" {...registerEdit('opNumber', { onChange: (e) => e.target.value = e.target.value.replace(/[^0-9]/g, '') })} className="w-full h-12 sm:h-10 px-3 py-2 bg-[#F9FAFB] border border-zinc-200/60 rounded-xl sm:rounded-lg text-base sm:text-sm font-mono text-zinc-900 focus-visible:ring-1 focus-visible:ring-zinc-400" />
                 </div>
                 <div>
                   <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Hora Inicial</Label>
@@ -1618,25 +1791,30 @@ export default function App() {
                     value={watchEdit('horaInicial')}
                     onChange={(v: string) => setValueEdit('horaInicial', v, { shouldValidate: true })}
                     clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
-                    wrapperClass="bg-[#F9FAFB] h-11 md:h-10"
-                    inputClass="pl-9 pr-3 py-2 text-base md:text-sm"
+                    wrapperClass="bg-[#F9FAFB] h-12 sm:h-10 rounded-xl sm:rounded-lg"
+                    inputClass="pl-9 pr-3 py-2 text-base sm:text-sm w-full bg-transparent outline-none flex-1"
                   />
                 </div>
               </div>
               <div className="relative" ref={editOpRef}>
                 <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Produto</Label>
-                <input {...registerEdit('produto')} autoComplete="off" onFocus={() => setShowEditProductSuggestions(true)} className="flex h-11 md:h-10 w-full rounded-md border border-zinc-200/60 bg-white px-3 py-2 text-base md:text-sm text-zinc-900 transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400" />
+                <input id="edit-produto" {...registerEdit('produto')} readOnly={!isTypingEditProduct} onClick={() => setShowEditProductSuggestions(true)} autoComplete="off" onFocus={() => setShowEditProductSuggestions(true)} className="flex h-12 sm:h-10 w-full rounded-xl sm:rounded-lg border border-zinc-200/60 bg-white px-3 py-2 text-base sm:text-sm text-zinc-900 transition-colors placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-400" />
                 {showEditProductSuggestions && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200/60 rounded-md shadow-lg max-h-60 overflow-y-auto p-1">
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-zinc-200/60 rounded-xl sm:rounded-lg shadow-lg max-h-60 overflow-y-auto p-1">
+                    {!isTypingEditProduct && (
+                      <div onClick={(e) => { e.preventDefault(); setIsTypingEditProduct(true); setTimeout(() => document.getElementById('edit-produto')?.focus(), 50); }} className="cursor-pointer px-3 py-2.5 text-sm md:text-xs text-zinc-600 font-bold hover:bg-zinc-100 hover:text-zinc-900 rounded-lg sm:rounded-md flex items-center justify-center gap-2 mb-1 border border-zinc-200/50 bg-zinc-50/50">
+                        <Search className="w-4 h-4" /> Buscar ou digitar Produto...
+                      </div>
+                    )}
                     {filteredEditProducts.length > 0 ? filteredEditProducts.map(p => (
-                      <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); }} className="cursor-pointer px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 rounded-sm">{p.produto}</div>
+                      <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }} className="cursor-pointer px-3 py-3 sm:py-2 text-sm text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 rounded-lg sm:rounded-sm border-b sm:border-0 border-zinc-100/50 last:border-0">{p.produto}</div>
                     )) : watchEdit('produto') ? (
-                         <div className="px-3 py-2 text-sm text-zinc-500 font-medium cursor-pointer hover:bg-zinc-50 rounded-md" onClick={() => setShowEditProductSuggestions(false)}>
+                         <div className="px-3 py-3 sm:py-2 text-sm text-zinc-500 font-medium cursor-pointer hover:bg-zinc-50 rounded-lg sm:rounded-md" onClick={() => { setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }}>
                             Adicionar novo produto "{watchEdit('produto')}"
                          </div>
                     ) : (
-                         <div className="px-3 py-2 text-sm text-zinc-500 font-medium">
-                            Digite para buscar ou criar...
+                         <div className="px-3 py-3 sm:py-2 text-sm text-zinc-500 font-medium text-center">
+                            Digite na busca acima...
                          </div>
                     )}
                   </div>
@@ -1646,7 +1824,7 @@ export default function App() {
                 <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Linha de Produção</Label>
                 <input type="hidden" {...registerEdit('linha')} />
                 <Popover open={openEditLineSelect} onOpenChange={setOpenEditLineSelect}>
-                  <PopoverTrigger type="button" role="combobox" aria-expanded={openEditLineSelect} className={cn("flex items-center justify-between w-full h-11 md:h-10 px-3 border transition-all duration-200 text-base md:text-sm font-semibold rounded-lg outline-none focus:ring-1 focus:ring-zinc-400", watchEdit('linha') ? 'border-zinc-300 bg-white text-zinc-900 shadow-sm' : 'border-zinc-200/60 bg-[#F9FAFB] text-zinc-500 hover:border-zinc-300')}>
+                  <PopoverTrigger type="button" role="combobox" aria-expanded={openEditLineSelect} className={cn("flex items-center justify-between w-full h-12 sm:h-10 px-3 border transition-all duration-200 text-base sm:text-sm font-semibold rounded-xl sm:rounded-lg outline-none focus:ring-1 focus:ring-zinc-400", watchEdit('linha') ? 'border-zinc-300 bg-white text-zinc-900 shadow-sm' : 'border-zinc-200/60 bg-[#F9FAFB] text-zinc-500 hover:border-zinc-300')}>
                     {watchEdit('linha') ? `Linha ${watchEdit('linha').replace(/^Linha\s*/i, '')}` : 'Selecione a Linha'}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </PopoverTrigger>
@@ -1708,21 +1886,85 @@ export default function App() {
                     value={watchEdit('quantidade') || ''}
                     onChange={(val: string) => setValueEdit('quantidade', val, { shouldValidate: true })}
                   />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <QuickCounter 
-                      label="Reprocesso"
-                      value={watchEdit('qntReprocesso') || ''}
-                      onChange={(val: string) => setValueEdit('qntReprocesso', val, { shouldValidate: true })}
+                  <QuickCounter 
+                    label="Reprocesso"
+                    value={watchEdit('qntReprocesso') || ''}
+                    onChange={(val: string) => setValueEdit('qntReprocesso', val, { shouldValidate: true })}
+                  />
+                  <div>
+                    <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Hora Final</Label>
+                    <CustomTimePicker
+                      value={watchEdit('horaFinal')}
+                      onChange={(v: string) => setValueEdit('horaFinal', v, { shouldValidate: true })}
+                      clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
+                      wrapperClass="bg-[#F9FAFB] h-12 sm:h-10 rounded-xl sm:rounded-lg"
+                      inputClass="pl-9 pr-3 py-2 text-base sm:text-sm w-full bg-transparent outline-none flex-1"
                     />
-                    <div>
-                      <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-tighter mb-1.5">Hora Final</Label>
-                      <CustomTimePicker
-                        value={watchEdit('horaFinal')}
-                        onChange={(v: string) => setValueEdit('horaFinal', v, { shouldValidate: true })}
-                        clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
-                        wrapperClass="bg-[#F9FAFB] h-11 md:h-10"
-                        inputClass="pl-9 pr-3 py-2 text-base md:text-sm"
-                      />
+                  </div>
+
+                  {/* Paradas Edit Section */}
+                  <div className="mt-4 pt-4 border-t border-zinc-200/60">
+                    <div className="flex items-center justify-between mb-3">
+                      <Label className="text-[11px] font-black text-zinc-700 uppercase tracking-wider">Paradas Registradas</Label>
+                      <div className="text-[10px] font-medium px-2 py-0.5 bg-zinc-100 text-zinc-500 rounded-full">{editParadas.length}</div>
+                    </div>
+                    
+                    <div className="space-y-2 max-h-[250px] overflow-y-auto mb-4 scrollbar-none pr-1">
+                      {editParadas.map((parada, idx) => (
+                        <div key={idx} className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+                          <div className="flex flex-col pl-2">
+                            <span className="text-[13px] font-bold text-zinc-900 leading-tight mb-1">{parada.seq} - {parada.tipologia}</span>
+                            <div className="flex items-center gap-1.5 align-middle">
+                              <Clock className="w-3 h-3 text-zinc-400" />
+                              <span className="text-[11px] font-medium text-zinc-500">{parada.horaInicio} até {parada.horaFim}</span>
+                            </div>
+                          </div>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => removeEditParada(idx)} className="h-8 px-3 text-xs bg-red-50 hover:bg-red-100 text-red-600 font-semibold border border-red-100 self-end sm:self-auto rounded-lg">
+                            Remover
+                          </Button>
+                        </div>
+                      ))}
+                      {editParadas.length === 0 && (
+                        <div className="flex flex-col items-center justify-center p-4 bg-zinc-50/50 border border-zinc-200/50 border-dashed rounded-xl text-zinc-400 text-xs">
+                          Nenhuma parada
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="bg-zinc-50 border border-zinc-200/80 rounded-xl p-3 sm:p-4 shadow-sm relative">
+                      <p className="text-[11px] font-bold text-zinc-600 uppercase tracking-widest mb-3">Adicionar Parada</p>
+                      <div className="flex flex-col gap-3">
+                        <Select value={editParadaSelectedCode} onValueChange={setEditParadaSelectedCode}>
+                          <SelectTrigger className="h-auto min-h-14 sm:min-h-12 py-3 sm:py-2.5 text-sm sm:text-xs bg-white text-left font-medium text-zinc-700 shadow-sm border-zinc-200 whitespace-normal rounded-xl sm:rounded-lg">
+                            <SelectValue placeholder="Selecione o motivo da parada">
+                              {editParadaSelectedCode 
+                                ? `${editParadaSelectedCode} - ${availableParadas.find((p: any) => p.seq.toString() === editParadaSelectedCode)?.tipologia || ''}`
+                                : <span className="text-zinc-400">Selecione o motivo</span>}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[250px] rounded-xl">
+                            {availableParadas.map((p: any) => (
+                              <SelectItem key={p.seq} value={p.seq.toString()} className="text-[13px] sm:text-xs whitespace-normal py-2 border-b border-zinc-100 last:border-0 text-left">
+                                {p.seq} - <span className="font-medium text-zinc-700">{p.tipologia}</span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="grid grid-cols-2 gap-3">
+                           <div className="relative">
+                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10"><Clock className="w-4 h-4" /></div>
+                             <CustomTimePicker value={editParadaStart} onChange={setEditParadaStart} placeholder="Início" wrapperClass="h-12 sm:h-10 bg-white shadow-sm border border-zinc-200 rounded-xl sm:rounded-lg" inputClass="pl-9 pr-3 text-center text-base sm:text-sm font-bold text-zinc-800 w-full outline-none flex-1 bg-transparent" />
+                           </div>
+                           <div className="relative">
+                             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10"><Clock className="w-4 h-4" /></div>
+                             <CustomTimePicker value={editParadaEnd} onChange={setEditParadaEnd} placeholder="Fim" wrapperClass="h-12 sm:h-10 bg-white shadow-sm border border-zinc-200 rounded-xl sm:rounded-lg" inputClass="pl-9 pr-3 text-center text-base sm:text-sm font-bold text-zinc-800 w-full outline-none flex-1 bg-transparent" />
+                           </div>
+                        </div>
+                        <Button type="button" variant="outline" size="sm" onClick={addEditParada} className="w-full h-12 sm:h-10 mt-2 text-sm sm:text-xs font-bold border-dashed rounded-xl sm:rounded-lg bg-white">
+                          <Plus className="w-4 h-4 mr-1.5" /> Adicionar à lista
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

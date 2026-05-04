@@ -276,6 +276,78 @@ app.post('/api/update', async (req, res) => {
       const updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`)
         .patch({ values: [updatedRow] });
       
+      // Update Paradas if provided
+      if (updates.paradas !== undefined) {
+        try {
+          const paradasSheetName = 'PARADAS';
+          
+          // Add a small delay so the Excel workbook lock from the previous PATCH is released
+          await new Promise(resolve => setTimeout(resolve, 800));
+
+          const paradasRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
+          
+          // Delete old paradas
+          const rowsToDelete = [];
+          for (let i = paradasRange.values.length - 1; i >= 0; i--) {
+            const row = paradasRange.values[i];
+            const rowLinha = String(row[4] || '').trim().replace('Linha ', '');
+            const searchLinha = String(originalData.linha || '').trim().replace('Linha ', '');
+            if (
+              String(row[1] || '').trim() === String(originalData.op || '').trim() &&
+              rowLinha === searchLinha
+            ) {
+              rowsToDelete.push(paradasRange.rowIndex + i + 1);
+            }
+          }
+          for (const rowIdx of rowsToDelete) {
+            const rowToDelete = `${rowIdx}:${rowIdx}`;
+            await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${rowToDelete}')/delete`)
+              .post({ shift: 'Up' });
+            
+            // Add a small delay between row deletions to prevent throttling/locks
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+
+          // Append new paradas
+          if (Array.isArray(updates.paradas) && updates.paradas.length > 0) {
+            // Need to get the usedRange again since we just deleted rows
+            const pRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
+            const pRowCount = pRange.rowCount;
+            let pNextRow = pRange.rowIndex + pRowCount;
+            if (pRowCount === 1 && pRange.values[0][0] === '') pNextRow = 0;
+
+            const baseDate = updatedRow[0] || new Date().toLocaleDateString('pt-BR');
+            const baseOp = updatedRow[1] || '';
+            const baseLitragem = updatedRow[4] || '';
+            const baseProduto = updatedRow[5] || '';
+            const baseLinha = updatedRow[6] || '';
+            const baseTurno = updatedRow[7] || '';
+
+            const newValues = updates.paradas.map(p => [
+              baseDate,
+              baseOp,
+              baseLitragem,
+              baseProduto,
+              baseLinha,
+              baseTurno,
+              p.seq || '',
+              p.tipologia || '',
+              p.horaInicio || '',
+              p.horaFim || ''
+            ]);
+
+            const startRow = pNextRow + 1;
+            const endRow = pNextRow + newValues.length;
+            const pAppendRangeStr = `A${startRow}:J${endRow}`;
+            
+            await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${pAppendRangeStr}')`)
+              .patch({ values: newValues });
+          }
+        } catch (err: any) {
+          console.warn("Could not update PARADAS sheet.", err.message);
+        }
+      }
+
       return res.status(200).json({ success: true, message: 'Row updated', data: updateRes });
     } else {
       console.log('Row not found for update:', originalData);
@@ -294,6 +366,7 @@ app.post('/api/delete', async (req, res) => {
     const { driveId, itemId } = await resolveExcelFile(client);
     const msSheetName = MS_SHEET_NAME;
 
+    // 1. Delete from Main Sheet
     const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
     
     let rowIndexFound = -1;
@@ -309,17 +382,47 @@ app.post('/api/delete', async (req, res) => {
       ) {
         rowIndexFound = i;
         excelRowFound = usedRange.rowIndex + i + 1;
-        break;
+        break; // Only delete the most recent matching one to avoid deleting duplicates by mistake
       }
     }
 
     if (excelRowFound !== -1) {
-      // Delete the specific row in Excel using 'shift: Up'
       const rowToDelete = `${excelRowFound}:${excelRowFound}`;
       await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${rowToDelete}')/delete`)
         .post({ shift: 'Up' });
+    }
+
+    // 2. Delete from PARADAS Sheet
+    try {
+      const paradasSheetName = 'PARADAS';
+      const paradasRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
       
-      return res.status(200).json({ success: true, message: 'Row deleted' });
+      const rowsToDelete = [];
+      for (let i = paradasRange.values.length - 1; i >= 0; i--) {
+        const row = paradasRange.values[i];
+        const rowLinha = String(row[4] || '').trim().replace('Linha ', '');
+        const searchLinha = String(linha || '').trim().replace('Linha ', '');
+        
+        if (
+          String(row[1] || '').trim() === String(op || '').trim() &&
+          rowLinha === searchLinha
+        ) {
+          rowsToDelete.push(paradasRange.rowIndex + i + 1);
+        }
+      }
+
+      // Delete from bottom to top to avoid shifting issues
+      for (const rowIdx of rowsToDelete) {
+        const rowToDelete = `${rowIdx}:${rowIdx}`;
+        await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${rowToDelete}')/delete`)
+          .post({ shift: 'Up' });
+      }
+    } catch (err: any) {
+      console.warn("Could not delete from PARADAS sheet. Is it created?", err.message);
+    }
+
+    if (excelRowFound !== -1) {
+      return res.status(200).json({ success: true, message: 'Row and related paradas deleted' });
     } else {
       console.log('Row not found for delete:', req.body);
       return res.status(404).json({ success: false, error: 'Row not found in spreadsheet' });

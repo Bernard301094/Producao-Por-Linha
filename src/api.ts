@@ -5,8 +5,8 @@ import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, updateDoc, query, 
 export interface Parada {
   seq: number;
   tipologia: string;
-  flag: number;
-  detalhamento: string;
+  flag?: number;
+  detalhamento?: string;
 }
 
 export interface ParadaRecord extends Parada {
@@ -24,6 +24,7 @@ export interface Operation {
   carimboInicial?: string;
   litragem?: string;
   status?: string;
+  paradas?: ParadaRecord[];
 }
 
 export interface FinishedOperation extends Operation {
@@ -158,7 +159,7 @@ export const markOperationFinished = async (
     horaFinal,
     qntReprocesso: qntReprocesso || '',
     carimbo: formatedCarimbo,
-    paradas: paradas || [],
+    paradas: (paradas && paradas.length > 0) ? paradas : (op.paradas || []),
   };
 
   // 1. Write to Firebase FIRST — instant due to offline cache
@@ -295,7 +296,8 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
       turno: turno || 'A',
       horaInicial: data.horaInicial || '',
       carimboInicial: data.carimboInicial || new Date().toISOString(),
-      status: 'pending'
+      status: 'pending',
+      paradas: data.paradas || []
     };
 
     await setDoc(doc(db, 'operations', id), newOp);
