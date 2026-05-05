@@ -1128,39 +1128,11 @@ export default function App() {
 
   const today = format(new Date(), 'dd/MM/yyyy');
 
+  // handleTourStepChange: apenas encaminha o evento ao OnboardingTour.
+  // A lógica de troca de aba e delay para mobile/tablet vive exclusivamente
+  // no OnboardingTour, via prop onSwitchTab.
   const handleTourStepChange = (data: any) => {
-    const { index, type, action } = data;
-    
-    // Tab switching logic for mobile/tablet
-    // We handle both step:before and step:after to ensure the target is in the DOM
-    if (type === 'step:after') {
-      if (action === 'next') {
-        if (index === 3) setMobileTab('pendentes');
-        if (index === 5) setMobileTab('concluidas');
-      } else if (action === 'prev') {
-        if (index === 4) setMobileTab('nova');
-        if (index === 6) setMobileTab('pendentes');
-      }
-    } else if (type === 'step:before') {
-      // Proactive tab switching
-      if (index === 4 || index === 5) {
-        if (mobileTab !== 'pendentes') {
-          setMobileTab('pendentes');
-          // Force Joyride to wait a bit or re-check the target
-          window.dispatchEvent(new Event('resize'));
-        }
-      } else if (index === 2 || index === 3) {
-        if (mobileTab !== 'nova') {
-          setMobileTab('nova');
-          window.dispatchEvent(new Event('resize'));
-        }
-      } else if (index === 6) {
-        if (mobileTab !== 'concluidas') {
-          setMobileTab('concluidas');
-          window.dispatchEvent(new Event('resize'));
-        }
-      }
-    }
+    // No additional logic needed here — tab switching is handled inside OnboardingTour
   };
 
   return (
@@ -1170,6 +1142,7 @@ export default function App() {
         run={runTour} 
         onFinish={endSimulation} 
         onStepChange={handleTourStepChange}
+        onSwitchTab={setMobileTab}
       />
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* Header */}
