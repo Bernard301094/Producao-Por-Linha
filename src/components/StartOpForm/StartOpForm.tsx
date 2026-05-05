@@ -109,7 +109,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
         <form onSubmit={handleSubmit(handlePreStartOp, (errors: any) => {
           const errorMsg = Object.values(errors).map((e: any) => e.message).join(', ');
           if (errorMsg) toast.error('Faltam dados: ' + Object.keys(errors).join(', '));
-        })} className="flex flex-col flex-1 overflow-hidden">
+        })} className="flex flex-col flex-1 overflow-hidden tour-nova-op-form">
           
           <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6">
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">

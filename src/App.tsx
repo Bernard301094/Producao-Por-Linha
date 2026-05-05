@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord, getLinhas, getProfiles } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord, getLinhas, getProfiles, syncFinishedOperation } from './api';
 
 // Componentes UI e Ícones
 import { Button } from '../components/ui/button';
@@ -25,6 +25,7 @@ import { cn, useAutoIncrement } from './lib/utils';
 // Lazy loading modals to improve initial load performance
 const EditOpModal = React.lazy(() => import('./components/EditOpModal/EditOpModal').then(module => ({ default: module.EditOpModal })));
 const ChangePasswordModal = React.lazy(() => import('./components/ChangePasswordModal/ChangePasswordModal').then(module => ({ default: module.ChangePasswordModal })));
+import { OnboardingTour } from './components/OnboardingTour/OnboardingTour';
 import { toast, Toaster } from 'sonner';
 import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -83,7 +84,7 @@ export function isShiftAllowed(profile: string): ShiftCheckResult {
   const now = getServerTime();
   const activeTurno = getActiveTurno(now);
   
-  if (profile === 'Supervisor') {
+  if (profile === 'Supervisor' || profile === 'Turno Treinamento') {
       return { allowed: true, activeTurno, shiftCycleId: getShiftCycleId(now) };
   }
 
@@ -176,6 +177,11 @@ export default function App() {
   }
 
   const [loginProfile, setLoginProfile] = useState<string | null>(null);
+  const [runTour, setRunTour] = useState(false);
+  const [simMode, setSimMode] = useState(false);
+  const [simPendingOps, setSimPendingOps] = useState<Operation[]>([]);
+  const [simFinishedOps, setSimFinishedOps] = useState<FinishedOperation[]>([]);
+  const [realProfile, setRealProfile] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -194,6 +200,8 @@ export default function App() {
   const [openEditLineSelect, setOpenEditLineSelect] = useState(false);
   const [searchPending, setSearchPending] = useState('');
   const [searchFinished, setSearchFinished] = useState('');
+  const [selectedLinhaPending, setSelectedLinhaPending] = useState('Todas');
+  const [selectedLinhaFinished, setSelectedLinhaFinished] = useState('Todas');
   const [operations, setOperations] = useState<Operation[]>([]);
   const [finishedOps, setFinishedOps] = useState<FinishedOperation[]>([]);
   const [loadingNewOp, setLoadingNewOp] = useState(false);
@@ -299,6 +307,32 @@ export default function App() {
   const onEditOp = async (data: any) => {
     const doEditOp = async () => {
       if (!editingOp) return;
+      if (simMode) {
+        const matchedProduct = availableProducts.find(
+          p => (p.produto || '').trim().toUpperCase() === (data.produto || '').trim().toUpperCase()
+        );
+        const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto || '');
+        const normalizeTime = (t: string) => t && t.length === 5 ? `${t}:00` : t;
+
+        const updateData: any = {
+           ...data,
+           litragem: derivedLitragem,
+           horaInicial: normalizeTime(data.horaInicial),
+           paradas: editParadas
+        };
+
+        if ('quantidade' in editingOp) {
+          if (data.horaFinal) updateData.horaFinal = normalizeTime(data.horaFinal);
+          setSimFinishedOps(prev => prev.map(o => o.id === editingOp.id ? { ...o, ...updateData } as FinishedOperation : o));
+        } else {
+          setSimPendingOps(prev => prev.map(o => o.id === editingOp.id ? { ...o, ...updateData } as Operation : o));
+        }
+        
+        toast.success('OP simulada atualizada.');
+        setEditingOp(null);
+        return;
+      }
+
       setLoadingEdit(true);
       try {
         const matchedProduct = availableProducts.find(
@@ -452,11 +486,66 @@ export default function App() {
     }
   };
 
+  const startSimulation = () => {
+    setRealProfile(loginProfile);
+    setLoginProfile('Turno Treinamento');
+
+    const nowIso = new Date().toISOString();
+    const mockPending: Operation = {
+      id: 'sim_pending_1',
+      opNumber: 'OP9991',
+      linha: 'Linha 01',
+      produto: 'Produto Exemplo',
+      litragem: '500ml',
+      turno: 'Treinamento',
+      horaInicial: '08:00',
+      carimboInicial: nowIso,
+      status: 'pending',
+      paradas: []
+    };
+
+    const mockFinished: FinishedOperation = {
+      id: 'sim_finished_1',
+      opNumber: 'OP9990',
+      linha: 'Linha 02',
+      produto: 'Produto Exemplo+',
+      litragem: '1 Litro',
+      turno: 'Treinamento',
+      horaInicial: '06:00',
+      horaFinal: '07:30',
+      quantidade: '5000',
+      qntReprocesso: '0',
+      carimbo: `${String(new Date().getDate()).padStart(2, '0')}/${String(new Date().getMonth()+1).padStart(2, '0')}/${new Date().getFullYear()}`,
+      carimboInicial: new Date(Date.now() - 3600000).toISOString(),
+      status: 'finished',
+      paradas: [
+         { seq: 1, tipologia: 'Limpeza', horaInicio: '06:30', horaFim: '06:45', flag: 1, detalhamento: 'Limpeza simulada' }
+      ]
+    };
+
+    setSimPendingOps([mockPending]);
+    setSimFinishedOps([mockFinished]);
+    setSimMode(true);
+    setRunTour(true);
+  };
+
+  const endSimulation = () => {
+    setSimMode(false);
+    setRunTour(false);
+    setLoginProfile(realProfile);
+    setSimPendingOps([]);
+    setSimFinishedOps([]);
+    localStorage.setItem('tour_completed', 'true');
+  };
+
   useEffect(() => {
-    if (loginProfile) {
+    if (loginProfile && !simMode) {
+      if (!localStorage.getItem('tour_completed')) {
+        setTimeout(() => startSimulation(), 1500); 
+      }
       checkAndClearProfileShift(loginProfile);
     }
-  }, [loginProfile]);
+  }, [loginProfile, simMode]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -632,6 +721,11 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    if (simMode) {
+      endSimulation();
+      return;
+    }
+    
     if (loginProfile) {
       try {
         const shiftCheck = isShiftAllowed(loginProfile);
@@ -660,6 +754,23 @@ export default function App() {
   };
 
   const onStartOp = async (data: StartOpFormValues) => {
+    if (simMode) {
+      const derivedLitragem = availableProducts.find(p => p.produto === data.produto)?.litragem || extractLitragem(data.produto);
+      const newOp: Operation = {
+        id: `sim_op_${Date.now()}`, carimboInicial: new Date().toISOString(), ...data,
+        horaInicial: data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial,
+        litragem: derivedLitragem,
+        turno: loginProfile ? loginProfile.replace('Turno ', '') : data.turno,
+        status: 'pending'
+      };
+      setSimPendingOps(prev => [newOp, ...prev]);
+      toast.success('Operação simulada iniciada!');
+      setStartFormData(null);
+      setShowConfirmStart(false);
+      setMobileTab('pendentes');
+      return;
+    }
+
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(loginProfile);
       
@@ -722,6 +833,24 @@ export default function App() {
   };
 
   const handleFinish = useCallback(async (op: Operation, qtd: string, time: string, reprocesso: string, paradas: ParadaRecord[], onSuccess: () => void) => {
+    if (simMode) {
+      const now = new Date();
+      const finishedOp: FinishedOperation = {
+        ...op,
+        quantidade: qtd,
+        horaFinal: time,
+        qntReprocesso: reprocesso || '',
+        carimbo: `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth()+1).padStart(2, '0')}/${now.getFullYear()}`,
+        status: 'finished',
+        paradas: paradas || []
+      };
+      setSimPendingOps(prev => prev.filter(o => o.id !== op.id));
+      setSimFinishedOps(prev => [finishedOp, ...prev]);
+      toast.success('OP simulada concluída!');
+      onSuccess();
+      return;
+    }
+
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(loginProfile);
       logAudit({
@@ -765,9 +894,28 @@ export default function App() {
     }
   }, [loginProfile]);
 
+  const handleSyncRetry = async (op: FinishedOperation) => {
+    try {
+      toast.info(`Sincronizando OP ${op.opNumber}...`);
+      await syncFinishedOperation(op.id);
+      toast.success(`OP ${op.opNumber} sincronizada com sucesso!`);
+    } catch (err: any) {
+      toast.error(`Falha ao sincronizar: ${err.message}`);
+    }
+  };
+
   const confirmRevert = async () => {
     const doRevert = async () => {
       if (!revertingOp) return;
+      if (simMode) {
+        setSimFinishedOps(prev => prev.filter(o => o.id !== revertingOp.id));
+        const newPending: Operation = { ...revertingOp, status: 'pending' } as Operation;
+        setSimPendingOps(prev => [newPending, ...prev]);
+        toast.success('OP simulada revertida.');
+        setRevertingOp(null);
+        return;
+      }
+
       setLoadingRevert(true);
       try {
         await moveFinishedToPending(revertingOp.id, revertingOp.turno || currentTurnForView);
@@ -850,26 +998,71 @@ export default function App() {
 
   const logicalToday = getLogicalDateStr(getServerTime());
 
-  const myFinishedOps = useMemo(() => finishedOps.filter(op => {
-    const sameTurn = op.turno === currentTurnForView;
-    if (!op.carimboInicial) return sameTurn;
-    return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
-  }), [finishedOps, currentTurnForView, logicalToday]);
+  const myFinishedOps = useMemo(() => {
+    if (simMode) return simFinishedOps;
+    return finishedOps.filter(op => {
+      const sameTurn = op.turno === currentTurnForView;
+      if (!op.carimboInicial) return sameTurn;
+      return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
+    });
+  }, [finishedOps, currentTurnForView, logicalToday, simMode, simFinishedOps]);
 
-  const myPendingOps = useMemo(() => operations.filter(op => {
-    const sameTurn = op.turno === currentTurnForView;
-    if (!op.carimboInicial) return sameTurn;
-    return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
-  }), [operations, currentTurnForView, logicalToday]);
+  const myPendingOps = useMemo(() => {
+    if (simMode) return simPendingOps;
+    return operations.filter(op => {
+      const sameTurn = op.turno === currentTurnForView;
+      if (!op.carimboInicial) return sameTurn;
+      return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
+    });
+  }, [operations, currentTurnForView, logicalToday, simMode, simPendingOps]);
 
-  const visiblePendingOps = useMemo(() => myPendingOps.filter(op => matchesSearch(op, searchPending)), [myPendingOps, searchPending]);
-  const visibleFinishedOps = useMemo(() => myFinishedOps.filter(op => matchesSearch(op, searchFinished)), [myFinishedOps, searchFinished]);
+  const pendingLinhas = useMemo(() => {
+    const lines = new Set(myPendingOps.map(op => op.linha));
+    return ['Todas', ...Array.from(lines).sort((a, b) => {
+      const matchA = a.match(/\d+/);
+      const matchB = b.match(/\d+/);
+      if (matchA && matchB) return parseInt(matchA[0], 10) - parseInt(matchB[0], 10);
+      return a.localeCompare(b);
+    })];
+  }, [myPendingOps]);
+
+  const finishedLinhas = useMemo(() => {
+    const lines = new Set(myFinishedOps.map(op => op.linha));
+    return ['Todas', ...Array.from(lines).sort((a, b) => {
+      const matchA = a.match(/\d+/);
+      const matchB = b.match(/\d+/);
+      if (matchA && matchB) return parseInt(matchA[0], 10) - parseInt(matchB[0], 10);
+      return a.localeCompare(b);
+    })];
+  }, [myFinishedOps]);
+
+  const visiblePendingOps = useMemo(() => myPendingOps.filter(op => {
+    if (selectedLinhaPending !== 'Todas' && op.linha !== selectedLinhaPending) return false;
+    return matchesSearch(op, searchPending);
+  }), [myPendingOps, searchPending, selectedLinhaPending]);
+
+  const visibleFinishedOps = useMemo(() => myFinishedOps.filter(op => {
+    if (selectedLinhaFinished !== 'Todas' && op.linha !== selectedLinhaFinished) return false;
+    return matchesSearch(op, searchFinished);
+  }), [myFinishedOps, searchFinished, selectedLinhaFinished]);
+
   const totalUnidades = myFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0);
   const visibleTotalUnidades = visibleFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0);
 
   const confirmDelete = async () => {
     const doDelete = async () => {
       if (!deletingOp) return;
+      if (simMode) {
+        if ('quantidade' in deletingOp) {
+          setSimFinishedOps(prev => prev.filter(o => o.id !== deletingOp.id));
+        } else {
+          setSimPendingOps(prev => prev.filter(o => o.id !== deletingOp.id));
+        }
+        toast.success('OP simulada removida.');
+        setDeletingOp(null);
+        return;
+      }
+
       setLoadingDelete(true);
       try {
         if ('quantidade' in deletingOp) {
@@ -925,6 +1118,7 @@ export default function App() {
           setShowPassword={setShowPassword}
           loginLoading={loginLoading}
           handleLogin={handleLogin}
+          startSimulation={startSimulation}
         />
       </>
     );
@@ -934,9 +1128,49 @@ export default function App() {
 
   const today = format(new Date(), 'dd/MM/yyyy');
 
+  const handleTourStepChange = (data: any) => {
+    const { index, type, action } = data;
+    
+    // Tab switching logic for mobile/tablet
+    // We handle both step:before and step:after to ensure the target is in the DOM
+    if (type === 'step:after') {
+      if (action === 'next') {
+        if (index === 3) setMobileTab('pendentes');
+        if (index === 5) setMobileTab('concluidas');
+      } else if (action === 'prev') {
+        if (index === 4) setMobileTab('nova');
+        if (index === 6) setMobileTab('pendentes');
+      }
+    } else if (type === 'step:before') {
+      // Proactive tab switching
+      if (index === 4 || index === 5) {
+        if (mobileTab !== 'pendentes') {
+          setMobileTab('pendentes');
+          // Force Joyride to wait a bit or re-check the target
+          window.dispatchEvent(new Event('resize'));
+        }
+      } else if (index === 2 || index === 3) {
+        if (mobileTab !== 'nova') {
+          setMobileTab('nova');
+          window.dispatchEvent(new Event('resize'));
+        }
+      } else if (index === 6) {
+        if (mobileTab !== 'concluidas') {
+          setMobileTab('concluidas');
+          window.dispatchEvent(new Event('resize'));
+        }
+      }
+    }
+  };
+
   return (
     <>
       <Toaster position="top-center" />
+      <OnboardingTour 
+        run={runTour} 
+        onFinish={endSimulation} 
+        onStepChange={handleTourStepChange}
+      />
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* Header */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 shadow-sm sticky top-0 z-30">
@@ -955,6 +1189,11 @@ export default function App() {
                   <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-2 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight">
                     {today}
                   </p>
+                  {simMode && (
+                    <p className="text-[10px] sm:text-xs font-black text-white tracking-widest uppercase bg-emerald-500 px-2 py-0.5 rounded shadow-sm leading-tight animate-pulse">
+                      TREINAMENTO
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -968,16 +1207,43 @@ export default function App() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-1 sm:gap-1.5 bg-white border-2 border-zinc-200/80 rounded-xl sm:rounded-2xl p-1 shadow-sm">
-                {/* Change Password Button */}
+              <div className="flex items-center gap-1 sm:gap-1.5 bg-white border-2 border-zinc-200/80 rounded-xl sm:rounded-2xl p-1 shadow-sm tour-user-menu">
+                {/* Tutorial Button */}
                 <button 
-                  onClick={() => setChangePasswordOpen(true)} 
+                  onClick={startSimulation} 
                   className="group flex items-center justify-center gap-2 text-zinc-500 hover:text-zinc-950 px-3 h-10 sm:h-11 rounded-lg sm:rounded-xl hover:bg-zinc-100 transition-all focus-visible:ring-2 focus-visible:ring-zinc-950/20 focus-visible:outline-none" 
-                  title="Alterar Senha"
+                  title="Tutorial Interativo"
                 >
-                  <KeyRound className="w-5 h-5 sm:w-4 sm:h-4 shrink-0 transition-transform group-hover:scale-110" />
-                  <span className="hidden sm:inline-block text-sm font-bold tracking-tight">Senha</span>
+                  <svg className="w-5 h-5 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                    <path d="M12 17h.01" />
+                  </svg>
+                  <span className="hidden lg:inline text-sm font-bold">Tutorial</span>
                 </button>
+
+                <div className="w-px h-6 bg-zinc-200/80 mx-1 hidden sm:block" />
+
+                {/* Sair do Treinamento ou Senha */}
+                {simMode ? (
+                  <button 
+                    onClick={endSimulation} 
+                    className="group flex items-center justify-center gap-2 text-red-500 hover:text-red-700 px-3 h-10 sm:h-11 rounded-lg sm:rounded-xl hover:bg-red-50 transition-all focus-visible:ring-2 focus-visible:ring-red-500/20 focus-visible:outline-none" 
+                    title="Sair do Treinamento"
+                  >
+                    <LogOut className="w-5 h-5 sm:w-4 sm:h-4 shrink-0 transition-transform group-hover:scale-110" />
+                    <span className="hidden sm:inline-block text-sm font-bold tracking-tight">Sair Treino</span>
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => setChangePasswordOpen(true)} 
+                    className="group flex items-center justify-center gap-2 text-zinc-500 hover:text-zinc-950 px-3 h-10 sm:h-11 rounded-lg sm:rounded-xl hover:bg-zinc-100 transition-all focus-visible:ring-2 focus-visible:ring-zinc-950/20 focus-visible:outline-none" 
+                    title="Alterar Senha"
+                  >
+                    <KeyRound className="w-5 h-5 sm:w-4 sm:h-4 shrink-0 transition-transform group-hover:scale-110" />
+                    <span className="hidden sm:inline-block text-sm font-bold tracking-tight">Senha</span>
+                  </button>
+                )}
                 
                 {/* Divider */}
                 <div className="w-[2px] h-5 bg-zinc-200/80 rounded-full" />
@@ -997,7 +1263,7 @@ export default function App() {
         </header>
 
         {/* Mobile Tab Bar */}
-        <div className="lg:hidden sticky top-16 z-20 bg-white border-b border-zinc-200/80 shadow-sm">
+        <div className="lg:hidden sticky top-16 z-20 bg-white border-b border-zinc-200/80 shadow-sm tour-tab-bar">
           <div className="flex">
             {(['pendentes', 'nova', 'concluidas'] as const).map((tab) => (
               <button
@@ -1020,8 +1286,8 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-6 lg:gap-8 items-start">
 
             {/* Pendentes */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-4 2xl:col-span-4 lg:order-2 border-none h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
-              <div className="p-5 sm:p-6 pb-4 sm:pb-5 border-b border-zinc-100 flex flex-col gap-4 bg-zinc-950/5 relative overflow-hidden shrink-0">
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-4 2xl:col-span-4 lg:order-2 border-none h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-pendentes', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
+              <div className="p-4 sm:p-5 border-b border-zinc-100 flex flex-col gap-3 bg-zinc-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:14px_14px] opacity-50" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
                   <div className="flex items-center gap-3">
@@ -1029,20 +1295,49 @@ export default function App() {
                       <ClipboardList className="w-5 h-5 text-zinc-700" />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm sm:text-base font-black text-zinc-900 tracking-tight">Pendentes</span>
-                      <span className="text-[10px] sm:text-xs font-semibold text-zinc-500 uppercase tracking-widest">{visiblePendingOps.length} {visiblePendingOps.length === 1 ? 'registro' : 'registros'}</span>
+                      <span className="text-base font-black text-zinc-900 tracking-tight leading-none mb-1">Pendentes</span>
+                      <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest leading-none">{visiblePendingOps.length} {visiblePendingOps.length === 1 ? 'registro' : 'registros'}</span>
                     </div>
                   </div>
                 </div>
-                <div className="relative z-10">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
-                    <Search className="w-4 h-4" />
+                <div className="relative z-10 flex flex-col gap-3">
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                      <Search className="w-4 h-4" />
+                    </div>
+                    <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Pesquisar produto, linha..." className="w-full h-10 pl-9 pr-3 bg-white border border-zinc-200/80 rounded-xl text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-sm transition-all" />
                   </div>
-                  <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Pesquisar produto, linha..." className="w-full h-12 pl-9 pr-3 bg-white border-2 border-zinc-200/80 rounded-xl text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-0 shadow-sm transition-all" />
+                  
+                  {pendingLinhas.length > 1 && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
+                      {pendingLinhas.map(linha => (
+                        <button
+                          key={linha}
+                          onClick={() => setSelectedLinhaPending(linha)}
+                          className={cn(
+                            "whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 border shadow-sm",
+                            selectedLinhaPending === linha 
+                              ? "bg-zinc-900 text-white border-zinc-900" 
+                              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300"
+                          )}
+                        >
+                          {linha}
+                          {linha !== 'Todas' && (
+                            <span className={cn(
+                              "ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none",
+                              selectedLinhaPending === linha ? "bg-zinc-700 text-white" : "bg-zinc-100 text-zinc-500"
+                            )}>
+                              {myPendingOps.filter(o => o.linha === linha).length}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-zinc-50/50">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-5 bg-zinc-50/50 tour-pendentes-items">
                 {visiblePendingOps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full min-h-[250px] py-12 text-zinc-400 text-center animate-in fade-in duration-500">
                     <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-4">
@@ -1065,7 +1360,7 @@ export default function App() {
             </div>
 
             {/* Nova OP */}
-            <div className={cn('flex flex-col lg:col-span-4 xl:col-span-3 2xl:col-span-3 lg:order-1 h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)]', mobileTab !== 'nova' && 'hidden lg:flex')}>
+            <div className={cn('flex flex-col lg:col-span-4 xl:col-span-3 2xl:col-span-3 lg:order-1 h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] tour-nova-op', mobileTab !== 'nova' && 'hidden lg:flex')}>
               <StartOpForm
                 currentTurnForView={currentTurnForView}
                 handleSubmit={handleSubmit}
@@ -1095,8 +1390,8 @@ export default function App() {
             </div>
 
             {/* Concluídas */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-5 2xl:col-span-5 lg:order-3 border-none h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
-              <div className="p-5 sm:p-6 pb-4 sm:pb-5 border-b border-zinc-100 flex flex-col gap-4 bg-emerald-950/5 relative overflow-hidden shrink-0">
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-5 2xl:col-span-5 lg:order-3 border-none h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-concluidas', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
+              <div className="p-4 sm:p-5 border-b border-zinc-100 flex flex-col gap-3 bg-emerald-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#05966910_1px,transparent_1px),linear-gradient(to_bottom,#05966910_1px,transparent_1px)] bg-[size:14px_14px] opacity-70" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
                   <div className="flex items-center gap-3">
@@ -1104,24 +1399,53 @@ export default function App() {
                       <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-sm sm:text-base font-black text-zinc-900 tracking-tight">Concluídas</span>
-                      <span className="text-[10px] sm:text-xs font-semibold text-zinc-500 uppercase tracking-widest">{visibleFinishedOps.length} {visibleFinishedOps.length === 1 ? 'registro' : 'registros'}</span>
+                      <span className="text-base font-black text-zinc-900 tracking-tight leading-none mb-1">Concluídas</span>
+                      <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest leading-none">{visibleFinishedOps.length} {visibleFinishedOps.length === 1 ? 'registro' : 'registros'}</span>
                     </div>
                   </div>
-                  <div className="text-right bg-white px-3 py-1.5 rounded-lg border border-emerald-100 shadow-sm">
-                    <p className="text-[9px] sm:text-[10px] text-emerald-600/70 uppercase tracking-widest font-black mb-0.5">Total Produzido</p>
-                    <p className="text-sm sm:text-base font-black text-emerald-700 tracking-tighter leading-none">{visibleTotalUnidades.toLocaleString()} UN</p>
+                  <div className="text-right bg-white px-2 py-1.5 rounded-lg border border-emerald-100 shadow-sm shrink-0">
+                    <p className="text-[9px] text-emerald-600/70 uppercase tracking-widest font-black mb-0.5">Total</p>
+                    <p className="text-sm font-black text-emerald-700 tracking-tighter leading-none">{visibleTotalUnidades.toLocaleString()} UN</p>
                   </div>
                 </div>
-                <div className="relative z-10">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
-                    <Search className="w-4 h-4" />
+                <div className="relative z-10 flex flex-col gap-3">
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
+                      <Search className="w-4 h-4" />
+                    </div>
+                    <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Pesquisar OP ou produto..." className="w-full h-10 pl-9 pr-3 bg-white border border-zinc-200/80 rounded-xl text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-sm transition-all" />
                   </div>
-                  <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Pesquisar OP ou produto..." className="w-full h-12 pl-9 pr-3 bg-white border-2 border-zinc-200/80 rounded-xl text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-emerald-600 focus:ring-0 shadow-sm transition-all" />
+                  
+                  {finishedLinhas.length > 1 && (
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
+                      {finishedLinhas.map(linha => (
+                        <button
+                          key={linha}
+                          onClick={() => setSelectedLinhaFinished(linha)}
+                          className={cn(
+                            "whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 border shadow-sm",
+                            selectedLinhaFinished === linha 
+                              ? "bg-emerald-600 text-white border-emerald-600" 
+                              : "bg-white text-zinc-600 border-zinc-200 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700"
+                          )}
+                        >
+                          {linha}
+                          {linha !== 'Todas' && (
+                            <span className={cn(
+                              "ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none",
+                              selectedLinhaFinished === linha ? "bg-emerald-500 text-white" : "bg-zinc-100 text-zinc-500"
+                            )}>
+                              {myFinishedOps.filter(o => o.linha === linha).length}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-zinc-50/50">
+              <div className="flex-1 overflow-y-auto p-3 sm:p-5 bg-zinc-50/50">
                 {visibleFinishedOps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full min-h-[250px] py-12 text-zinc-400 text-center animate-in fade-in duration-500">
                     <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-4">
@@ -1137,6 +1461,7 @@ export default function App() {
                     openEdit={openEdit} 
                     setDeletingOp={setDeletingOp} 
                     setRevertingOp={setRevertingOp} 
+                    onSyncRetry={handleSyncRetry}
                   />
                 ))}
               </div>

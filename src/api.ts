@@ -34,6 +34,8 @@ export interface FinishedOperation extends Operation {
   reportDocId?: string;
   carimbo?: string;
   paradas?: ParadaRecord[];
+  syncStatus?: 'success' | 'error' | 'pending';
+  syncError?: string;
 }
 
 export const subscribeToOperations = (callback: (ops: Operation[]) => void) => {
@@ -142,14 +144,14 @@ export const markOperationFinished = async (
     qntReprocesso: qntReprocesso || '',
     carimbo: formatedCarimbo,
     paradas: paradasFinais,
+    syncStatus: 'pending'
   };
 
   // 1. Write to Firebase FIRST — instant due to offline cache
   try {
     await updateDoc(doc(db, 'operations', op.id), { 
       ...finishedOp, 
-      status: 'finished',
-      paradas: paradasFinais,
+      status: 'finished'
     });
   } catch (firebaseErr: any) {
     console.error("Firebase updateDoc failed", firebaseErr);
@@ -167,7 +169,8 @@ export const markOperationFinished = async (
     quantidade,
     qntReprocesso: qntReprocesso || '',
     horaInicial: op.horaInicial,
-    horaFinal
+    horaFinal,
+    paradas: paradasFinais
   };
 
   fetch(`${API_BASE}/api/append`, {
@@ -177,29 +180,15 @@ export const markOperationFinished = async (
   }).then(async res => {
     if (!res.ok) {
       const errText = await res.text();
+      await updateDoc(doc(db, 'operations', op.id), { syncStatus: 'error', syncError: errText });
       onOneDriveSync?.(false, errText);
     } else {
-      // Sync paradas if exist
-      if (paradas && paradas.length > 0) {
-        const paradasPayload = {
-          carimbo: formatedCarimbo,
-          op: op.opNumber,
-          litragem: formatSheetLitragem(op.litragem || ''),
-          produto: op.produto,
-          linha: formattedLinha,
-          turno: op.turno,
-          paradas: paradas
-        };
-        fetch(`${API_BASE}/api/append-paradas`, {
-          method: 'POST',
-          body: JSON.stringify(paradasPayload),
-          headers: { 'Content-Type': 'application/json' }
-        }).catch(e => console.error("Error syncing paradas:", e));
-      }
+      await updateDoc(doc(db, 'operations', op.id), { syncStatus: 'success', syncError: '' });
       onOneDriveSync?.(true);
     }
-  }).catch(error => {
+  }).catch(async error => {
     console.error("OneDrive sync failed", error);
+    await updateDoc(doc(db, 'operations', op.id), { syncStatus: 'error', syncError: error.message });
     onOneDriveSync?.(false, error.message);
   });
 };
@@ -292,6 +281,78 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
     };
 
     await setDoc(opDocRef, newOp);
+  }
+};
+
+export const syncFinishedOperation = async (opId: string) => {
+  const opDocRef = doc(db, 'operations', opId);
+  const docSnap = await getDoc(opDocRef);
+  if (!docSnap.exists()) return;
+  const data = docSnap.data() as FinishedOperation;
+
+  // We use /api/update which searches for the existing row by OP and Linha and updates it.
+  // Importantly, /api/update completely deletes old paradas for this OP and inserts the ones in updates.paradas.
+  // This achieves idempotency: no duplicates even if we run it multiple times.
+  const payload = {
+    originalData: {
+      op: data.opNumber,
+      linha: data.linha
+    },
+    updates: {
+      opNumber: data.opNumber,
+      horaInicial: data.horaInicial,
+      horaFinal: data.horaFinal,
+      litragem: data.litragem,
+      produto: data.produto,
+      linha: data.linha,
+      turno: data.turno,
+      quantidade: data.quantidade,
+      qntReprocesso: data.qntReprocesso,
+      paradas: data.paradas || []
+    }
+  };
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    // Fallback: If /api/update returns 404, it means the OP was NEVER appended to the main sheet originally.
+    if (resp.status === 404) {
+      const appendPayload = {
+        carimbo: `'${data.carimbo}`,
+        op: data.opNumber,
+        litragem: formatSheetLitragem(data.litragem || ''),
+        produto: data.produto,
+        linha: data.linha,
+        turno: data.turno,
+        quantidade: data.quantidade,
+        qntReprocesso: data.qntReprocesso || '',
+        horaInicial: data.horaInicial,
+        horaFinal: data.horaFinal,
+        paradas: data.paradas || []
+      };
+      
+      const appendResp = await fetch(`${API_BASE}/api/append`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(appendPayload)
+      });
+      
+      if (!appendResp.ok) {
+        throw new Error(await appendResp.text());
+      }
+    } else if (!resp.ok) {
+      throw new Error(await resp.text());
+    }
+    
+    await updateDoc(opDocRef, { syncStatus: 'success', syncError: '' });
+  } catch (error: any) {
+    console.error("Manual sync failed", error);
+    await updateDoc(opDocRef, { syncStatus: 'error', syncError: error.message });
+    throw error;
   }
 };
 

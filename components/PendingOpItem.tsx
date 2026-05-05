@@ -104,28 +104,23 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   };
 
   return (
-    <div className="group bg-white rounded-3xl p-5 sm:p-6 sm:px-7 border border-zinc-200/80 hover:border-zinc-300 hover:shadow-xl transition-all shadow-sm relative overflow-hidden text-left flex flex-col gap-5 mb-5 hover:scale-[1.01]">
-      <div className="absolute top-0 left-0 w-2 h-full bg-amber-400 group-hover:bg-amber-500 transition-colors" />
+    <div className="group bg-white sm:rounded-3xl rounded-2xl p-4 sm:p-5 border border-zinc-200/80 hover:border-zinc-300 hover:shadow-md transition-all shadow-sm relative overflow-hidden text-left flex flex-col gap-3 sm:gap-4 mb-3">
+      <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-400 group-hover:bg-amber-500 transition-colors" />
       
       {/* Header Info */}
-      <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-3 xl:gap-6 pl-2">
-        <div className="flex flex-col gap-3 flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-             <span className="text-[10px] font-black tracking-widest text-zinc-600 uppercase bg-zinc-100/80 px-2 py-1 rounded-md border border-zinc-200/80 shadow-sm shrink-0">OP {op.opNumber}</span>
-             <span className="text-[10px] font-bold text-zinc-500 bg-white px-2 py-1 rounded-md border border-zinc-200 shadow-sm flex items-center justify-center min-w-[3rem] shrink-0">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 pl-3">
+        <div className="flex flex-col flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+             <span className="text-[10px] font-black tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 shadow-sm w-fit">OP {op.opNumber}</span>
+             <span className="text-[10px] font-bold text-zinc-600 bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200/80">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
              {op.litragem && (
-               <span className="text-xs text-zinc-500 font-mono font-bold bg-zinc-50 px-2 py-1 rounded-md border border-zinc-200 shadow-sm shrink-0">{op.litragem}</span>
+               <span className="text-[10px] font-bold text-zinc-500 bg-zinc-50 px-2 py-0.5 rounded border border-zinc-200">{op.litragem}</span>
              )}
+             <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-semibold bg-white/50 border border-zinc-100 px-2 py-0.5 rounded shrink-0 ml-auto sm:ml-0">
+               <Clock className="w-3 h-3 text-zinc-400" /> {op.horaInicial}
+             </div>
           </div>
-          <div className="flex flex-col">
-            <h3 className="text-xl sm:text-2xl font-black text-zinc-950 tracking-tight leading-tight pr-2 xl:pr-0 break-words">{op.produto}</h3>
-          </div>
-        </div>
-        <div className="flex xl:flex-col items-center xl:items-end justify-between xl:justify-start gap-3 mt-1 xl:mt-0 shrink-0">
-          <div className="flex items-center gap-1.5 text-zinc-600 bg-zinc-50 px-3 py-1.5 rounded-lg border border-zinc-200 shadow-sm">
-             <Clock className="w-4 h-4 text-zinc-400 shrink-0" />
-             <span className="text-sm font-bold">{op.horaInicial}</span>
-          </div>
+          <h3 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight leading-snug w-full line-clamp-2">{op.produto}</h3>
         </div>
       </div>
 
@@ -271,8 +266,8 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
 
       {/* Main Actions Block */}
       {isFinishing ? (
-        <div className="mt-2 pt-6 border-t border-zinc-200/60 space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-5 sm:gap-6 w-full items-start">
+        <div className="mt-1 pt-4 border-t border-zinc-200/60 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 w-full items-start">
             <QuickCounter 
               label="Quantidade (UN)" 
               value={finishQtd} 
@@ -285,22 +280,22 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               onChange={setFinishQtdReprocesso} 
               className="w-full"
             />
-            <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+            <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
                <label className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Hora Final</label>
                <CustomTimePicker 
                  value={finishTime} 
                  onChange={setFinishTime} 
-                 clockIconClass="absolute left-3 w-5 h-5 text-zinc-400 pointer-events-none"
-                 wrapperClass="h-14 bg-[#F9FAFB] rounded-2xl border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors shadow-sm"
-                 inputClass="pl-9 pr-4 text-base font-bold bg-transparent focus:ring-0 w-full"
+                 clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
+                 wrapperClass="h-12 bg-[#F9FAFB] rounded-xl border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors shadow-sm"
+                 inputClass="pl-9 pr-4 text-sm font-bold bg-transparent focus:ring-0 w-full"
                />
             </div>
           </div>
-          <div className="flex flex-col gap-3 pt-2">
+          <div className="flex flex-col gap-2 pt-1">
             <Dialog open={isConfirmingFinish} onOpenChange={setIsConfirmingFinish}>
               <motion.div whileTap={{ scale: 0.98 }} className="w-full">
-                <Button size="lg" onClick={onConfirm} disabled={itemLoading} className="w-full h-16 text-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 transition-all focus-visible:ring-4 focus-visible:ring-emerald-500/20">
-                  {itemLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Confirmar Encerramento'}
+                <Button size="lg" onClick={onConfirm} disabled={itemLoading} className="w-full h-12 text-base bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-500/20 transition-all focus-visible:ring-4 focus-visible:ring-emerald-500/20">
+                  {itemLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar Encerramento'}
                 </Button>
               </motion.div>
               <DialogContent className="w-[calc(100%-2rem)] max-w-[420px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
@@ -355,23 +350,23 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                 </div>
               </DialogContent>
             </Dialog>
-            <Button size="lg" variant="outline" onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishQtdReprocesso(''); }} className="w-full h-14 text-base font-bold bg-white border-2 border-zinc-200/80 rounded-2xl hover:bg-zinc-50 text-zinc-600 transition-colors focus-visible:ring-2 focus-visible:ring-zinc-900/20 shadow-sm">
+            <Button size="lg" variant="outline" onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishQtdReprocesso(''); }} className="w-full h-12 text-sm font-bold bg-white border-2 border-zinc-200/80 rounded-xl hover:bg-zinc-50 text-zinc-600 transition-colors focus-visible:ring-2 focus-visible:ring-zinc-900/20 shadow-sm">
                Cancelar
             </Button>
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-4 sm:grid-cols-6 xl:grid-cols-12 gap-3 mt-2 pt-6 border-t border-zinc-200/60">
-          <motion.div whileTap={{ scale: 0.98 }} className="col-span-4 sm:col-span-4 xl:col-span-8">
-            <Button size="lg" onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }} className="w-full h-14 text-sm sm:text-base xl:text-lg bg-zinc-950 hover:bg-zinc-800 text-white font-black rounded-xl shadow-xl shadow-zinc-900/10 transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20">
-              <CheckCircle2 className="w-5 h-5 mr-2" /> Concluir OP
+        <div className="flex gap-2 mt-1 pt-3 border-t border-zinc-200/60">
+          <motion.div whileTap={{ scale: 0.98 }} className="flex-1">
+            <Button size="lg" onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }} className="w-full h-12 text-sm bg-zinc-950 hover:bg-zinc-800 text-white font-black rounded-xl shadow-md transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20">
+              <CheckCircle2 className="w-4 h-4 mr-2" /> Concluir OP
             </Button>
           </motion.div>
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => openEdit(op)} title="Editar" className="col-span-2 sm:col-span-1 xl:col-span-2 flex items-center justify-center w-full h-14 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 hover:border-zinc-300 rounded-xl transition-colors border-2 border-zinc-200/80 shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-zinc-900/20 outline-none">
-             <Pencil className="w-5 h-5" />
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => openEdit(op)} title="Editar" className="flex-shrink-0 flex items-center justify-center w-12 h-12 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 hover:border-zinc-300 rounded-xl transition-colors border-2 border-zinc-200/80 shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-zinc-900/20 outline-none">
+             <Pencil className="w-4 h-4" />
           </motion.button>
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeletingOp(op)} title="Excluir" className="col-span-2 sm:col-span-1 xl:col-span-2 flex items-center justify-center w-full h-14 text-zinc-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 rounded-xl transition-colors border-2 border-zinc-200/80 shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-red-500/20 outline-none">
-             <Trash2 className="w-5 h-5" />
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeletingOp(op)} title="Excluir" className="flex-shrink-0 flex items-center justify-center w-12 h-12 text-zinc-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 rounded-xl transition-colors border-2 border-zinc-200/80 shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-red-500/20 outline-none">
+             <Trash2 className="w-4 h-4" />
           </motion.button>
         </div>
       )}

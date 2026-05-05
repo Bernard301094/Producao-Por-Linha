@@ -34,6 +34,7 @@ export interface EditOpModalProps {
   loginProfile: string | null;
   loadingEdit: boolean;
   editParadas: ParadaRecord[];
+  setEditParadas: React.Dispatch<React.SetStateAction<ParadaRecord[]>>;
   removeEditParada: (idx: number) => void;
   editParadaSelectedCode: string;
   setEditParadaSelectedCode: React.Dispatch<React.SetStateAction<string>>;
@@ -67,6 +68,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
   loginProfile,
   loadingEdit,
   editParadas,
+  setEditParadas,
   removeEditParada,
   editParadaSelectedCode,
   setEditParadaSelectedCode,

@@ -109,7 +109,7 @@ app.post('/api/append', async (req, res) => {
   console.log("POST /api/append received (OneDrive)", req.body);
   try {
     const {
-      carimbo, op, litragem, produto, linha, turno, quantidade, horaInicial, horaFinal, qntReprocesso
+      carimbo, op, litragem, produto, linha, turno, quantidade, horaInicial, horaFinal, qntReprocesso, paradas
     } = req.body;
 
     // Col A: DATA (carimbo)
@@ -157,6 +157,48 @@ app.post('/api/append', async (req, res) => {
           .patch({ values: [rowValues] });
       }
       
+      // Sync paradas if provided
+      if (paradas && Array.isArray(paradas) && paradas.length > 0) {
+        try {
+          const paradasSheetName = 'PARADAS';
+          const pRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
+          const pRowCount = pRange.rowCount;
+          let pNextRow = pRange.rowIndex + pRowCount;
+          if (pRowCount === 1 && pRange.values[0][0] === '') pNextRow = 0;
+
+          const baseDate = rowValues[0];
+          const baseOp = rowValues[1];
+          const baseLitragem = rowValues[4];
+          const baseProduto = rowValues[5];
+          const baseLinha = rowValues[6];
+          const baseTurno = rowValues[7];
+
+          const newValues = paradas.map(p => [
+            baseDate,
+            baseOp,
+            baseLitragem,
+            baseProduto,
+            baseLinha,
+            baseTurno,
+            p.seq || '',
+            p.tipologia || '',
+            p.horaInicio || '',
+            p.horaFim || ''
+          ]);
+
+          const startRow = pNextRow + 1;
+          const endRow = pNextRow + newValues.length;
+          const pAppendRangeStr = `A${startRow}:J${endRow}`;
+          
+          await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${pAppendRangeStr}')`)
+            .patch({ values: newValues });
+          console.log("OneDrive Append Paradas success inside /api/append");
+        } catch (err: any) {
+          console.warn("Could not handle PARADAS append.", err.message);
+          throw new Error(`OP salva, mas falha ao sincronizar paradas: ${err.message}`);
+        }
+      }
+
       console.log("OneDrive Append success");
       return res.status(200).json({ success: true, message: 'Row added via OneDrive', data: updateRes });
     } catch (e) {
