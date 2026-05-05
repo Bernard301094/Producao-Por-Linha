@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Joyride, STATUS, Step, EVENTS, ACTIONS } from 'react-joyride';
 
 type MobileTab = 'pendentes' | 'nova' | 'concluidas';
@@ -11,33 +11,57 @@ interface Props {
   onSwitchTab?: (tab: MobileTab) => void;
 }
 
-// Map each step index to the mobile tab it belongs to.
-// null = no tab switch needed (body/center steps or always-visible elements)
+// Map cada índice de passo à aba mobile correspondente.
+// null = sem troca de aba necessária
 const STEP_TAB_MAP: Record<number, MobileTab | null> = {
   0: null,           // body center – welcome
-  1: null,           // .tour-user-menu – always visible in header
+  1: null,           // .tour-user-menu – sempre visível no header
   2: 'nova',         // .tour-nova-op
-  3: 'nova',         // .tour-nova-op-form
+  3: 'nova',         // .tour-nova-op-form (usa .tour-nova-op como target em mobile)
   4: 'pendentes',    // .tour-pendentes
   5: 'pendentes',    // .tour-pendentes-items
   6: 'concluidas',   // .tour-concluidas
   7: null,           // body center – visualizando concluidas
   8: null,           // body center – fim do turno
-  9: null,           // .tour-tab-bar – always visible on mobile
+  9: null,           // .tour-tab-bar – sempre visível em mobile
 };
 
-const TAB_SWITCH_DELAY = 350; // ms to wait after switching tab before Joyride renders tooltip
+const TAB_SWITCH_DELAY = 400;
 
 export const OnboardingTour: React.FC<Props> = ({ run, onFinish, onStepChange, onSwitchTab }) => {
   const [joyrideRun, setJoyrideRun] = useState(run);
-  const pendingStepRef = useRef<number | null>(null);
 
-  // Keep joyrideRun in sync with the run prop
-  React.useEffect(() => {
+  // FIX 1: isNarrowScreen reativo — recalcula no resize
+  const [isNarrowScreen, setIsNarrowScreen] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < 1024 : false
+  );
+  useEffect(() => {
+    const handleResize = () => setIsNarrowScreen(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // FIX 2: guard anti-loop — guarda qual step já teve a aba trocada
+  const switchedForStepRef = useRef<number | null>(null);
+  const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sincroniza joyrideRun com a prop run
+  useEffect(() => {
     setJoyrideRun(run);
+    if (!run) {
+      if (pendingTimerRef.current) {
+        clearTimeout(pendingTimerRef.current);
+        pendingTimerRef.current = null;
+      }
+      switchedForStepRef.current = null;
+    }
   }, [run]);
 
-  const [steps] = useState<Step[]>([
+  // FIX 3: steps com target adaptado para mobile no passo 3
+  // Em telas < 1024px o target .tour-nova-op-form fica dentro de overflow:hidden
+  // então usamos .tour-nova-op (container pai já visível) para evitar tooltip cortado.
+  // Os textos são IDÊNTICOS ao original — só o target e placement mudam em mobile.
+  const getMobileAdjustedSteps = (narrow: boolean): Step[] => [
     {
       target: 'body',
       placement: 'center',
@@ -63,10 +87,11 @@ export const OnboardingTour: React.FC<Props> = ({ run, onFinish, onStepChange, o
       showSkipButton: true,
     },
     {
-      target: '.tour-nova-op-form',
+      // Em mobile, .tour-nova-op-form está dentro de overflow:hidden — usa o pai como target
+      target: narrow ? '.tour-nova-op' : '.tour-nova-op-form',
+      placement: narrow ? 'bottom' : 'auto',
       title: 'Dicas de Preenchimento (Nova OP)',
       content: 'O produto sugerido aparece conforme você digita. A "Litragem" é calculada automaticamente se estiver no nome do produto. Clicando em "Iniciar Operação", um modal de confirmação aparece.',
-      placement: 'auto',
       showProgress: true,
       showSkipButton: true,
     },
@@ -118,15 +143,15 @@ export const OnboardingTour: React.FC<Props> = ({ run, onFinish, onStepChange, o
       showProgress: true,
       showSkipButton: true,
     },
-  ]);
+  ];
 
-  const isNarrowScreen = typeof window !== 'undefined' && window.innerWidth < 1024;
+  const steps = getMobileAdjustedSteps(isNarrowScreen);
 
   const handleJoyrideCallback = (data: any) => {
-    const { status, type, index, action } = data;
+    const { status, type, index } = data;
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
 
-    // Always forward the raw event to App.tsx
+    // Sempre encaminha o evento ao App
     onStepChange?.(data);
 
     if (finishedStatuses.includes(status)) {
@@ -134,22 +159,39 @@ export const OnboardingTour: React.FC<Props> = ({ run, onFinish, onStepChange, o
       return;
     }
 
-    // On narrow screens, intercept BEFORE each step to switch tab if needed
-    if (isNarrowScreen && type === EVENTS.STEP_BEFORE && onSwitchTab) {
+    // Quando o usuário avança/volta, limpa o guard para o próximo step
+    if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+      switchedForStepRef.current = null;
+      return;
+    }
+
+    // Intercepta STEP_BEFORE em telas estreitas
+    // Guard: só age se ainda NÃO tratamos este step — evita loop infinito
+    if (
+      isNarrowScreen &&
+      type === EVENTS.STEP_BEFORE &&
+      onSwitchTab &&
+      switchedForStepRef.current !== index
+    ) {
       const targetTab = STEP_TAB_MAP[index] ?? null;
 
       if (targetTab !== null) {
-        // Pause Joyride, switch tab, then resume after the DOM has updated
-        setJoyrideRun(false);
-        pendingStepRef.current = index;
+        // Marca ANTES de pausar — impede re-entrada
+        switchedForStepRef.current = index;
 
+        setJoyrideRun(false);
         onSwitchTab(targetTab);
 
-        setTimeout(() => {
-          pendingStepRef.current = null;
+        pendingTimerRef.current = setTimeout(() => {
+          pendingTimerRef.current = null;
           setJoyrideRun(true);
         }, TAB_SWITCH_DELAY);
+
+        return;
       }
+
+      // Sem troca necessária: marca como tratado
+      switchedForStepRef.current = index;
     }
   };
 
