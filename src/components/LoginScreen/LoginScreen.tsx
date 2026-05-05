@@ -107,16 +107,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                       </button>
                     ))}
                   </div>
-
-                  <div className="mt-8 flex flex-col items-center gap-4">
-                    <div className="w-full h-px bg-zinc-200/80"></div>
-                    <button
-                      onClick={startSimulation}
-                      className="group w-full max-w-sm flex items-center justify-center gap-2 border-2 border-emerald-500 text-emerald-600 font-bold bg-emerald-50 hover:bg-emerald-100 hover:border-emerald-600 hover:text-emerald-700 rounded-2xl p-4 transition-all"
-                    >
-                      <span>Modo Treinamento Interativo</span>
-                    </button>
-                  </div>
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
