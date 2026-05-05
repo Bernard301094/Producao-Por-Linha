@@ -25,7 +25,6 @@ import { cn, useAutoIncrement } from './lib/utils';
 // Lazy loading modals to improve initial load performance
 const EditOpModal = React.lazy(() => import('./components/EditOpModal/EditOpModal').then(module => ({ default: module.EditOpModal })));
 const ChangePasswordModal = React.lazy(() => import('./components/ChangePasswordModal/ChangePasswordModal').then(module => ({ default: module.ChangePasswordModal })));
-import { OnboardingTour } from './components/OnboardingTour/OnboardingTour';
 import { toast, Toaster } from 'sonner';
 import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -177,11 +176,6 @@ export default function App() {
   }
 
   const [loginProfile, setLoginProfile] = useState<string | null>(null);
-  const [runTour, setRunTour] = useState(false);
-  const [simMode, setSimMode] = useState(false);
-  const [simPendingOps, setSimPendingOps] = useState<Operation[]>([]);
-  const [simFinishedOps, setSimFinishedOps] = useState<FinishedOperation[]>([]);
-  const [realProfile, setRealProfile] = useState<string | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -307,31 +301,6 @@ export default function App() {
   const onEditOp = async (data: any) => {
     const doEditOp = async () => {
       if (!editingOp) return;
-      if (simMode) {
-        const matchedProduct = availableProducts.find(
-          p => (p.produto || '').trim().toUpperCase() === (data.produto || '').trim().toUpperCase()
-        );
-        const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto || '');
-        const normalizeTime = (t: string) => t && t.length === 5 ? `${t}:00` : t;
-
-        const updateData: any = {
-           ...data,
-           litragem: derivedLitragem,
-           horaInicial: normalizeTime(data.horaInicial),
-           paradas: editParadas
-        };
-
-        if ('quantidade' in editingOp) {
-          if (data.horaFinal) updateData.horaFinal = normalizeTime(data.horaFinal);
-          setSimFinishedOps(prev => prev.map(o => o.id === editingOp.id ? { ...o, ...updateData } as FinishedOperation : o));
-        } else {
-          setSimPendingOps(prev => prev.map(o => o.id === editingOp.id ? { ...o, ...updateData } as Operation : o));
-        }
-        
-        toast.success('OP simulada atualizada.');
-        setEditingOp(null);
-        return;
-      }
 
       setLoadingEdit(true);
       try {
@@ -486,66 +455,11 @@ export default function App() {
     }
   };
 
-  const startSimulation = () => {
-    setRealProfile(loginProfile);
-    setLoginProfile('Turno Treinamento');
-
-    const nowIso = new Date().toISOString();
-    const mockPending: Operation = {
-      id: 'sim_pending_1',
-      opNumber: 'OP9991',
-      linha: 'Linha 01',
-      produto: 'Produto Exemplo',
-      litragem: '500ml',
-      turno: 'Treinamento',
-      horaInicial: '08:00',
-      carimboInicial: nowIso,
-      status: 'pending',
-      paradas: []
-    };
-
-    const mockFinished: FinishedOperation = {
-      id: 'sim_finished_1',
-      opNumber: 'OP9990',
-      linha: 'Linha 02',
-      produto: 'Produto Exemplo+',
-      litragem: '1 Litro',
-      turno: 'Treinamento',
-      horaInicial: '06:00',
-      horaFinal: '07:30',
-      quantidade: '5000',
-      qntReprocesso: '0',
-      carimbo: `${String(new Date().getDate()).padStart(2, '0')}/${String(new Date().getMonth()+1).padStart(2, '0')}/${new Date().getFullYear()}`,
-      carimboInicial: new Date(Date.now() - 3600000).toISOString(),
-      status: 'finished',
-      paradas: [
-         { seq: 1, tipologia: 'Limpeza', horaInicio: '06:30', horaFim: '06:45', flag: 1, detalhamento: 'Limpeza simulada' }
-      ]
-    };
-
-    setSimPendingOps([mockPending]);
-    setSimFinishedOps([mockFinished]);
-    setSimMode(true);
-    setRunTour(true);
-  };
-
-  const endSimulation = () => {
-    setSimMode(false);
-    setRunTour(false);
-    setLoginProfile(realProfile);
-    setSimPendingOps([]);
-    setSimFinishedOps([]);
-    localStorage.setItem('tour_completed', 'true');
-  };
-
   useEffect(() => {
-    if (loginProfile && !simMode) {
-      if (!localStorage.getItem('tour_completed')) {
-        setTimeout(() => startSimulation(), 1500); 
-      }
+    if (loginProfile) {
       checkAndClearProfileShift(loginProfile);
     }
-  }, [loginProfile, simMode]);
+  }, [loginProfile]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -721,15 +635,9 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    if (simMode) {
-      endSimulation();
-      return;
-    }
-    
     if (loginProfile) {
       try {
         const shiftCheck = isShiftAllowed(loginProfile);
-        
         logAudit({
           userProfile: loginProfile,
           action: 'LOGOUT',
@@ -754,23 +662,6 @@ export default function App() {
   };
 
   const onStartOp = async (data: StartOpFormValues) => {
-    if (simMode) {
-      const derivedLitragem = availableProducts.find(p => p.produto === data.produto)?.litragem || extractLitragem(data.produto);
-      const newOp: Operation = {
-        id: `sim_op_${Date.now()}`, carimboInicial: new Date().toISOString(), ...data,
-        horaInicial: data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial,
-        litragem: derivedLitragem,
-        turno: loginProfile ? loginProfile.replace('Turno ', '') : data.turno,
-        status: 'pending'
-      };
-      setSimPendingOps(prev => [newOp, ...prev]);
-      toast.success('Operação simulada iniciada!');
-      setStartFormData(null);
-      setShowConfirmStart(false);
-      setMobileTab('pendentes');
-      return;
-    }
-
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(loginProfile);
       
@@ -819,9 +710,8 @@ export default function App() {
         litragem: derivedLitragem,
         turno: loginProfile ? loginProfile.replace('Turno ', '') : data.turno
       };
-      // addOperation writes locally first (offline cache) — onSnapshot reacts instantly
       await addOperation(newOp);
-      addProduct(data.produto, derivedLitragem); // fire and forget
+      addProduct(data.produto, derivedLitragem);
       toast.success('Operação iniciada!');
       reset({ opNumber: '', produto: '', linha: '', turno: data.turno, horaInicial: format(new Date(), 'HH:mm') });
       setShowConfirmStart(false);
@@ -833,24 +723,6 @@ export default function App() {
   };
 
   const handleFinish = useCallback(async (op: Operation, qtd: string, time: string, reprocesso: string, paradas: ParadaRecord[], onSuccess: () => void) => {
-    if (simMode) {
-      const now = new Date();
-      const finishedOp: FinishedOperation = {
-        ...op,
-        quantidade: qtd,
-        horaFinal: time,
-        qntReprocesso: reprocesso || '',
-        carimbo: `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth()+1).padStart(2, '0')}/${now.getFullYear()}`,
-        status: 'finished',
-        paradas: paradas || []
-      };
-      setSimPendingOps(prev => prev.filter(o => o.id !== op.id));
-      setSimFinishedOps(prev => [finishedOp, ...prev]);
-      toast.success('OP simulada concluída!');
-      onSuccess();
-      return;
-    }
-
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(loginProfile);
       logAudit({
@@ -871,7 +743,6 @@ export default function App() {
       paradas.length > 0 ? paradas : (op.paradas || []);
 
     try {
-      // Firebase write is instant (offline cache) — UI updates immediately via onSnapshot
       await markOperationFinished(
         op,
         qtd,
@@ -886,7 +757,6 @@ export default function App() {
           }
         }
       );
-      // onSuccess is called right after Firebase write — before OneDrive finishes
       toast.success('OP concluída!');
       onSuccess();
     } catch (err: any) {
@@ -907,14 +777,6 @@ export default function App() {
   const confirmRevert = async () => {
     const doRevert = async () => {
       if (!revertingOp) return;
-      if (simMode) {
-        setSimFinishedOps(prev => prev.filter(o => o.id !== revertingOp.id));
-        const newPending: Operation = { ...revertingOp, status: 'pending' } as Operation;
-        setSimPendingOps(prev => [newPending, ...prev]);
-        toast.success('OP simulada revertida.');
-        setRevertingOp(null);
-        return;
-      }
 
       setLoadingRevert(true);
       try {
@@ -972,7 +834,6 @@ export default function App() {
       return;
     }
     
-    // Check Supervisor password
     try {
       const supervisorProfile = await getAuthProfile("Supervisor");
       const correctPw = supervisorProfile?.password || supervisorProfile?.senha || "admin123";
@@ -981,7 +842,6 @@ export default function App() {
         return;
       }
       
-      // Execute the pending action
       if (pendingOverrideAction) {
         pendingOverrideAction();
       }
@@ -999,22 +859,20 @@ export default function App() {
   const logicalToday = getLogicalDateStr(getServerTime());
 
   const myFinishedOps = useMemo(() => {
-    if (simMode) return simFinishedOps;
     return finishedOps.filter(op => {
       const sameTurn = op.turno === currentTurnForView;
       if (!op.carimboInicial) return sameTurn;
       return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
     });
-  }, [finishedOps, currentTurnForView, logicalToday, simMode, simFinishedOps]);
+  }, [finishedOps, currentTurnForView, logicalToday]);
 
   const myPendingOps = useMemo(() => {
-    if (simMode) return simPendingOps;
     return operations.filter(op => {
       const sameTurn = op.turno === currentTurnForView;
       if (!op.carimboInicial) return sameTurn;
       return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
     });
-  }, [operations, currentTurnForView, logicalToday, simMode, simPendingOps]);
+  }, [operations, currentTurnForView, logicalToday]);
 
   const pendingLinhas = useMemo(() => {
     const lines = new Set(myPendingOps.map(op => op.linha));
@@ -1052,16 +910,6 @@ export default function App() {
   const confirmDelete = async () => {
     const doDelete = async () => {
       if (!deletingOp) return;
-      if (simMode) {
-        if ('quantidade' in deletingOp) {
-          setSimFinishedOps(prev => prev.filter(o => o.id !== deletingOp.id));
-        } else {
-          setSimPendingOps(prev => prev.filter(o => o.id !== deletingOp.id));
-        }
-        toast.success('OP simulada removida.');
-        setDeletingOp(null);
-        return;
-      }
 
       setLoadingDelete(true);
       try {
@@ -1118,32 +966,16 @@ export default function App() {
           setShowPassword={setShowPassword}
           loginLoading={loginLoading}
           handleLogin={handleLogin}
-          startSimulation={startSimulation}
         />
       </>
     );
   }
 
-  // Deleted Painel Supervisor
-
   const today = format(new Date(), 'dd/MM/yyyy');
-
-  // handleTourStepChange: apenas encaminha o evento ao OnboardingTour.
-  // A lógica de troca de aba e delay para mobile/tablet vive exclusivamente
-  // no OnboardingTour, via prop onSwitchTab.
-  const handleTourStepChange = (data: any) => {
-    // No additional logic needed here — tab switching is handled inside OnboardingTour
-  };
 
   return (
     <>
       <Toaster position="top-center" />
-      <OnboardingTour 
-        run={runTour} 
-        onFinish={endSimulation} 
-        onStepChange={handleTourStepChange}
-        onSwitchTab={setMobileTab}
-      />
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* Header */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 shadow-sm sticky top-0 z-30">
@@ -1162,11 +994,6 @@ export default function App() {
                   <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-2 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight">
                     {today}
                   </p>
-                  {simMode && (
-                    <p className="text-[10px] sm:text-xs font-black text-white tracking-widest uppercase bg-emerald-500 px-2 py-0.5 rounded shadow-sm leading-tight animate-pulse">
-                      TREINAMENTO
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -1181,42 +1008,14 @@ export default function App() {
               </div>
 
               <div className="flex items-center gap-1 sm:gap-1.5 bg-white border-2 border-zinc-200/80 rounded-xl sm:rounded-2xl p-1 shadow-sm tour-user-menu">
-                {/* Tutorial Button */}
                 <button 
-                  onClick={startSimulation} 
+                  onClick={() => setChangePasswordOpen(true)} 
                   className="group flex items-center justify-center gap-2 text-zinc-500 hover:text-zinc-950 px-3 h-10 sm:h-11 rounded-lg sm:rounded-xl hover:bg-zinc-100 transition-all focus-visible:ring-2 focus-visible:ring-zinc-950/20 focus-visible:outline-none" 
-                  title="Tutorial Interativo"
+                  title="Alterar Senha"
                 >
-                  <svg className="w-5 h-5 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                    <path d="M12 17h.01" />
-                  </svg>
-                  <span className="hidden lg:inline text-sm font-bold">Tutorial</span>
+                  <KeyRound className="w-5 h-5 sm:w-4 sm:h-4 shrink-0 transition-transform group-hover:scale-110" />
+                  <span className="hidden sm:inline-block text-sm font-bold tracking-tight">Senha</span>
                 </button>
-
-                <div className="w-px h-6 bg-zinc-200/80 mx-1 hidden sm:block" />
-
-                {/* Sair do Treinamento ou Senha */}
-                {simMode ? (
-                  <button 
-                    onClick={endSimulation} 
-                    className="group flex items-center justify-center gap-2 text-red-500 hover:text-red-700 px-3 h-10 sm:h-11 rounded-lg sm:rounded-xl hover:bg-red-50 transition-all focus-visible:ring-2 focus-visible:ring-red-500/20 focus-visible:outline-none" 
-                    title="Sair do Treinamento"
-                  >
-                    <LogOut className="w-5 h-5 sm:w-4 sm:h-4 shrink-0 transition-transform group-hover:scale-110" />
-                    <span className="hidden sm:inline-block text-sm font-bold tracking-tight">Sair Treino</span>
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => setChangePasswordOpen(true)} 
-                    className="group flex items-center justify-center gap-2 text-zinc-500 hover:text-zinc-950 px-3 h-10 sm:h-11 rounded-lg sm:rounded-xl hover:bg-zinc-100 transition-all focus-visible:ring-2 focus-visible:ring-zinc-950/20 focus-visible:outline-none" 
-                    title="Alterar Senha"
-                  >
-                    <KeyRound className="w-5 h-5 sm:w-4 sm:h-4 shrink-0 transition-transform group-hover:scale-110" />
-                    <span className="hidden sm:inline-block text-sm font-bold tracking-tight">Senha</span>
-                  </button>
-                )}
                 
                 {/* Divider */}
                 <div className="w-[2px] h-5 bg-zinc-200/80 rounded-full" />
