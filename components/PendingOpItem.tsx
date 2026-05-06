@@ -32,21 +32,28 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   const [showParadas, setShowParadas] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
-  // Build flattened history of all paradas from finished ops of same linha
+  // Build flattened history of all paradas from both finished and other pending ops of same linha
   const allHistoryParadas = useMemo(() => {
-    const result: Array<{ opNumber: string; carimbo?: string; horaInicial: string; parada: any }> = [];
-    for (const finishedOp of linhaHistory) {
-      if (!finishedOp.paradas || finishedOp.paradas.length === 0) continue;
-      for (const p of finishedOp.paradas) {
+    const result: Array<{ opNumber: string; carimbo?: string; horaInicial: string; isFinished: boolean; parada: any }> = [];
+    for (const item of linhaHistory) {
+      if (!item.paradas || item.paradas.length === 0) continue;
+      for (const p of item.paradas) {
         result.push({
-          opNumber: finishedOp.opNumber,
-          carimbo: finishedOp.carimbo,
-          horaInicial: finishedOp.horaInicial,
+          opNumber: item.opNumber,
+          carimbo: item.carimbo,
+          horaInicial: item.horaInicial,
+          isFinished: 'quantidade' in item, // Finished ops have 'quantidade'
           parada: p,
         });
       }
     }
-    return result.sort((a, b) => a.parada.horaInicio?.localeCompare(b.parada.horaInicio));
+    // Sort by carimbo or start time descending (most recent first)
+    return result.sort((a, b) => {
+      if (a.parada.horaInicio && b.parada.horaInicio) {
+        return b.parada.horaInicio.localeCompare(a.parada.horaInicio);
+      }
+      return 0;
+    });
   }, [linhaHistory]);
 
   const addParada = () => {
@@ -310,18 +317,24 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
             ) : (
               <div className="space-y-2">
                 {allHistoryParadas.map((item, idx) => (
-                  <div key={idx} className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white border border-zinc-200/80 rounded-xl shadow-sm overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-400 opacity-70" />
+                  <div key={idx} className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white border border-zinc-200/80 rounded-2xl shadow-sm overflow-hidden group/hist hover:border-zinc-300 transition-all">
+                    <div className={cn("absolute left-0 top-0 bottom-0 w-1.5 opacity-70", item.isFinished ? "bg-emerald-400" : "bg-amber-400")} />
                     <div className="flex flex-col pl-3 flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-[10px] font-black text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/60">OP {item.opNumber}</span>
-                        {item.carimbo && <span className="text-[10px] font-semibold text-zinc-400">{item.carimbo}</span>}
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                        <span className={cn(
+                          "text-[9px] font-black px-1.5 py-0.5 rounded border uppercase tracking-tighter",
+                          item.isFinished ? "bg-emerald-50 text-emerald-700 border-emerald-200/60" : "bg-amber-50 text-amber-700 border-amber-200/60"
+                        )}>
+                          {item.isFinished ? 'Concluída' : 'Em Aberto'}
+                        </span>
+                        <span className="text-[10px] font-black text-zinc-500 bg-zinc-50 px-1.5 py-0.5 rounded border border-zinc-200/60">OP {item.opNumber}</span>
+                        {item.carimbo && <span className="text-[9px] font-bold text-zinc-400">{item.carimbo.split(' ')[0]}</span>}
                       </div>
-                      <span className="text-sm font-bold text-zinc-800 leading-tight">{item.parada.seq} - {item.parada.tipologia}</span>
+                      <span className="text-sm font-bold text-zinc-900 leading-tight group-hover/hist:text-black transition-colors">{item.parada.seq} - {item.parada.tipologia}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 pl-3 sm:pl-0 shrink-0 bg-zinc-50 px-2.5 py-1.5 rounded-md border border-zinc-100">
-                      <Clock className="w-3.5 h-3.5 text-zinc-400" />
-                      <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap">{item.parada.horaInicio} - {item.parada.horaFim}</span>
+                    <div className="flex items-center gap-2 pl-3 sm:pl-0 shrink-0 bg-zinc-50/50 self-start sm:self-auto px-3 py-2 rounded-xl border border-zinc-100 group-hover/hist:bg-white transition-colors">
+                      <Clock className="w-4 h-4 text-zinc-400" />
+                      <span className="text-xs font-black text-zinc-600 whitespace-nowrap">{item.parada.horaInicio} — {item.parada.horaFim}</span>
                     </div>
                   </div>
                 ))}

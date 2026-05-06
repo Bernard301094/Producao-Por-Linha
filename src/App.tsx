@@ -241,6 +241,8 @@ export default function App() {
   const [mobileTab, setMobileTab] = useState<'pendentes' | 'nova' | 'concluidas'>('nova');
   const [openLineSelect, setOpenLineSelect] = useState(false);
   const [openEditLineSelect, setOpenEditLineSelect] = useState(false);
+  const [openLineFilterPending, setOpenLineFilterPending] = useState(false);
+  const [openLineFilterFinished, setOpenLineFilterFinished] = useState(false);
   const [searchPending, setSearchPending] = useState('');
   const [searchFinished, setSearchFinished] = useState('');
   const [selectedLinhaPending, setSelectedLinhaPending] = useState('Todas');
@@ -1058,7 +1060,7 @@ export default function App() {
   };
 
   const pendingLinhas = useMemo(() => {
-    const lines = new Set(myPendingOps.map(op => normalizeLinha(op.linha)));
+    const lines = new Set(myPendingOps.map(op => normalizeLinha(op.linha)).filter(Boolean));
     return ['Todas', ...Array.from(lines).sort((a, b) => {
       const matchA = a.match(/\d+/);
       const matchB = b.match(/\d+/);
@@ -1068,7 +1070,7 @@ export default function App() {
   }, [myPendingOps]);
 
   const finishedLinhas = useMemo(() => {
-    const lines = new Set(myFinishedOps.map(op => normalizeLinha(op.linha)));
+    const lines = new Set(myFinishedOps.map(op => normalizeLinha(op.linha)).filter(Boolean));
     return ['Todas', ...Array.from(lines).sort((a, b) => {
       const matchA = a.match(/\d+/);
       const matchB = b.match(/\d+/);
@@ -1267,28 +1269,55 @@ export default function App() {
                   
                   {pendingLinhas.length > 1 && (
                     <div className="relative">
-                      <Select value={selectedLinhaPending} onValueChange={setSelectedLinhaPending}>
-                        <SelectTrigger 
-                          className={cn(
-                            "w-full h-10 px-4 rounded-xl text-sm font-bold border-2 transition-all shadow-sm focus:ring-2 focus:ring-zinc-900/20 data-[state=open]:ring-2 data-[state=open]:ring-zinc-900/20",
-                            selectedLinhaPending !== 'Todas'
-                              ? "bg-zinc-900 text-white border-zinc-900 [&>svg]:text-white"
-                              : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300 [&>svg]:text-zinc-400"
-                          )}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[50vh] min-w-[200px] w-auto overflow-y-auto rounded-[1.25rem] p-2 shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50">
-                          <SelectItem value="Todas" className="font-bold py-3 px-3 rounded-xl mb-1 cursor-pointer focus:bg-[#F9FAFB] focus:text-zinc-950 data-[state=checked]:bg-zinc-950 data-[state=checked]:text-white">
-                            Todas as Linhas ({myPendingOps.length})
-                          </SelectItem>
-                          {pendingLinhas.filter(l => l !== 'Todas').map(linha => (
-                            <SelectItem key={linha} value={linha} className="font-bold py-3 px-3 rounded-xl mb-1 cursor-pointer focus:bg-[#F9FAFB] focus:text-zinc-950 data-[state=checked]:bg-zinc-950 data-[state=checked]:text-white">
-                              Linha {linha} ({myPendingOps.filter(o => o.linha === linha || normalizeLinha(o.linha) === linha).length})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={openLineFilterPending} onOpenChange={setOpenLineFilterPending}>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full h-11 justify-between px-4 rounded-xl text-sm font-bold border-2 transition-all shadow-sm focus:ring-2 focus:ring-zinc-900/20",
+                              selectedLinhaPending !== 'Todas'
+                                ? "bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-800"
+                                : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="opacity-60">Linha:</span>
+                              <span>{selectedLinhaPending}</span>
+                            </div>
+                            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-40" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0 rounded-[1.25rem] shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50 overflow-hidden" align="start">
+                          <Command className="bg-transparent">
+                            <div className="p-2 border-b border-zinc-100">
+                              <CommandInput placeholder="Filtrar linha..." className="h-9 border-0 focus:ring-0" />
+                            </div>
+                            <CommandList className="max-h-[300px] overflow-y-auto p-1 custom-scrollbar">
+                              <CommandEmpty className="py-6 text-center text-xs text-zinc-400">Nenhuma linha.</CommandEmpty>
+                              <CommandGroup>
+                                {pendingLinhas.map((linha) => (
+                                  <CommandItem
+                                    key={linha}
+                                    value={linha}
+                                    onSelect={(currentValue) => {
+                                      setSelectedLinhaPending(currentValue === selectedLinhaPending ? 'Todas' : currentValue);
+                                      setOpenLineFilterPending(false);
+                                    }}
+                                    className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] aria-selected:text-zinc-950 transition-colors font-bold text-xs mb-0.5 last:mb-0"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300" : "bg-amber-400")} />
+                                      {linha === 'Todas' ? 'Todas as Linhas' : `Linha ${linha}`}
+                                    </div>
+                                    {selectedLinhaPending === linha && <Check className="h-3 w-3 text-zinc-900" />}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   )}
                 </div>
@@ -1311,7 +1340,10 @@ export default function App() {
                     openEdit={openEdit} 
                     setDeletingOp={setDeletingOp} 
                     availableParadas={availableParadas}
-                    linhaHistory={finishedOps.filter(f => f.linha === op.linha)}
+                    linhaHistory={[
+                      ...finishedOps.filter(f => normalizeLinha(f.linha) === normalizeLinha(op.linha)),
+                      ...operations.filter(p => p.id !== op.id && normalizeLinha(p.linha) === normalizeLinha(op.linha))
+                    ]}
                   />
                 ))}
               </div>
@@ -1379,28 +1411,55 @@ export default function App() {
                   
                   {finishedLinhas.length > 1 && (
                     <div className="relative">
-                      <Select value={selectedLinhaFinished} onValueChange={setSelectedLinhaFinished}>
-                        <SelectTrigger 
-                          className={cn(
-                            "w-full h-10 px-4 rounded-xl text-sm font-bold border-2 transition-all shadow-sm focus:ring-2 focus:ring-emerald-600/20 data-[state=open]:ring-2 data-[state=open]:ring-emerald-600/20",
-                            selectedLinhaFinished !== 'Todas'
-                              ? "bg-emerald-600 text-white border-emerald-600 [&>svg]:text-white"
-                              : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300 [&>svg]:text-zinc-400"
-                          )}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[50vh] min-w-[200px] w-auto overflow-y-auto rounded-[1.25rem] p-2 shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50">
-                          <SelectItem value="Todas" className="font-bold py-3 px-3 rounded-xl mb-1 cursor-pointer focus:bg-emerald-50 focus:text-emerald-950 data-[state=checked]:bg-emerald-600 data-[state=checked]:text-white">
-                            Todas as Linhas ({myFinishedOps.length})
-                          </SelectItem>
-                          {finishedLinhas.filter(l => l !== 'Todas').map(linha => (
-                            <SelectItem key={linha} value={linha} className="font-bold py-3 px-3 rounded-xl mb-1 cursor-pointer focus:bg-emerald-50 focus:text-emerald-950 data-[state=checked]:bg-emerald-600 data-[state=checked]:text-white">
-                              Linha {linha} ({myFinishedOps.filter(o => o.linha === linha || normalizeLinha(o.linha) === linha).length})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={openLineFilterFinished} onOpenChange={setOpenLineFilterFinished}>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full h-11 justify-between px-4 rounded-xl text-sm font-bold border-2 transition-all shadow-sm focus:ring-2 focus:ring-emerald-900/20",
+                              selectedLinhaFinished !== 'Todas'
+                                ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700"
+                                : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="opacity-60">Linha:</span>
+                              <span>{selectedLinhaFinished}</span>
+                            </div>
+                            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-40" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0 rounded-[1.25rem] shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50 overflow-hidden" align="start">
+                          <Command className="bg-transparent">
+                            <div className="p-2 border-b border-zinc-100">
+                              <CommandInput placeholder="Filtrar linha..." className="h-9 border-0 focus:ring-0" />
+                            </div>
+                            <CommandList className="max-h-[300px] overflow-y-auto p-1 custom-scrollbar">
+                              <CommandEmpty className="py-6 text-center text-xs text-zinc-400">Nenhuma linha.</CommandEmpty>
+                              <CommandGroup>
+                                {finishedLinhas.map((linha) => (
+                                  <CommandItem
+                                    key={linha}
+                                    value={linha}
+                                    onSelect={(currentValue) => {
+                                      setSelectedLinhaFinished(currentValue === selectedLinhaFinished ? 'Todas' : currentValue);
+                                      setOpenLineFilterFinished(false);
+                                    }}
+                                    className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] aria-selected:text-zinc-950 transition-colors font-bold text-xs mb-0.5 last:mb-0"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300" : "bg-emerald-500")} />
+                                      {linha === 'Todas' ? 'Todas as Linhas' : `Linha ${linha}`}
+                                    </div>
+                                    {selectedLinhaFinished === linha && <Check className="h-3 w-3 text-zinc-900" />}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   )}
                 </div>
