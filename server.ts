@@ -421,7 +421,7 @@ app.post('/api/update', async (req, res) => {
         }
       }
 
-      return res.status(200).json({ success: true, message: 'Row updated', data: updateRes });
+      return res.status(200).json({ success: true, message: 'Row updated' });
     } else {
       console.log('Row not found for update:', originalData);
       return res.status(404).json({ success: false, error: 'Row not found in spreadsheet' });
@@ -439,35 +439,38 @@ app.post('/api/delete', async (req, res) => {
   }
 
   try {
-    const { op, linha } = req.body;
+    const { op, linha, isAvulsa } = req.body;
     const client = getGraphClient();
     const { driveId, itemId } = await resolveExcelFile(client);
     const msSheetName = MS_SHEET_NAME;
 
-    // 1. Delete from Main Sheet
-    const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-    
-    let rowIndexFound = -1;
     let excelRowFound = -1;
 
-    for (let i = usedRange.values.length - 1; i >= 0; i--) {
-      const row = usedRange.values[i];
-      const rowLinha = String(row[6] || '').trim().replace('Linha ', '');
-      const searchLinha = String(linha || '').trim().replace('Linha ', '');
-      if (
-        String(row[1] || '').trim() === String(op || '').trim() && 
-        rowLinha === searchLinha
-      ) {
-        rowIndexFound = i;
-        excelRowFound = usedRange.rowIndex + i + 1;
-        break; // Only delete the most recent matching one to avoid deleting duplicates by mistake
-      }
-    }
+    // 1. Delete from Main Sheet (ONLY if not isAvulsa)
+    if (!isAvulsa) {
+      const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
+      
+      let rowIndexFound = -1;
 
-    if (excelRowFound !== -1) {
-      const rowToDelete = `${excelRowFound}:${excelRowFound}`;
-      await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${rowToDelete}')/delete`)
-        .post({ shift: 'Up' });
+      for (let i = usedRange.values.length - 1; i >= 0; i--) {
+        const row = usedRange.values[i];
+        const rowLinha = String(row[6] || '').trim().replace('Linha ', '');
+        const searchLinha = String(linha || '').trim().replace('Linha ', '');
+        if (
+          String(row[1] || '').trim() === String(op || '').trim() && 
+          rowLinha === searchLinha
+        ) {
+          rowIndexFound = i;
+          excelRowFound = usedRange.rowIndex + i + 1;
+          break; // Only delete the most recent matching one to avoid deleting duplicates by mistake
+        }
+      }
+
+      if (excelRowFound !== -1) {
+        const rowToDelete = `${excelRowFound}:${excelRowFound}`;
+        await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${rowToDelete}')/delete`)
+          .post({ shift: 'Up' });
+      }
     }
 
     // 2. Delete from PARADAS Sheet

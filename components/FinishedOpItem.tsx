@@ -15,6 +15,9 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
              {op.litragem && (
                <span className="text-[10px] font-bold text-zinc-500 bg-zinc-50 px-2 py-0.5 rounded border border-zinc-200">{op.litragem}</span>
              )}
+             {op.isAvulsa && (
+               <span className="text-[10px] font-black tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 shadow-sm">PARADA AVULSA</span>
+             )}
           </div>
           <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-semibold bg-white/50 border border-zinc-100 px-2 py-0.5 rounded shrink-0">
              <Clock className="w-3 h-3 text-zinc-400" />
@@ -78,20 +81,23 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
 
       {/* Toolbar */}
       <div className="flex gap-2 mt-1 pt-3 border-t border-zinc-200/60">
-        <button
-          onClick={() => setRevertingOp(op)}
-          title="Mover para Pendentes"
-          className="flex-1 flex items-center justify-center h-12 text-xs sm:text-sm font-black bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl shadow-md transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20"
-        >
-          <RotateCcw className="w-3.5 h-3.5 mr-2" />
-          Reverter OP
-        </button>
+        {!op.isAvulsa && (
+          <button
+            onClick={() => setRevertingOp(op)}
+            title="Mover para Pendentes"
+            className="flex-1 flex items-center justify-center h-12 text-xs sm:text-sm font-black bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl shadow-md transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20"
+          >
+            <RotateCcw className="w-3.5 h-3.5 mr-2" />
+            Reverter OP
+          </button>
+        )}
         <button
           onClick={() => openEdit(op)}
           title="Editar OP"
-          className="flex-shrink-0 flex items-center justify-center w-12 h-12 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 hover:border-zinc-300 rounded-xl transition-colors border-2 border-zinc-200/80 shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-zinc-900/20 outline-none"
+          className={`flex items-center justify-center h-12 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 hover:border-zinc-300 rounded-xl transition-colors border-2 border-zinc-200/80 shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-zinc-900/20 outline-none ${op.isAvulsa ? 'flex-1' : 'w-12 flex-shrink-0'}`}
         >
           <Pencil className="w-4 h-4" />
+          {op.isAvulsa && <span className="ml-2 font-bold text-sm">Editar</span>}
         </button>
         <button
           onClick={() => setDeletingOp(op)}

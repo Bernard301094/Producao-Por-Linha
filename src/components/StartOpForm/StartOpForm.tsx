@@ -129,52 +129,52 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
                
                <div className="space-y-2.5 relative">
-                <Label htmlFor="opNumber" className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Número da OP</Label>
+                <Label htmlFor="opNumber" className="block text-sm font-black text-zinc-600 uppercase tracking-widest pl-2">Número da OP</Label>
                 <div className="relative">
-                  <Input id="opNumber" {...register('opNumber', { onChange: (e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" className="w-full h-14 pl-4 pr-12 bg-white border-2 border-zinc-200/80 rounded-2xl text-base sm:text-lg font-mono font-black text-zinc-900 focus-visible:ring-0 focus-visible:border-zinc-950 transition-all shadow-sm placeholder:font-medium placeholder:text-zinc-300" />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-300 font-black pointer-events-none text-xl select-none">#</div>
+                  <Input id="opNumber" {...register('opNumber', { onChange: (e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" className="w-full h-16 px-5 bg-white border-2 border-zinc-200/80 rounded-2xl text-lg sm:text-xl font-mono font-black text-zinc-900 focus-visible:ring-0 focus-visible:border-zinc-950 transition-all shadow-sm placeholder:font-medium placeholder:text-zinc-300" />
+                  <div className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-300 font-black pointer-events-none text-2xl select-none">#</div>
                 </div>
                 {errors.opNumber && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.opNumber.message as string}</p>}
               </div>
               
               <div className="space-y-2.5">
-                <Label htmlFor="horaInicial" className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Hora de Início</Label>
+                <Label htmlFor="horaInicial" className="block text-sm font-black text-zinc-600 uppercase tracking-widest pl-2">Hora de Início</Label>
                 <CustomTimePicker
                   id="horaInicial"
                   value={watch('horaInicial')}
                   onChange={(v: string) => setValue('horaInicial', v, { shouldValidate: true })}
-                  clockIconClass="absolute left-3 w-5 h-5 text-zinc-400 pointer-events-none"
-                  wrapperClass="bg-white rounded-2xl h-14 border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-all shadow-sm"
-                  inputClass="pl-9 pr-2 w-full text-base font-bold bg-transparent focus:ring-0 placeholder:font-medium placeholder:text-zinc-300"
+                  clockIconClass="absolute left-4 w-6 h-6 text-zinc-400 pointer-events-none"
+                  wrapperClass="bg-white rounded-2xl h-16 border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-all shadow-sm"
+                  inputClass="pl-12 pr-4 w-full text-lg sm:text-xl font-bold bg-transparent focus:ring-0 placeholder:font-medium placeholder:text-zinc-300"
                 />
                 {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.horaInicial.message as string}</p>}
               </div>
 
               <div className="relative space-y-2.5 sm:col-span-2" ref={novaOpRef}>
-                <Label htmlFor="produto" className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Produto Fabricado</Label>
-                <input id="produto" {...register('produto')} readOnly={!isTypingProduct} onClick={() => setShowProductSuggestions(true)} autoComplete="off" onFocus={() => setShowProductSuggestions(true)} placeholder="Digite para buscar..." className="flex h-14 w-full rounded-2xl border-2 border-zinc-200/80 bg-white px-4 py-2 text-base font-bold text-zinc-900 transition-all placeholder:text-zinc-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-zinc-950 shadow-sm" />
+                <Label htmlFor="produto" className="block text-sm font-black text-zinc-600 uppercase tracking-widest pl-2">Produto Fabricado</Label>
+                <input id="produto" {...register('produto')} readOnly={!isTypingProduct} onClick={() => setShowProductSuggestions(true)} autoComplete="off" onFocus={() => setShowProductSuggestions(true)} placeholder="Digite para buscar..." className="flex h-16 w-full rounded-2xl border-2 border-zinc-200/80 bg-white px-5 py-3 text-lg font-bold text-zinc-900 transition-all placeholder:text-zinc-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-zinc-950 shadow-sm" />
                 {showProductSuggestions && (
                   <div className="absolute z-[60] w-full mt-2 bg-white border border-zinc-200 rounded-[1.5rem] shadow-2xl max-h-72 overflow-y-auto p-2 ring-1 ring-zinc-900/5">
                     {!isTypingProduct && (
-                      <div onClick={(e) => { e.preventDefault(); setIsTypingProduct(true); setTimeout(() => document.getElementById('produto')?.focus(), 50); }} className="cursor-pointer px-4 py-3 text-sm text-zinc-600 font-bold hover:bg-zinc-100 hover:text-zinc-900 rounded-xl flex items-center gap-3 mb-2 border border-zinc-200/50 bg-zinc-50/50 transition-colors min-h-[56px]">
-                        <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200/60 flex items-center justify-center shadow-sm">
-                          <Search className="w-4 h-4 text-zinc-400" />
+                      <div onClick={(e) => { e.preventDefault(); setIsTypingProduct(true); setTimeout(() => document.getElementById('produto')?.focus(), 50); }} className="cursor-pointer px-4 py-3 text-sm text-zinc-600 font-bold hover:bg-zinc-100 hover:text-zinc-900 rounded-xl flex items-center gap-3 mb-2 border border-zinc-200/50 bg-zinc-50/50 transition-colors min-h-[64px]">
+                        <div className="w-10 h-10 rounded-lg bg-white border border-zinc-200/60 flex items-center justify-center shadow-sm">
+                          <Search className="w-5 h-5 text-zinc-400" />
                         </div>
                         Pesquisar produto pelo nome
                       </div>
                     )}
                     {filteredProducts.length > 0 ? filteredProducts.map(p => (
-                      <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); setIsTypingProduct(false); }} className="group/item cursor-pointer px-4 py-2 mb-1 last:mb-0 min-h-[56px] text-sm text-zinc-700 hover:bg-[#F9FAFB] hover:text-zinc-950 rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200/60">
+                      <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); setIsTypingProduct(false); }} className="group/item cursor-pointer px-5 py-3 mb-1 last:mb-0 min-h-[64px] text-base text-zinc-700 hover:bg-[#F9FAFB] hover:text-zinc-950 rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200/60">
                         <span className="truncate group-hover/item:text-black">{p.produto}</span>
-                        {p.litragem && <span className="text-[10px] text-zinc-500 font-mono font-black tracking-widest shrink-0 uppercase bg-zinc-100 border border-zinc-200/60 px-2 py-1 rounded-md">{p.litragem}</span>}
+                        {p.litragem && <span className="text-[10px] sm:text-xs text-zinc-500 font-mono font-black tracking-widest shrink-0 uppercase bg-zinc-100 border border-zinc-200/60 px-2 py-1 rounded-md">{p.litragem}</span>}
                       </div>
                     )) : watch('produto') ? (
-                       <div className="px-4 py-2 min-h-[56px] text-sm text-blue-600 font-bold cursor-pointer hover:bg-blue-50 rounded-[1.25rem] transition-colors flex items-center border border-transparent hover:border-blue-100" onClick={() => { setShowProductSuggestions(false); setIsTypingProduct(false); }}>
-                          <Plus className="w-4 h-4 mr-2" />
+                       <div className="px-5 py-3 min-h-[64px] text-base text-blue-600 font-bold cursor-pointer hover:bg-blue-50 rounded-[1.25rem] transition-colors flex items-center border border-transparent hover:border-blue-100" onClick={() => { setShowProductSuggestions(false); setIsTypingProduct(false); }}>
+                          <Plus className="w-5 h-5 mr-2" />
                           Cadastrar como novo: "{watch('produto')}"
                        </div>
                     ) : (
-                       <div className="px-4 text-sm text-zinc-400 font-medium text-center min-h-[56px] flex items-center justify-center">
+                       <div className="px-5 text-base text-zinc-400 font-medium text-center min-h-[64px] flex items-center justify-center">
                           Nenhum produto correspondente.
                        </div>
                     )}
@@ -184,55 +184,84 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
               </div>
 
               <div className="space-y-2.5 sm:col-span-2">
-                <Label className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Linha de Produção</Label>
+                <Label className="block text-sm font-black text-zinc-600 uppercase tracking-widest pl-2">Linha de Produção</Label>
                 <input type="hidden" {...register('linha')} />
-                <Popover open={openLineSelect} onOpenChange={setOpenLineSelect}>
-                  <PopoverTrigger type="button" role="combobox" aria-expanded={openLineSelect} className={cn("flex items-center justify-between w-full h-14 px-4 border-2 border-zinc-200/80 bg-white transition-all duration-200 text-base font-bold rounded-2xl outline-none focus:border-zinc-950 shadow-sm disabled:cursor-not-allowed disabled:opacity-50", watch('linha') ? 'border-zinc-300 bg-white text-zinc-950' : 'text-zinc-400 hover:border-zinc-300')}>
-                    {watch('linha') ? `Linha ${watch('linha')}` : 'Toque para selecionar...'}
-                    <ChevronsUpDown className="ml-3 h-5 w-5 shrink-0 text-zinc-300" />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-1.5 shadow-2xl border-zinc-200/80 rounded-[1.5rem] z-[50]" align="start">
-                    <Command className="border-none" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
-                      <div className="px-2 pb-2 pt-1">
-                        <CommandInput placeholder="Procurar ou adicionar..." className="bg-[#F9FAFB] text-sm h-12 rounded-xl px-3 border border-zinc-200/80 font-medium w-full mt-1" value={searchLine} onValueChange={setSearchLine} />
-                      </div>
-                      <CommandList className="max-h-[260px] overflow-y-auto p-1">
-                        <CommandEmpty className="py-4 text-center text-sm text-zinc-500">
-                          {searchLine ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              className="w-full justify-start font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-12 rounded-xl"
-                              onClick={() => {
-                                const newLine = searchLine.trim().startsWith('Linha') ? searchLine.trim() : `Linha ${searchLine.trim()}`;
-                                const val = newLine.replace('Linha ', '');
+                
+                <div className="flex flex-wrap gap-2 pt-1 pb-2">
+                  {allLinhas.map((linhaFull: string) => {
+                    const lineVal = linhaFull.replace('Linha ', '');
+                    return (
+                      <button
+                        key={lineVal}
+                        type="button"
+                        onClick={() => setValue('linha', lineVal, { shouldValidate: true })}
+                        className={cn(
+                          "h-10 px-4 rounded-xl font-bold text-sm transition-all border-2",
+                          watch('linha') === lineVal
+                            ? "bg-zinc-950 text-white border-zinc-950 shadow-sm scale-[1.02]"
+                            : "bg-white text-zinc-600 border-zinc-200/80 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
+                        )}
+                      >
+                        {lineVal}
+                      </button>
+                    );
+                  })}
+                  
+                  <Popover open={openLineSelect} onOpenChange={setOpenLineSelect}>
+                    <PopoverTrigger type="button" className={cn(
+                        "h-10 px-3 rounded-xl font-bold text-sm transition-all border-2 border-dashed flex items-center gap-1.5",
+                        watch('linha') && !allLinhas.some((l: string) => l.replace('Linha ', '') === watch('linha'))
+                          ? "bg-zinc-950 text-white border-zinc-950 shadow-sm scale-[1.02]"
+                          : "bg-white text-zinc-400 border-zinc-200 hover:text-zinc-600 hover:border-zinc-300"
+                      )}>
+                      <Plus className="w-3.5 h-3.5" /> 
+                      {(watch('linha') && !allLinhas.some((l: string) => l.replace('Linha ', '') === watch('linha'))) ? watch('linha') : 'Outra'}
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-2 shadow-2xl border-zinc-200/80 rounded-[1.25rem] z-[50]" align="start">
+                      <div className="flex flex-col gap-1.5">
+                        <input 
+                          type="text"
+                          placeholder="Nome da linha..."
+                          className="bg-[#F9FAFB] text-sm h-10 rounded-lg px-3 border border-zinc-200/80 font-medium w-full focus:outline-none focus:border-zinc-400"
+                          value={searchLine}
+                          onChange={(e) => setSearchLine(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && searchLine.trim()) {
+                              e.preventDefault();
+                              const newLine = searchLine.trim().startsWith('Linha') ? searchLine.trim() : `Linha ${searchLine.trim()}`;
+                              const val = newLine.replace('Linha ', '');
+                              if (!allLinhas.includes(newLine)) {
                                 setCustomLinhas((prev: string[]) => [...prev, newLine]);
-                                setValue('linha', val, { shouldValidate: true });
-                                setOpenLineSelect(false);
-                                setSearchLine('');
-                              }}
-                            >
-                              <Plus className="w-4 h-4 mr-2" /> Adicionar "{searchLine}"
-                            </Button>
-                          ) : (
-                            "Nenhuma linha encontrada."
-                          )}
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {allLinhas.map((linhaFull) => {
-                            const lineVal = linhaFull.replace('Linha ', '');
-                            return (
-                              <CommandItem key={lineVal} value={linhaFull} onSelect={() => { setValue('linha', lineVal, { shouldValidate: true }); setOpenLineSelect(false); }} className="flex items-center justify-between py-2 px-4 mb-1 last:mb-0 min-h-[48px] cursor-pointer rounded-xl aria-selected:bg-zinc-100 aria-selected:text-zinc-950 text-zinc-700 font-bold transition-colors">
-                                <span className="tracking-tight text-sm">{linhaFull}</span>
-                                <Check className={cn('h-5 w-5 text-zinc-950', watch('linha') === lineVal ? 'opacity-100' : 'opacity-0')} />
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                              }
+                              setValue('linha', val, { shouldValidate: true });
+                              setOpenLineSelect(false);
+                              setSearchLine('');
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={!searchLine.trim()}
+                          className="w-full justify-start font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-10 rounded-lg disabled:opacity-50"
+                          onClick={() => {
+                            if (!searchLine.trim()) return;
+                            const newLine = searchLine.trim().startsWith('Linha') ? searchLine.trim() : `Linha ${searchLine.trim()}`;
+                            const val = newLine.replace('Linha ', '');
+                            if (!allLinhas.includes(newLine)) {
+                              setCustomLinhas((prev: string[]) => [...prev, newLine]);
+                            }
+                            setValue('linha', val, { shouldValidate: true });
+                            setOpenLineSelect(false);
+                            setSearchLine('');
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-2" /> Adicionar
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 {errors.linha && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.linha.message as string}</p>}
               </div>
             </div>
@@ -250,10 +279,10 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
             
             <Dialog open={showConfirmStart} onOpenChange={setShowConfirmStart}>
               {/* Contenedor del boton sticky abajo en móvil, normal en PC */}
-              <div className="mt-8 pt-6 sm:pt-8 bg-zinc-50/30 border-t border-zinc-200/80 sticky bottom-0 -mx-5 px-5 sm:-mx-7 sm:px-7 pb-5 sm:pb-7 lg:pb-0 lg:border-t-0 lg:bg-transparent lg:static lg:mx-0 lg:px-0 z-10 w-[calc(100%+2.5rem)] sm:w-[calc(100%+3.5rem)] lg:w-full ml-[-1.25rem] sm:ml-[-1.75rem] lg:ml-0 flex flex-col gap-3">
+              <div className="mt-6 pt-4 sm:pt-6 bg-zinc-50/30 border-t border-zinc-200/80 sticky bottom-0 -mx-5 px-5 sm:-mx-7 sm:px-7 pb-4 sm:pb-5 lg:pb-0 lg:border-t-0 lg:bg-transparent lg:static lg:mx-0 lg:px-0 z-10 w-[calc(100%+2.5rem)] sm:w-[calc(100%+3.5rem)] lg:w-full ml-[-1.25rem] sm:ml-[-1.75rem] lg:ml-0 flex flex-col gap-2">
                 <motion.div whileTap={{ scale: 0.98 }}>
-                  <Button type="submit" disabled={loadingNewOp} className="w-full h-[4.5rem] bg-zinc-950 hover:bg-zinc-900 text-white font-black text-xl tracking-tight rounded-[1.5rem] shadow-[0_8px_30px_rgb(24_24_27_/_12%)] transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20 focus-visible:outline-none disabled:bg-zinc-200 disabled:text-zinc-500 disabled:shadow-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjZmZmZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')]">
-                    {loadingNewOp ? <Loader2 className="w-7 h-7 animate-spin" /> : <><Play className="w-6 h-6 mr-3 fill-current" /> Iniciar Ordem</>}
+                  <Button type="submit" disabled={loadingNewOp} className="w-full h-14 bg-zinc-950 hover:bg-zinc-900 text-white font-black text-xl tracking-tight rounded-2xl shadow-[0_8px_30px_rgb(24_24_27_/_12%)] transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20 focus-visible:outline-none disabled:bg-zinc-200 disabled:text-zinc-500 disabled:shadow-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjZmZmZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')]">
+                    {loadingNewOp ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Play className="w-6 h-6 mr-3 fill-current" /> Iniciar Ordem</>}
                   </Button>
                 </motion.div>
                 <motion.div whileTap={{ scale: 0.98 }}>
@@ -269,7 +298,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                       }
                       setShowParadaModal(true);
                     }}
-                    className="w-full h-14 bg-white hover:bg-zinc-50 border-2 border-zinc-200/80 text-zinc-700 font-bold text-base rounded-[1.25rem] transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20 disabled:opacity-50"
+                    className="w-full h-12 bg-white hover:bg-zinc-50 border-2 border-zinc-200/80 text-zinc-700 font-bold text-base rounded-xl transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20 disabled:opacity-50"
                   >
                     <History className="w-5 h-5 mr-2 opacity-60" /> Lançar Apenas Parada
                   </Button>
@@ -432,9 +461,9 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                           value={paradaStart} 
                           onChange={setParadaStart}
                           placeholder="00:00"
-                          clockIconClass="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none"
-                          wrapperClass="h-12 bg-white rounded-xl border-2 border-zinc-200/80 focus-within:border-zinc-950 shadow-sm"
-                          inputClass="pl-8 pr-2 text-sm font-bold text-zinc-800 bg-transparent w-full text-center"
+                          clockIconClass="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none"
+                          wrapperClass="h-14 bg-white rounded-xl border-2 border-zinc-200/80 focus-within:border-zinc-950 shadow-sm"
+                          inputClass="pl-9 pr-2 text-base font-bold text-zinc-800 bg-transparent w-full text-center"
                         />
                       </div>
                       <div className="space-y-1.5 relative">
@@ -443,9 +472,9 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                           value={paradaEnd} 
                           onChange={setParadaEnd}
                           placeholder="00:00"
-                          clockIconClass="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none"
-                          wrapperClass="h-12 bg-white rounded-xl border-2 border-zinc-200/80 focus-within:border-zinc-950 shadow-sm"
-                          inputClass="pl-8 pr-2 text-sm font-bold text-zinc-800 bg-transparent w-full text-center"
+                          clockIconClass="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none"
+                          wrapperClass="h-14 bg-white rounded-xl border-2 border-zinc-200/80 focus-within:border-zinc-950 shadow-sm"
+                          inputClass="pl-9 pr-2 text-base font-bold text-zinc-800 bg-transparent w-full text-center"
                         />
                       </div>
                     </div>
@@ -477,11 +506,11 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                           setParadaEnd('');
                         }}
                         className={cn(
-                          "flex-1 h-11 rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all",
+                          "flex-1 h-14 rounded-[1.25rem] font-bold text-base shadow-md flex items-center justify-center gap-2 transition-all",
                           editingParadaIndex !== null ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-zinc-900 hover:bg-black text-white"
                         )}
                       >
-                        {editingParadaIndex !== null ? <><Check className="w-4 h-4" /> Atualizar Parada</> : <><Plus className="w-4 h-4" /> Incluir na Lista</>}
+                        {editingParadaIndex !== null ? <><Check className="w-5 h-5" /> Atualizar Parada</> : <><Plus className="w-5 h-5" /> Incluir na Lista</>}
                       </Button>
                       
                       {editingParadaIndex !== null && (
@@ -494,9 +523,9 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                             setParadaStart('');
                             setParadaEnd('');
                           }}
-                          className="w-11 h-11 p-0 rounded-xl border-2 border-zinc-200"
+                          className="w-14 h-14 p-0 rounded-[1.25rem] border-2 border-zinc-200"
                         >
-                          <X className="w-4 h-4 text-zinc-500" />
+                          <X className="w-5 h-5 text-zinc-500" />
                         </Button>
                       )}
                     </div>

@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 import { cn } from '../src/lib/utils';
 import { Clock } from 'lucide-react';
 
+import { format, subMinutes } from 'date-fns';
+
 export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass, inputClass, id, placeholder = "--:--" }: any) => {
   const [open, setOpen] = useState(false);
   const [hour, setHour] = useState(value ? value.split(':')[0] : '12');
@@ -32,6 +34,12 @@ export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass
 
     onChange(`${hTemp.toString().padStart(2, '0')}:${mTemp.toString().padStart(2, '0')}`);
     setOpen(false);
+  };
+
+  const applyQuickTime = (minutesToSubtract: number) => {
+    const time = subMinutes(new Date(), minutesToSubtract);
+    setHour(format(time, 'HH'));
+    setMinute(format(time, 'mm'));
   };
 
   const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,7 +124,13 @@ export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass
              </div>
           </div>
 
-          <div className="flex flex-col gap-3 mt-4">
+          <div className="flex gap-2 mb-6 justify-center">
+            <button onClick={() => applyQuickTime(0)} className="flex-1 h-10 bg-blue-50 text-blue-600 rounded-xl font-bold text-xs border border-blue-200/60 hover:bg-blue-100 transition-colors">Agora</button>
+            <button onClick={() => applyQuickTime(5)} className="flex-1 h-10 bg-zinc-100 text-zinc-700 rounded-xl font-bold text-xs border border-zinc-200 hover:bg-zinc-200 transition-colors">-5 min</button>
+            <button onClick={() => applyQuickTime(15)} className="flex-1 h-10 bg-zinc-100 text-zinc-700 rounded-xl font-bold text-xs border border-zinc-200 hover:bg-zinc-200 transition-colors">-15 min</button>
+          </div>
+
+          <div className="flex flex-col gap-3 mt-2">
             <button onClick={handleConfirm} className="w-full h-14 bg-zinc-950 text-white rounded-2xl font-black text-base hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-900/10 focus-visible:ring-4 focus-visible:ring-zinc-900/20">
               Confirmar
             </button>

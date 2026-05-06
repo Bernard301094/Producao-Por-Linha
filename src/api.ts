@@ -247,7 +247,7 @@ export const removeFinishedOperation = async (id: string, _turno: string) => {
     fetch(`${API_BASE}/api/delete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })
+      body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto, isAvulsa: data.isAvulsa })
     }).catch(e => console.error('Delete API error', e));
   }
   
@@ -269,7 +269,7 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
     fetch(`${API_BASE}/api/delete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })
+      body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto, isAvulsa: data.isAvulsa })
     }).catch(e => console.error('API delete error in revert', e));
     
     // Clean up finished-specific fields

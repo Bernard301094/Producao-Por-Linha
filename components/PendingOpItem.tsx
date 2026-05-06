@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { motion } from 'motion/react';
-import { CheckCircle2, Clock, Pencil, Trash2, ChevronDown, ChevronUp, Plus, Loader2, Search, History } from 'lucide-react';
+import { motion, useAnimation, useMotionValue, useTransform } from 'motion/react';
+import { CheckCircle2, Clock, Pencil, Trash2, ChevronDown, ChevronUp, Plus, Loader2, Search, History, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
@@ -128,12 +128,60 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
     });
   };
 
+  const controls = useAnimation();
+  const x = useMotionValue(0);
+
+  const handleDragEnd = async (_e: any, info: any) => {
+    const threshold = 80;
+    if (info.offset.x > threshold) {
+      // Swiped right -> Concluir OP (Apontar)
+      controls.start({ x: 0 });
+      setIsFinishing(true);
+      setFinishQtd('');
+      setFinishTime(format(new Date(), 'HH:mm'));
+    } else if (info.offset.x < -threshold) {
+      // Swiped left -> Parada
+      controls.start({ x: 0 });
+      setShowParadas(true);
+      // scroll is nice but handled automatically usually or we can rely on user scrolling
+    } else {
+      controls.start({ x: 0 });
+    }
+  };
+
+  // Transform values for background opacity
+  const bgOpacityRight = useTransform(x, [0, 80], [0, 1]);
+  const bgOpacityLeft = useTransform(x, [0, -80], [0, 1]);
+
   return (
-    <div className="group bg-white sm:rounded-3xl rounded-2xl p-4 sm:p-5 border border-zinc-200/80 hover:border-zinc-300 hover:shadow-md transition-all shadow-sm relative overflow-hidden text-left flex flex-col gap-3 sm:gap-4 mb-3">
-      <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-400 group-hover:bg-amber-500 transition-colors" />
-      
-      {/* Header Info */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 pl-3">
+    <div className="relative mb-3 group rounded-[1.5rem] sm:rounded-[2rem]">
+      {/* Background Actions */}
+      <div className="absolute inset-0 flex items-center justify-between rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden bg-zinc-100 pointer-events-none">
+         {/* Left background -> Swipe Right to Finish */}
+         <motion.div style={{ opacity: bgOpacityRight }} className="absolute inset-y-0 left-0 w-1/2 bg-emerald-500 flex items-center pl-6 rounded-l-[1.5rem] sm:rounded-l-[2rem]">
+            <CheckCircle2 className="w-8 h-8 text-white" />
+            <span className="text-white font-black ml-3 text-lg hidden sm:block">Apontar OP</span>
+         </motion.div>
+         {/* Right background -> Swipe Left to Parada */}
+         <motion.div style={{ opacity: bgOpacityLeft }} className="absolute inset-y-0 right-0 w-1/2 bg-amber-500 flex items-center justify-end pr-6 rounded-r-[1.5rem] sm:rounded-r-[2rem]">
+            <span className="text-white font-black mr-3 text-lg hidden sm:block">Registrar Parada</span>
+            <History className="w-8 h-8 text-white" />
+         </motion.div>
+      </div>
+
+      <motion.div 
+        drag={!isFinishing ? "x" : false}
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.4}
+        onDragEnd={handleDragEnd}
+        animate={controls}
+        style={{ x }}
+        className="relative bg-white sm:rounded-[2rem] rounded-[1.5rem] p-4 sm:p-5 border border-zinc-200/80 hover:border-zinc-300 hover:shadow-md transition-all shadow-sm overflow-hidden text-left flex flex-col gap-3 sm:gap-4 touch-pan-y"
+      >
+        <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-400 group-hover:bg-amber-500 transition-colors animate-[pulse_2s_ease-in-out_infinite]" />
+        
+        {/* Header Info */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 pl-3">
         <div className="flex flex-col flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1.5">
              <span className="text-[10px] font-black tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 shadow-sm w-fit">OP {op.opNumber}</span>
@@ -436,20 +484,27 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           </div>
         </div>
       ) : (
-        <div className="flex gap-2 mt-1 pt-3 border-t border-zinc-200/60">
-          <motion.div whileTap={{ scale: 0.98 }} className="flex-1">
-            <Button size="lg" onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }} className="w-full h-12 text-sm bg-zinc-950 hover:bg-zinc-800 text-white font-black rounded-xl shadow-md transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20">
-              <CheckCircle2 className="w-4 h-4 mr-2" /> Concluir OP
-            </Button>
-          </motion.div>
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => openEdit(op)} title="Editar" className="flex-shrink-0 flex items-center justify-center w-12 h-12 text-zinc-600 hover:text-zinc-950 hover:bg-zinc-50 hover:border-zinc-300 rounded-xl transition-colors border-2 border-zinc-200/80 shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-zinc-900/20 outline-none">
-             <Pencil className="w-4 h-4" />
-          </motion.button>
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeletingOp(op)} title="Excluir" className="flex-shrink-0 flex items-center justify-center w-12 h-12 text-zinc-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 rounded-xl transition-colors border-2 border-zinc-200/80 shadow-sm bg-white focus-visible:ring-2 focus-visible:ring-red-500/20 outline-none">
-             <Trash2 className="w-4 h-4" />
-          </motion.button>
+        <div className="flex items-center justify-between mt-1 pt-3 border-t border-zinc-200/60">
+           <div className="flex gap-2">
+             <motion.button whileTap={{ scale: 0.95 }} onClick={() => openEdit(op)} title="Editar" className="flex items-center justify-center w-10 h-10 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-50 rounded-xl transition-colors bg-transparent outline-none">
+               <Pencil className="w-4 h-4" />
+             </motion.button>
+             <motion.button whileTap={{ scale: 0.95 }} onClick={() => setDeletingOp(op)} title="Excluir" className="flex items-center justify-center w-10 h-10 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors bg-transparent outline-none">
+               <Trash2 className="w-4 h-4" />
+             </motion.button>
+           </div>
+           
+           <div className="flex gap-2">
+             <Button size="sm" variant="ghost" onClick={() => setShowParadas(true)} className="text-zinc-500 font-bold hover:bg-zinc-100 hover:text-zinc-900 h-10 px-3 rounded-xl">
+               <History className="w-4 h-4 mr-1.5" /> <span className="hidden sm:inline">Parada</span>
+             </Button>
+             <Button size="sm" variant="ghost" onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }} className="text-zinc-500 font-bold hover:bg-zinc-100 hover:text-zinc-900 h-10 px-3 rounded-xl">
+               <CheckCircle2 className="w-4 h-4 mr-1.5" /> <span className="hidden sm:inline">Apontar</span>
+             </Button>
+           </div>
         </div>
       )}
+      </motion.div>
     </div>
   );
 });

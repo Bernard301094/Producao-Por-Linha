@@ -15,7 +15,6 @@ export interface LoginScreenProps {
   setShowPassword: React.Dispatch<React.SetStateAction<boolean>>;
   loginLoading: boolean;
   handleLogin: () => void;
-  startSimulation: () => void;
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({
@@ -27,8 +26,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   showPassword,
   setShowPassword,
   loginLoading,
-  handleLogin,
-  startSimulation
+  handleLogin
 }) => {
   return (
     <div className="min-h-[100dvh] bg-[#F9FAFB] flex flex-col items-center justify-center p-0 sm:p-4 md:p-6 lg:p-8">

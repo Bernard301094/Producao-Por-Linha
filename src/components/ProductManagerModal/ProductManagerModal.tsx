@@ -75,7 +75,10 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100%-2rem)] max-w-[500px] rounded-[2rem] p-0 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 overflow-hidden bg-white max-h-[90vh] flex flex-col">
+      <DialogContent 
+        className="w-[calc(100%-2rem)] max-w-[500px] rounded-[2rem] p-0 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 overflow-hidden bg-white max-h-[90vh] flex flex-col"
+      >
+        <button type="button" autoFocus aria-hidden="true" className="sr-only" />
         <div className="bg-zinc-950 p-6 text-center relative overflow-hidden shrink-0">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:14px_14px] opacity-20" />
           <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/10 shadow-inner">
@@ -99,85 +102,89 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
           </div>
 
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-2">
-            <AnimatePresence mode="popLayout">
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((p) => (
-                  <motion.div
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    key={p.produto}
-                    className="group bg-white border border-zinc-200/80 p-3 rounded-2xl flex items-center justify-between gap-3 hover:border-zinc-300 hover:shadow-sm transition-all"
-                  >
-                    {editingProduct?.produto === p.produto ? (
-                      <div className="flex-1 flex flex-col gap-2">
-                        <Input 
-                          value={newName}
-                          onChange={(e) => setNewName(e.target.value)}
-                          className="h-10 text-sm font-bold bg-white border-2 border-blue-200 focus:border-blue-500 rounded-xl"
-                          placeholder="Nome do produto"
-                          autoFocus
-                        />
-                        <Input 
-                          value={newLitragem}
-                          onChange={(e) => setNewLitragem(e.target.value)}
-                          className="h-9 text-[11px] font-bold bg-white border-zinc-200 rounded-lg"
-                          placeholder="Litragem (ex: 500ml)"
-                        />
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            onClick={handleSave} 
-                            disabled={loading}
-                            className="bg-zinc-900 hover:bg-black text-white h-8 rounded-lg flex-1"
-                          >
-                            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Check className="w-3.5 h-3.5 mr-1" /> Salvar</>}
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => setEditingProduct(null)}
-                            className="h-8 rounded-lg"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((p) => (
+                <div
+                  key={p.produto}
+                  className="group bg-white border border-zinc-200/80 p-3 rounded-2xl flex items-center justify-between gap-3 hover:border-zinc-300 hover:shadow-sm transition-all"
+                >
+                  {editingProduct?.produto === p.produto ? (
+                    <div className="flex-1 flex flex-col gap-2">
+                      <Input 
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        className="h-10 text-sm font-bold bg-white border-2 border-blue-200 focus:border-blue-500 rounded-xl"
+                        placeholder="Nome do produto"
+                        autoFocus
+                      />
+                      <Input 
+                        value={newLitragem}
+                        onChange={(e) => setNewLitragem(e.target.value)}
+                        className="h-9 text-[11px] font-bold bg-white border-zinc-200 rounded-lg"
+                        placeholder="Litragem (ex: 500ml)"
+                      />
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={handleSave} 
+                          disabled={loading}
+                          className="bg-zinc-900 hover:bg-black text-white h-8 rounded-lg flex-1"
+                        >
+                          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <><Check className="w-3.5 h-3.5 mr-1" /> Salvar</>}
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => setEditingProduct(null)}
+                          className="h-8 rounded-lg"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
-                    ) : (
-                      <>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-black text-zinc-900 truncate tracking-tight">{p.produto}</p>
-                          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{p.litragem || 'Sem litragem'}</p>
-                        </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleEdit(p)}
-                            className="w-9 h-9 rounded-xl hover:bg-blue-50 hover:text-blue-600 text-zinc-400"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleDelete(p.produto)}
-                            className="w-9 h-9 rounded-xl hover:bg-red-50 hover:text-red-600 text-zinc-400"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                  </motion.div>
-                ))
-              ) : (
-                <div className="py-12 text-center bg-zinc-50/50 rounded-2xl border-2 border-dashed border-zinc-200/60">
-                  <p className="text-sm font-bold text-zinc-400">Nenhum produto encontrado</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black text-zinc-900 truncate tracking-tight">{p.produto}</p>
+                        <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{p.litragem || 'Sem litragem'}</p>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleEdit(p)}
+                          className="w-9 h-9 rounded-xl hover:bg-blue-50 hover:text-blue-600 text-zinc-400"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleDelete(p.produto)}
+                          className="w-9 h-9 rounded-xl hover:bg-red-50 hover:text-red-600 text-zinc-400"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
-              )}
-            </AnimatePresence>
+              ))
+            ) : (
+              <div className="py-12 text-center bg-zinc-50/50 rounded-2xl border-2 border-dashed border-zinc-200/60">
+                <p className="text-sm font-bold text-zinc-400">Nenhum produto encontrado</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="pt-2 shrink-0">
+            <Button 
+              variant="outline" 
+              className="w-full h-12 rounded-xl font-bold text-zinc-700 bg-zinc-100/50 hover:bg-zinc-200/50 border-2 border-zinc-200 shadow-sm"
+              onClick={() => onOpenChange(false)}
+            >
+              Fechar
+            </Button>
           </div>
         </div>
       </DialogContent>

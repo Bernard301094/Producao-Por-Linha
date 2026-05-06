@@ -826,7 +826,7 @@ export default function App() {
       if (!shiftCheck.allowed) {
         logAudit({
           userProfile: loginProfile,
-          action: 'FINISH_OP_DIRECT',
+          action: 'FINISH_OP',
           expectedShift: loginProfile,
           activeShift: shiftCheck.activeTurno,
           serverTimestamp: getServerTimeISO(),
@@ -1049,6 +1049,7 @@ export default function App() {
 
   const myPendingOps = useMemo(() => {
     return operations.filter(op => {
+      if (op.isAvulsa) return false;
       const sameTurn = op.turno === currentTurnForView;
       if (!op.carimboInicial) return sameTurn;
       return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
@@ -1167,24 +1168,24 @@ export default function App() {
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* Header */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 shadow-sm sticky top-0 z-30">
-          <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 2xl:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
+          <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 2xl:px-8 py-3 sm:py-0 min-h-[4rem] sm:h-20 flex items-center justify-between gap-4">
             {/* Logo & App Name */}
             <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
               <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-950 rounded-xl sm:rounded-[1.25rem] flex items-center justify-center shadow-lg shadow-zinc-950/10 shrink-0 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:8px_8px] opacity-20" />
                 <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white relative z-10" />
               </div>
-              <div className="min-w-0 flex flex-col justify-center">
+              <div className="min-w-0 flex flex-col justify-center pt-1 md:pt-0">
                 <h1 className="text-base sm:text-lg font-black text-zinc-950 tracking-tight leading-none truncate mb-1.5">
                   Diário de Bordo
                 </h1>
-                <div className="flex items-center gap-2">
-                  <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-2 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 sm:gap-2">
+                  <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-2 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight shrink-0">
                     {today}
                   </p>
                   <button 
                     onClick={() => setShowProductManager(true)}
-                    className="flex items-center gap-1.5 text-[9px] font-black text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded transition-colors uppercase tracking-widest"
+                    className="flex w-fit items-center gap-1.5 text-[9px] font-black text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded transition-colors uppercase tracking-widest shrink-0"
                   >
                     <Pencil className="w-2.5 h-2.5" /> Produtos
                   </button>
@@ -1231,30 +1232,33 @@ export default function App() {
         </header>
 
         {/* Mobile Tab Bar */}
-        <div className="lg:hidden sticky top-16 z-20 bg-white border-b border-zinc-200/80 shadow-sm tour-tab-bar">
+        <div className="lg:hidden fixed bottom-0 left-0 w-full z-50 bg-white border-t border-zinc-200/80 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] pb-safe-area tour-tab-bar">
           <div className="flex">
             {(['pendentes', 'nova', 'concluidas'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setMobileTab(tab)}
                 className={cn(
-                  'flex-1 h-14 text-xs font-black uppercase tracking-wider transition-colors',
+                  'flex-1 h-16 flex flex-col items-center justify-center gap-1 text-[10px] font-black uppercase tracking-wider transition-colors',
                   mobileTab === tab
-                    ? 'text-zinc-950 border-b-2 border-zinc-950 bg-zinc-50'
+                    ? 'text-zinc-950 bg-zinc-50'
                     : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50/50'
                 )}
               >
-                {tab === 'pendentes' ? `Pendentes (${visiblePendingOps.length})` : tab === 'nova' ? 'Nova OP' : `Concluídas (${visibleFinishedOps.length})`}
+                {tab === 'pendentes' && <ClipboardList className={cn("w-5 h-5", mobileTab === tab ? "text-zinc-950" : "text-zinc-400")} />}
+                {tab === 'nova' && <Plus className={cn("w-5 h-5", mobileTab === tab ? "text-zinc-950" : "text-zinc-400")} />}
+                {tab === 'concluidas' && <CheckCircle2 className={cn("w-5 h-5", mobileTab === tab ? "text-zinc-950" : "text-zinc-400")} />}
+                {tab === 'pendentes' ? `Pendentes (${visiblePendingOps.length})` : tab === 'nova' ? 'Nova OP' : `Concluídas`}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="w-full max-w-[1920px] mx-auto px-0 sm:px-4 lg:px-6 2xl:px-8 py-0 sm:py-6 lg:py-8">
+        <div className="w-full max-w-[1920px] mx-auto px-0 sm:px-4 lg:px-6 2xl:px-8 py-0 sm:py-6 lg:py-8 pb-20 lg:pb-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-6 lg:gap-8 items-start">
 
             {/* Pendentes */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-4 2xl:col-span-4 lg:order-2 border-none h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-pendentes', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-4 2xl:col-span-4 lg:order-2 border-none h-[calc(100dvh-128px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-pendentes', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
               <div className="p-4 sm:p-5 border-b border-zinc-100 flex flex-col gap-3 bg-zinc-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:14px_14px] opacity-50" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
@@ -1350,8 +1354,20 @@ export default function App() {
                     setDeletingOp={setDeletingOp} 
                     availableParadas={availableParadas}
                     linhaHistory={[
-                      ...finishedOps.filter(f => normalizeLinha(f.linha) === normalizeLinha(op.linha)),
-                      ...operations.filter(p => p.id !== op.id && normalizeLinha(p.linha) === normalizeLinha(op.linha))
+                      ...finishedOps.filter(f => {
+                        if (f.isAvulsa) return false;
+                        const isSameLinha = normalizeLinha(f.linha) === normalizeLinha(op.linha);
+                        const isSameTurno = f.turno === op.turno;
+                        const isSameDate = (!f.carimboInicial || !op.carimboInicial) ? true : (f.carimboInicial.substring(0, 10) === op.carimboInicial.substring(0, 10));
+                        return isSameLinha && isSameTurno && isSameDate;
+                      }),
+                      ...operations.filter(p => {
+                        if (p.isAvulsa) return false;
+                        const isSameLinha = normalizeLinha(p.linha) === normalizeLinha(op.linha);
+                        const isSameTurno = p.turno === op.turno;
+                        const isSameDate = (!p.carimboInicial || !op.carimboInicial) ? true : (p.carimboInicial.substring(0, 10) === op.carimboInicial.substring(0, 10));
+                        return p.id !== op.id && isSameLinha && isSameTurno && isSameDate;
+                      })
                     ]}
                   />
                 ))}
@@ -1359,7 +1375,7 @@ export default function App() {
             </div>
 
             {/* Nova OP */}
-            <div className={cn('flex flex-col lg:col-span-4 xl:col-span-3 2xl:col-span-3 lg:order-1 h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] tour-nova-op', mobileTab !== 'nova' && 'hidden lg:flex')}>
+            <div className={cn('flex flex-col lg:col-span-4 xl:col-span-3 2xl:col-span-3 lg:order-1 h-[calc(100dvh-128px)] lg:h-[calc(100vh-10rem)] tour-nova-op', mobileTab !== 'nova' && 'hidden lg:flex')}>
               <StartOpForm
                 currentTurnForView={currentTurnForView}
                 handleSubmit={handleSubmit}
@@ -1392,7 +1408,7 @@ export default function App() {
             </div>
 
             {/* Concluídas */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-5 2xl:col-span-5 lg:order-3 border-none h-[calc(100dvh-120px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-concluidas', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-5 2xl:col-span-5 lg:order-3 border-none h-[calc(100dvh-128px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-concluidas', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
               <div className="p-4 sm:p-5 border-b border-zinc-100 flex flex-col gap-3 bg-emerald-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#05966910_1px,transparent_1px),linear-gradient(to_bottom,#05966910_1px,transparent_1px)] bg-[size:14px_14px] opacity-70" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">

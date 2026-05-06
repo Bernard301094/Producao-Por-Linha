@@ -57,6 +57,7 @@ export const QuickCounter = ({ value, onChange, label, className }: any) => {
         <Input 
           type="text"
           inputMode="numeric"
+          pattern="[0-9]*"
           autoComplete="off"
           value={value} 
           onChange={e => onChange(e.target.value.replace(/\D/g, ''))}
