@@ -59,6 +59,12 @@ const resolveExcelFile = async (client: any) => {
   return { driveId: driveItem.parentReference.driveId, itemId: driveItem.id };
 };
 
+const hasLocalCredentials = !!(
+  process.env.MICROSOFT_TENANT_ID &&
+  process.env.MICROSOFT_CLIENT_ID &&
+  process.env.MICROSOFT_CLIENT_SECRET
+);
+
 // Endpoint to check if configuration is set correctly and actually test connection
 app.get('/api/config-check', async (req, res) => {
   const tenantId = process.env.MICROSOFT_TENANT_ID;
@@ -107,6 +113,11 @@ const formatLitragemText = (val: string): string => {
 
 app.post('/api/append', async (req, res) => {
   console.log("POST /api/append received (OneDrive)", req.body);
+  if (!hasLocalCredentials) {
+    console.log("[Mock] MOCKING SUCCESS for /api/append because local MS credentials are missing.");
+    return res.status(200).json({ success: true, message: 'MOCKED Row added via OneDrive' });
+  }
+  
   try {
     const {
       carimbo, op, litragem, produto, linha, turno, quantidade, horaInicial, horaFinal, qntReprocesso, paradas
@@ -216,6 +227,11 @@ app.post('/api/append', async (req, res) => {
 
 app.post('/api/append-paradas', async (req, res) => {
   console.log("POST /api/append-paradas received", req.body);
+  if (!hasLocalCredentials) {
+    console.log("[Mock] MOCKING SUCCESS for /api/append-paradas because local MS credentials are missing.");
+    return res.status(200).json({ success: true, message: 'MOCKED Paradas added via OneDrive' });
+  }
+  
   try {
     const {
       carimbo, op, litragem, produto, linha, turno, paradas
@@ -273,6 +289,11 @@ app.post('/api/append-paradas', async (req, res) => {
 });
 
 app.post('/api/update', async (req, res) => {
+  if (!hasLocalCredentials) {
+    console.log("[Mock] MOCKING SUCCESS for /api/update because local MS credentials are missing.");
+    return res.status(200).json({ success: true, message: 'MOCKED Row updated' });
+  }
+
   try {
     const { originalData, updates } = req.body;
     const client = getGraphClient();
@@ -402,6 +423,11 @@ app.post('/api/update', async (req, res) => {
 });
 
 app.post('/api/delete', async (req, res) => {
+  if (!hasLocalCredentials) {
+    console.log("[Mock] MOCKING SUCCESS for /api/delete because local MS credentials are missing.");
+    return res.status(200).json({ success: true, message: 'MOCKED Row deleted' });
+  }
+
   try {
     const { op, linha } = req.body;
     const client = getGraphClient();

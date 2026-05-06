@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../components/ui/command';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
-import { Package, ChevronsUpDown, Check, CheckCircle2, Loader2, Search, Play, Plus } from 'lucide-react';
+import { Package, ChevronsUpDown, Check, CheckCircle2, Loader2, Search, Play, Plus, Clock, History, Pencil, Trash2, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { CustomTimePicker } from '../../../components/CustomTimePicker';
 import { cn } from '../../lib/utils';
@@ -38,6 +38,9 @@ export interface StartOpFormProps {
   setShowConfirmStart: React.Dispatch<React.SetStateAction<boolean>>;
   startFormData: any;
   onStartOp: (data: any) => void;
+  availableParadas: any[];
+  setAvailableParadas: React.Dispatch<React.SetStateAction<any[]>>;
+  onParadaOnly: (data: any, parada: any) => void;
 }
 
 export const StartOpForm: React.FC<StartOpFormProps> = ({
@@ -64,9 +67,20 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
   showConfirmStart,
   setShowConfirmStart,
   startFormData,
-  onStartOp
+  onStartOp,
+  availableParadas,
+  setAvailableParadas,
+  onParadaOnly
 }) => {
   const novaOpRef = useRef<HTMLDivElement>(null);
+  const [showParadaModal, setShowParadaModal] = useState(false);
+  const [openParadaSelect, setOpenParadaSelect] = useState(false);
+  const [paradaSelectedCode, setParadaSelectedCode] = useState('');
+  const [paradaStart, setParadaStart] = useState('');
+  const [paradaEnd, setParadaEnd] = useState('');
+  const [searchParadaText, setSearchParadaText] = useState('');
+  const [addedParadas, setAddedParadas] = useState<any[]>([]);
+  const [editingParadaIndex, setEditingParadaIndex] = useState<number | null>(null);
 
   // Close suggestions if clicks outside
   React.useEffect(() => {
@@ -236,10 +250,28 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
             
             <Dialog open={showConfirmStart} onOpenChange={setShowConfirmStart}>
               {/* Contenedor del boton sticky abajo en móvil, normal en PC */}
-              <div className="mt-8 pt-6 sm:pt-8 bg-zinc-50/30 border-t border-zinc-200/80 sticky bottom-0 -mx-5 px-5 sm:-mx-7 sm:px-7 pb-5 sm:pb-7 lg:pb-0 lg:border-t-0 lg:bg-transparent lg:static lg:mx-0 lg:px-0 z-10 w-[calc(100%+2.5rem)] sm:w-[calc(100%+3.5rem)] lg:w-full ml-[-1.25rem] sm:ml-[-1.75rem] lg:ml-0">
+              <div className="mt-8 pt-6 sm:pt-8 bg-zinc-50/30 border-t border-zinc-200/80 sticky bottom-0 -mx-5 px-5 sm:-mx-7 sm:px-7 pb-5 sm:pb-7 lg:pb-0 lg:border-t-0 lg:bg-transparent lg:static lg:mx-0 lg:px-0 z-10 w-[calc(100%+2.5rem)] sm:w-[calc(100%+3.5rem)] lg:w-full ml-[-1.25rem] sm:ml-[-1.75rem] lg:ml-0 flex flex-col gap-3">
                 <motion.div whileTap={{ scale: 0.98 }}>
                   <Button type="submit" disabled={loadingNewOp} className="w-full h-[4.5rem] bg-zinc-950 hover:bg-zinc-900 text-white font-black text-xl tracking-tight rounded-[1.5rem] shadow-[0_8px_30px_rgb(24_24_27_/_12%)] transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20 focus-visible:outline-none disabled:bg-zinc-200 disabled:text-zinc-500 disabled:shadow-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjZmZmZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')]">
                     {loadingNewOp ? <Loader2 className="w-7 h-7 animate-spin" /> : <><Play className="w-6 h-6 mr-3 fill-current" /> Iniciar Ordem</>}
+                  </Button>
+                </motion.div>
+                <motion.div whileTap={{ scale: 0.98 }}>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    disabled={loadingNewOp} 
+                    onClick={() => {
+                      const data = watch();
+                      if (!data.opNumber || !data.produto || !data.linha) {
+                        toast.error('Preencha os dados da OP primeiro (Número, Produto, Linha).');
+                        return;
+                      }
+                      setShowParadaModal(true);
+                    }}
+                    className="w-full h-14 bg-white hover:bg-zinc-50 border-2 border-zinc-200/80 text-zinc-700 font-bold text-base rounded-[1.25rem] transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20 disabled:opacity-50"
+                  >
+                    <History className="w-5 h-5 mr-2 opacity-60" /> Lançar Apenas Parada
                   </Button>
                 </motion.div>
               </div>
@@ -278,6 +310,288 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 </div>
               </DialogContent>
             </Dialog>
+            <Dialog open={showParadaModal} onOpenChange={(open) => { 
+              setShowParadaModal(open); 
+              if (!open) {
+                setAddedParadas([]);
+                setEditingParadaIndex(null);
+                setParadaSelectedCode('');
+                setParadaStart('');
+                setParadaEnd('');
+              } 
+            }}>
+              <DialogContent className="w-[calc(100%-2rem)] max-w-[480px] rounded-[2.5rem] p-0 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 overflow-hidden bg-white max-h-[95vh] flex flex-col">
+                <div className="bg-zinc-950 p-6 text-center relative overflow-hidden shrink-0">
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:14px_14px] opacity-20" />
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mb-3 border border-white/10 shadow-inner">
+                      <History className="w-6 h-6 text-white" />
+                    </div>
+                    <DialogTitle className="text-xl font-black text-white tracking-tight">Lançar Paradas Avulsas</DialogTitle>
+                    <DialogDescription className="text-zinc-400 font-medium text-[10px] mt-0.5 uppercase tracking-widest">
+                      Multi-registro para a OP #{watch('opNumber')}
+                    </DialogDescription>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
+                  {/* Form to add one parada */}
+                  <div className="space-y-4 p-5 bg-zinc-50 rounded-[1.75rem] border border-zinc-200/60 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3">
+                       <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">Nova Parada</span>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest pl-1">Motivo</Label>
+                      <Popover open={openParadaSelect} onOpenChange={setOpenParadaSelect}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full h-12 bg-white rounded-xl border-2 border-zinc-200/80 hover:border-zinc-300 shadow-sm font-bold text-zinc-800 transition-all px-3 grid grid-cols-[1fr_auto] items-center gap-2 overflow-hidden",
+                              !paradaSelectedCode && "text-zinc-400 font-medium"
+                            )}
+                          >
+                            <div className="min-w-0 flex items-center gap-2 overflow-hidden">
+                              {paradaSelectedCode ? (
+                                <>
+                                  <span className="flex-shrink-0 w-6 h-6 rounded bg-zinc-900 text-white flex items-center justify-center text-[9px] font-black">
+                                    {paradaSelectedCode}
+                                  </span>
+                                  <span className="truncate text-left font-bold">
+                                    {availableParadas.find(p => p.seq.toString() === paradaSelectedCode)?.tipologia || 'Motivo desconhecido'}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="truncate text-left opacity-60">Selecione o motivo...</span>
+                              )}
+                            </div>
+                            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-40" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0 rounded-[1.25rem] shadow-2xl border-zinc-200/80 overflow-hidden z-[110]" align="start">
+                          <Command className="border-none" filter={(value, search) => {
+                            const p = availableParadas.find(item => item.seq.toString() === value);
+                            if (!p) return 0;
+                            const term = search.toLowerCase();
+                            return (p.tipologia.toLowerCase().includes(term) || p.seq.toString().includes(term)) ? 1 : 0;
+                          }}>
+                            <div className="p-2 border-b border-zinc-100">
+                              <CommandInput placeholder="Procurar motivo..." className="h-9 bg-zinc-50 rounded-lg" />
+                            </div>
+                            <CommandList className="max-h-[240px] p-1.5">
+                              <CommandEmpty className="py-4 px-2 text-center">
+                                <p className="text-xs text-zinc-500 font-medium mb-2">Nenhuma parada encontrada.</p>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  className="w-full justify-start font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-10 rounded-lg text-xs"
+                                  onClick={() => {
+                                    const nextSeq = availableParadas.length > 0 
+                                      ? Math.max(...availableParadas.map(p => p.seq)) + 1 
+                                      : 900;
+                                    const newParada = { seq: nextSeq, tipologia: searchParadaText.trim() };
+                                    setAvailableParadas(prev => [...prev, newParada]);
+                                    setParadaSelectedCode(nextSeq.toString());
+                                    setOpenParadaSelect(false);
+                                  }}
+                                >
+                                  <Plus className="w-3 h-3 mr-2" /> Adicionar "{searchParadaText}"
+                                </Button>
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {availableParadas.map((p) => (
+                                  <CommandItem
+                                    key={p.seq}
+                                    value={p.seq.toString()}
+                                    onSelect={(currentValue) => {
+                                      setParadaSelectedCode(currentValue === paradaSelectedCode ? "" : currentValue);
+                                      setOpenParadaSelect(false);
+                                    }}
+                                    className="flex items-start gap-2.5 p-2.5 mb-0.5 last:mb-0 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] aria-selected:text-zinc-950 font-bold transition-colors text-xs"
+                                  >
+                                    <span className="flex-shrink-0 w-6 h-6 rounded bg-zinc-100 text-zinc-600 flex items-center justify-center text-[9px] font-black group-aria-selected:bg-zinc-200 mt-0.5">
+                                      {p.seq}
+                                    </span>
+                                    <span className="flex-1 leading-tight py-0.5">{p.tipologia}</span>
+                                    <Check className={cn("ml-auto h-3 w-3 shrink-0 mt-1.5", paradaSelectedCode === p.seq.toString() ? "opacity-100" : "opacity-0")} />
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5 relative">
+                        <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest pl-1">Início</Label>
+                        <CustomTimePicker 
+                          value={paradaStart} 
+                          onChange={setParadaStart}
+                          placeholder="00:00"
+                          clockIconClass="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none"
+                          wrapperClass="h-12 bg-white rounded-xl border-2 border-zinc-200/80 focus-within:border-zinc-950 shadow-sm"
+                          inputClass="pl-8 pr-2 text-sm font-bold text-zinc-800 bg-transparent w-full text-center"
+                        />
+                      </div>
+                      <div className="space-y-1.5 relative">
+                        <Label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest pl-1">Término</Label>
+                        <CustomTimePicker 
+                          value={paradaEnd} 
+                          onChange={setParadaEnd}
+                          placeholder="00:00"
+                          clockIconClass="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none"
+                          wrapperClass="h-12 bg-white rounded-xl border-2 border-zinc-200/80 focus-within:border-zinc-950 shadow-sm"
+                          inputClass="pl-8 pr-2 text-sm font-bold text-zinc-800 bg-transparent w-full text-center"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button" 
+                        onClick={() => {
+                          if (!paradaSelectedCode || !paradaStart || !paradaEnd) {
+                            toast.error('Preencha motivo e horários.');
+                            return;
+                          }
+                          const pBase = availableParadas.find(p => p.seq.toString() === paradaSelectedCode) || { seq: Number(paradaSelectedCode), tipologia: paradaSelectedCode };
+                          
+                          if (editingParadaIndex !== null) {
+                            setAddedParadas(prev => {
+                              const next = [...prev];
+                              next[editingParadaIndex] = { ...pBase, horaInicio: paradaStart, horaFim: paradaEnd };
+                              return next;
+                            });
+                            setEditingParadaIndex(null);
+                            toast.success('Parada atualizada.');
+                          } else {
+                            setAddedParadas(prev => [...prev, { ...pBase, horaInicio: paradaStart, horaFim: paradaEnd }]);
+                          }
+                          
+                          setParadaSelectedCode('');
+                          setParadaStart('');
+                          setParadaEnd('');
+                        }}
+                        className={cn(
+                          "flex-1 h-11 rounded-xl font-bold text-sm shadow-md flex items-center justify-center gap-2 transition-all",
+                          editingParadaIndex !== null ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-zinc-900 hover:bg-black text-white"
+                        )}
+                      >
+                        {editingParadaIndex !== null ? <><Check className="w-4 h-4" /> Atualizar Parada</> : <><Plus className="w-4 h-4" /> Incluir na Lista</>}
+                      </Button>
+                      
+                      {editingParadaIndex !== null && (
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => {
+                            setEditingParadaIndex(null);
+                            setParadaSelectedCode('');
+                            setParadaStart('');
+                            setParadaEnd('');
+                          }}
+                          className="w-11 h-11 p-0 rounded-xl border-2 border-zinc-200"
+                        >
+                          <X className="w-4 h-4 text-zinc-500" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* List of added paradas */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Paradas Incluídas ({addedParadas.length})</span>
+                      {addedParadas.length > 0 && (
+                        <button type="button" onClick={() => setAddedParadas([])} className="text-[10px] font-bold text-red-500 hover:text-red-600 transition-colors">Limpar Tudo</button>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
+                      {addedParadas.length > 0 ? addedParadas.map((p, idx) => (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          key={idx} 
+                          className="flex items-center gap-3 p-3 bg-white border border-zinc-200/80 rounded-xl shadow-sm group hover:border-zinc-300 transition-colors"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-zinc-50 flex items-center justify-center text-[10px] font-black text-zinc-500 border border-zinc-100 group-hover:bg-zinc-100 transition-colors">
+                            {p.seq}
+                          </div>
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-xs font-black text-zinc-900 truncate leading-tight mb-0.5">{p.tipologia}</span>
+                            <span className="text-[10px] font-bold text-zinc-400 flex items-center gap-1">
+                              <Clock className="w-2.5 h-2.5" /> {p.horaInicio} — {p.horaFim}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <motion.button 
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              type="button" 
+                              onClick={() => {
+                                setEditingParadaIndex(idx);
+                                setParadaSelectedCode(p.seq.toString());
+                                setParadaStart(p.horaInicio);
+                                setParadaEnd(p.horaFim);
+                              }}
+                              className="w-9 h-9 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600 border border-blue-100 shadow-sm hover:bg-blue-600 hover:text-white transition-colors"
+                              title="Editar parada"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button 
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              type="button" 
+                              onClick={() => {
+                                setAddedParadas(prev => prev.filter((_, i) => i !== idx));
+                                if (editingParadaIndex === idx) setEditingParadaIndex(null);
+                              }}
+                              className="w-9 h-9 rounded-xl flex items-center justify-center bg-red-50 text-red-600 border border-red-100 shadow-sm hover:bg-red-600 hover:text-white transition-colors"
+                              title="Remover parada"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      )) : (
+                        <div className="py-8 text-center bg-zinc-50/50 rounded-2xl border-2 border-dashed border-zinc-200/60">
+                          <p className="text-xs font-bold text-zinc-400">Nenhuma parada adicionada ainda.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-5 sm:p-6 bg-zinc-50 border-t border-zinc-200 shrink-0">
+                  <div className="flex flex-col gap-3">
+                    <motion.div whileTap={{ scale: 0.98 }}>
+                      <Button 
+                        type="button" 
+                        disabled={loadingNewOp || addedParadas.length === 0}
+                        onClick={() => {
+                          onParadaOnly(watch(), addedParadas);
+                          setShowParadaModal(false);
+                          setAddedParadas([]);
+                        }} 
+                        className="w-full h-14 bg-zinc-950 hover:bg-zinc-900 text-white rounded-xl text-base font-black shadow-lg shadow-zinc-950/20 flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:grayscale"
+                      >
+                        {loadingNewOp ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-5 h-5" /> Registrar Todas ({addedParadas.length})</>}
+                      </Button>
+                    </motion.div>
+                    <Button type="button" variant="ghost" onClick={() => setShowParadaModal(false)} className="w-full h-11 rounded-xl text-sm font-bold text-zinc-500 hover:bg-zinc-100 transition-colors">
+                      Cancelar e Voltar
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
           </div>
         </form>
       </CardContent>

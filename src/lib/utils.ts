@@ -7,10 +7,19 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Utilidad para crear un hash SHA-256 de forma asíncrona
+export async function hashPassword(password: string): Promise<string> {
+  const msgUint8 = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // Hook para autoincremento/decremento en pantallas táctiles
-export function useAutoIncrement(action: () => void, delay = 400, intervalSpeed = 80) {
+export function useAutoIncrement(action: () => void, delay = 700, intervalSpeed = 150) {
   const timeoutRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
+  const isTouchRef = useRef(false);
   
   // Guardamos siempre la versión más reciente de la acción para evitar "stale closures"
   const savedAction = useRef(action);
@@ -25,19 +34,11 @@ export function useAutoIncrement(action: () => void, delay = 400, intervalSpeed 
     intervalRef.current = null;
   }, []);
 
-  const start = useCallback((e: React.SyntheticEvent) => {
-    // Evitamos comportamientos por defecto del navegador (scroll, zoom)
-    // en touch devices para que el long-press sea capturado siempre
-    if (e.type === 'touchstart') {
-      // No llamamos a e.preventDefault() aquí para evitar errores de listeners pasivos,
-      // confiamos en 'touch-none' y select-none en el CSS.
-    }
-    
-    // Si ya hay algo corriendo, lo paramos por seguridad
+  const startTouch = useCallback((e: React.SyntheticEvent) => {
+    isTouchRef.current = true;
     stop();
-    
+    // For touch: fire immediately, then auto-repeat after delay
     savedAction.current();
-
     timeoutRef.current = setTimeout(() => {
       intervalRef.current = setInterval(() => {
         savedAction.current();
@@ -51,13 +52,19 @@ export function useAutoIncrement(action: () => void, delay = 400, intervalSpeed 
   }, [stop]);
 
   return {
+    // Mouse on PC: only fire once cleanly on mouseUp (no auto-repeat)
     onMouseDown: (e: React.MouseEvent) => {
       if (e.button !== 0) return;
-      start(e);
+      isTouchRef.current = false;
     },
-    onMouseUp: stop,
+    onMouseUp: (e: React.MouseEvent) => {
+      if (!isTouchRef.current) {
+        savedAction.current();
+      }
+    },
     onMouseLeave: stop,
-    onTouchStart: start,
+    // Touch on mobile/tablet: hold-to-repeat behavior
+    onTouchStart: startTouch,
     onTouchEnd: stop,
     onTouchCancel: stop,
   };

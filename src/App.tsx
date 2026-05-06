@@ -20,7 +20,7 @@ import { PendingOpItem } from '../components/PendingOpItem';
 import { FinishedOpItem } from '../components/FinishedOpItem';
 import { LoginScreen } from './components/LoginScreen/LoginScreen';
 import { StartOpForm } from './components/StartOpForm/StartOpForm';
-import { cn, useAutoIncrement } from './lib/utils';
+import { cn, useAutoIncrement, hashPassword } from './lib/utils';
 
 // Lazy loading modals to improve initial load performance
 const EditOpModal = React.lazy(() => import('./components/EditOpModal/EditOpModal').then(module => ({ default: module.EditOpModal })));
@@ -29,10 +29,10 @@ import { toast, Toaster } from 'sonner';
 import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'motion/react';
 
-import { getServerTime, syncServerTime, getServerTimeISO } from './lib/time';
+import { getServerTime, syncServerTime, getServerTimeISO, isTimeSynced } from './lib/time';
 import { logAudit } from './lib/audit';
 
-const SHIFT_TOLERANCE_MINUTES = 10;
+const SHIFT_TOLERANCE_MINUTES = 30;
 
 function getActiveTurno(now: Date = getServerTime()): string {
   const logicalDate = new Date(now.getTime() - 6 * 60 * 60 * 1000);
@@ -77,6 +77,7 @@ export type ShiftCheckResult = {
   toleranceApplied?: boolean;
   activeTurno: string;
   shiftCycleId?: string;
+  toleranceExpiresAt?: number;
 };
 
 export function isShiftAllowed(profile: string): ShiftCheckResult {
@@ -99,7 +100,14 @@ export function isShiftAllowed(profile: string): ShiftCheckResult {
   const activeInFuture = getActiveTurno(futureToleranceTime);
   
   if (profile === activeInPast) {
-      return { allowed: true, toleranceApplied: true, activeTurno, shiftCycleId: getShiftCycleId(pastToleranceTime) };
+      const h = now.getHours();
+      const expirationDate = new Date(now.getTime());
+      if (h >= 18 || h < 6) {
+          expirationDate.setHours(18, SHIFT_TOLERANCE_MINUTES, 0, 0);
+      } else {
+          expirationDate.setHours(6, SHIFT_TOLERANCE_MINUTES, 0, 0);
+      }
+      return { allowed: true, toleranceApplied: true, activeTurno, shiftCycleId: getShiftCycleId(pastToleranceTime), toleranceExpiresAt: expirationDate.getTime() };
   }
   
   if (profile === activeInFuture) {
@@ -158,6 +166,47 @@ const matchesSearch = (op: { opNumber?: string; linha?: string; produto?: string
          (op.linha || '').toLowerCase().includes(lower) || 
          (op.produto || '').toLowerCase().includes(lower);
 };
+
+function ToleranceCountdown({ profile, onExpire }: { profile: string | null; onExpire: () => void }) {
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!profile) {
+      setTimeLeft(null);
+      return;
+    }
+
+    const checkTime = () => {
+      const shiftCheck = isShiftAllowed(profile);
+      if (shiftCheck.allowed && shiftCheck.toleranceApplied && shiftCheck.toleranceExpiresAt) {
+        const remaining = shiftCheck.toleranceExpiresAt - getServerTime().getTime();
+        if (remaining <= 0) {
+          setTimeLeft(null);
+          onExpire();
+        } else {
+          const m = Math.floor(remaining / 60000);
+          const s = Math.floor((remaining % 60000) / 1000);
+          setTimeLeft(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+        }
+      } else {
+        setTimeLeft(null);
+      }
+    };
+
+    checkTime();
+    const timer = setInterval(checkTime, 1000);
+    return () => clearInterval(timer);
+  }, [profile, onExpire]);
+
+  if (!timeLeft) return null;
+
+  return (
+    <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 px-2 sm:px-3 h-10 rounded-xl shadow-sm animate-pulse">
+      <Clock className="w-4 h-4" />
+      <span className="text-xs font-black tracking-widest">{timeLeft}</span>
+    </div>
+  );
+}
 
 export default function App() {
   function extractLitragem(produto: string): string {
@@ -502,8 +551,12 @@ export default function App() {
   const refreshData = async () => {
     try {
       const t0 = performance.now();
+      
+      // Run time sync in background — don't block UI data from loading
+      syncServerTime().catch(e => console.warn('[TimeSync] Background sync failed', e));
+      
+      // Load UI data immediately without waiting for time sync
       await Promise.all([
-        syncServerTime(),
         loadProducts(),
         loadParadas(),
         loadLinhas(),
@@ -531,6 +584,23 @@ export default function App() {
     };
   }, []);
 
+  // Background Auto-Retry for Failed Syncs
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const failedOps = finishedOps.filter(op => op.syncStatus === 'error');
+      for (const op of failedOps) {
+        try {
+          console.log(`Auto-retrying sync for OP ${op.opNumber}...`);
+          await syncFinishedOperation(op.id);
+        } catch (e) {
+          console.error(`Auto-retry failed for OP ${op.opNumber}`, e);
+        }
+      }
+    }, 3 * 60 * 1000); // 3 minutes
+
+    return () => clearInterval(interval);
+  }, [finishedOps]);
+
   useEffect(() => {
     refreshData();
     setValue('horaInicial', format(new Date(), 'HH:mm'));
@@ -545,6 +615,8 @@ export default function App() {
   // Login
   const handleLogin = async () => {
     if (!selectedProfile) return;
+    
+
     
     const shiftCheck = isShiftAllowed(selectedProfile);
     
@@ -574,7 +646,15 @@ export default function App() {
          return;
       }
 
-      if (passwordInput.trim() === correctPassword) {
+      const inputHash = await hashPassword(passwordInput.trim());
+      const isLegacyMatch = correctPassword.length !== 64 && passwordInput.trim() === correctPassword;
+      const isHashMatch = inputHash === correctPassword;
+
+      if (isLegacyMatch || isHashMatch) {
+        if (isLegacyMatch) {
+          // Upgrade to hash in the background
+          updateAuthProfile(selectedProfile, inputHash).catch(console.error);
+        }
         logAudit({
           userProfile: selectedProfile,
           action: 'LOGIN',
@@ -615,13 +695,18 @@ export default function App() {
       const profileData = await getAuthProfile(loginProfile);
       const correctPassword = profileData?.password || profileData?.senha;
       
-      if (!correctPassword || changerOldPassword !== correctPassword) {
+      const inputHash = await hashPassword(changerOldPassword);
+      const isLegacyMatch = correctPassword && correctPassword.length !== 64 && changerOldPassword === correctPassword;
+      const isHashMatch = correctPassword && inputHash === correctPassword;
+      
+      if (!correctPassword || (!isLegacyMatch && !isHashMatch)) {
         toast.error('Senha atual incorreta.');
         setChangingPasswordLoading(false);
         return;
       }
 
-      await updateAuthProfile(loginProfile, newPassword);
+      const newHash = await hashPassword(newPassword);
+      await updateAuthProfile(loginProfile, newHash);
       toast.success('Senha alterada com sucesso!');
       setChangePasswordOpen(false);
       setChangerOldPassword('');
@@ -662,6 +747,7 @@ export default function App() {
   };
 
   const onStartOp = async (data: StartOpFormValues) => {
+
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(loginProfile);
       
@@ -691,8 +777,16 @@ export default function App() {
       });
     }
 
-    if (operations.some(op => op.opNumber === data.opNumber)) {
-      toast.error('Essa OP já está listada como pendente.');
+    const sameTurn = loginProfile ? loginProfile.replace('Turno ', '') : data.turno;
+    const logicalToday = getLogicalDateStr(getServerTime());
+
+    if (operations.some(op => {
+      if (op.opNumber !== data.opNumber) return false;
+      const turnMatch = op.turno === sameTurn;
+      if (!op.carimboInicial) return turnMatch;
+      return turnMatch && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
+    })) {
+      toast.error('Essa OP já está listada como pendente para este turno e data.');
       return;
     }
 
@@ -721,6 +815,74 @@ export default function App() {
       setLoadingNewOp(false);
     }
   };
+
+  const handleParadaOnly = async (data: StartOpFormValues, paradas: ParadaRecord[]) => {
+    if (loginProfile) {
+      const shiftCheck = isShiftAllowed(loginProfile);
+      if (!shiftCheck.allowed) {
+        logAudit({
+          userProfile: loginProfile,
+          action: 'FINISH_OP_DIRECT',
+          expectedShift: loginProfile,
+          activeShift: shiftCheck.activeTurno,
+          serverTimestamp: getServerTimeISO(),
+          result: 'BLOCKED',
+          reason: shiftCheck.reason,
+          opReference: data.opNumber
+        });
+        toast.error(shiftCheck.reason);
+        return;
+      }
+    }
+
+    if (paradas.length === 0) {
+      toast.error('Adicione ao menos uma parada.');
+      return;
+    }
+
+    setLoadingNewOp(true);
+    try {
+      const matchedProduct = availableProducts.find(p => (p.produto || '').trim().toUpperCase() === (data.produto || '').trim().toUpperCase());
+      const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto || '');
+      const sameTurn = loginProfile ? loginProfile.replace('Turno ', '') : data.turno;
+
+      // Sort paradas by time to find the latest end time
+      const sortedParadas = [...paradas].sort((a, b) => a.horaFim.localeCompare(b.horaFim));
+      const lastParadaEnd = sortedParadas[sortedParadas.length - 1].horaFim;
+
+      // Synthetic OP (Direct to Finished)
+      const syntheticOp: Operation = {
+        id: Date.now().toString(36) + Math.random().toString(36).substring(2),
+        carimboInicial: new Date().toISOString(),
+        ...data,
+        horaInicial: sortedParadas[0].horaInicio.length === 5 ? `${sortedParadas[0].horaInicio}:00` : sortedParadas[0].horaInicio,
+        litragem: derivedLitragem,
+        turno: sameTurn
+      };
+
+      await markOperationFinished(
+        syntheticOp,
+        '0',
+        lastParadaEnd.length === 5 ? `${lastParadaEnd}:00` : lastParadaEnd,
+        '0',
+        paradas,
+        (success, error) => {
+          if (success) {
+            toast.success('Paradas registradas e sincronizadas!');
+          } else {
+            toast.warning(`Paradas salvas no log, mas erro na planilha: ${error}`);
+          }
+        }
+      );
+
+      reset({ opNumber: '', produto: '', linha: '', turno: data.turno, horaInicial: format(new Date(), 'HH:mm') });
+    } catch (err: any) {
+      toast.error('Erro: ' + err.message);
+    } finally {
+      setLoadingNewOp(false);
+    }
+  };
+
 
   const handleFinish = useCallback(async (op: Operation, qtd: string, time: string, reprocesso: string, paradas: ParadaRecord[], onSuccess: () => void) => {
     if (loginProfile) {
@@ -836,10 +998,24 @@ export default function App() {
     
     try {
       const supervisorProfile = await getAuthProfile("Supervisor");
-      const correctPw = supervisorProfile?.password || supervisorProfile?.senha || "admin123";
-      if (overridePassword !== correctPw) {
+      const correctPw = supervisorProfile?.password || supervisorProfile?.senha;
+      
+      if (!correctPw) {
+        toast.error('Perfil de supervisor não configurado.');
+        return;
+      }
+      
+      const inputHash = await hashPassword(overridePassword.trim());
+      const isLegacyMatch = correctPw.length !== 64 && overridePassword.trim() === correctPw;
+      const isHashMatch = inputHash === correctPw;
+      
+      if (!isLegacyMatch && !isHashMatch) {
         toast.error('Senha de supervisor incorreta!');
         return;
+      }
+      
+      if (isLegacyMatch) {
+         updateAuthProfile("Supervisor", inputHash).catch(console.error);
       }
       
       if (pendingOverrideAction) {
@@ -874,8 +1050,15 @@ export default function App() {
     });
   }, [operations, currentTurnForView, logicalToday]);
 
+  // Normalize linha names: 'Linha 05' and '05' both become '05'
+  const normalizeLinha = (l: string) => {
+    if (!l) return l;
+    const match = l.trim().match(/\d+/);
+    return match ? match[0] : l.trim();
+  };
+
   const pendingLinhas = useMemo(() => {
-    const lines = new Set(myPendingOps.map(op => op.linha));
+    const lines = new Set(myPendingOps.map(op => normalizeLinha(op.linha)));
     return ['Todas', ...Array.from(lines).sort((a, b) => {
       const matchA = a.match(/\d+/);
       const matchB = b.match(/\d+/);
@@ -885,7 +1068,7 @@ export default function App() {
   }, [myPendingOps]);
 
   const finishedLinhas = useMemo(() => {
-    const lines = new Set(myFinishedOps.map(op => op.linha));
+    const lines = new Set(myFinishedOps.map(op => normalizeLinha(op.linha)));
     return ['Todas', ...Array.from(lines).sort((a, b) => {
       const matchA = a.match(/\d+/);
       const matchB = b.match(/\d+/);
@@ -895,12 +1078,12 @@ export default function App() {
   }, [myFinishedOps]);
 
   const visiblePendingOps = useMemo(() => myPendingOps.filter(op => {
-    if (selectedLinhaPending !== 'Todas' && op.linha !== selectedLinhaPending) return false;
+    if (selectedLinhaPending !== 'Todas' && normalizeLinha(op.linha) !== selectedLinhaPending) return false;
     return matchesSearch(op, searchPending);
   }), [myPendingOps, searchPending, selectedLinhaPending]);
 
   const visibleFinishedOps = useMemo(() => myFinishedOps.filter(op => {
-    if (selectedLinhaFinished !== 'Todas' && op.linha !== selectedLinhaFinished) return false;
+    if (selectedLinhaFinished !== 'Todas' && normalizeLinha(op.linha) !== selectedLinhaFinished) return false;
     return matchesSearch(op, searchFinished);
   }), [myFinishedOps, searchFinished, selectedLinhaFinished]);
 
@@ -1000,6 +1183,8 @@ export default function App() {
 
             {/* Actions Block */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <ToleranceCountdown profile={loginProfile} onExpire={handleLogout} />
+              
               {/* Profile Badge (Desktop only) */}
               <div className="hidden sm:flex items-center bg-zinc-50 border-2 border-zinc-200/80 rounded-xl px-3 h-10 max-w-[160px] truncate shadow-sm">
                 <span className="text-xs font-black text-zinc-700 uppercase tracking-widest truncate">
@@ -1081,29 +1266,29 @@ export default function App() {
                   </div>
                   
                   {pendingLinhas.length > 1 && (
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
-                      {pendingLinhas.map(linha => (
-                        <button
-                          key={linha}
-                          onClick={() => setSelectedLinhaPending(linha)}
+                    <div className="relative">
+                      <Select value={selectedLinhaPending} onValueChange={setSelectedLinhaPending}>
+                        <SelectTrigger 
                           className={cn(
-                            "whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 border shadow-sm",
-                            selectedLinhaPending === linha 
-                              ? "bg-zinc-900 text-white border-zinc-900" 
-                              : "bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:border-zinc-300"
+                            "w-full h-10 px-4 rounded-xl text-sm font-bold border-2 transition-all shadow-sm focus:ring-2 focus:ring-zinc-900/20 data-[state=open]:ring-2 data-[state=open]:ring-zinc-900/20",
+                            selectedLinhaPending !== 'Todas'
+                              ? "bg-zinc-900 text-white border-zinc-900 [&>svg]:text-white"
+                              : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300 [&>svg]:text-zinc-400"
                           )}
                         >
-                          {linha}
-                          {linha !== 'Todas' && (
-                            <span className={cn(
-                              "ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none",
-                              selectedLinhaPending === linha ? "bg-zinc-700 text-white" : "bg-zinc-100 text-zinc-500"
-                            )}>
-                              {myPendingOps.filter(o => o.linha === linha).length}
-                            </span>
-                          )}
-                        </button>
-                      ))}
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[50vh] min-w-[200px] w-auto overflow-y-auto rounded-[1.25rem] p-2 shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50">
+                          <SelectItem value="Todas" className="font-bold py-3 px-3 rounded-xl mb-1 cursor-pointer focus:bg-[#F9FAFB] focus:text-zinc-950 data-[state=checked]:bg-zinc-950 data-[state=checked]:text-white">
+                            Todas as Linhas ({myPendingOps.length})
+                          </SelectItem>
+                          {pendingLinhas.filter(l => l !== 'Todas').map(linha => (
+                            <SelectItem key={linha} value={linha} className="font-bold py-3 px-3 rounded-xl mb-1 cursor-pointer focus:bg-[#F9FAFB] focus:text-zinc-950 data-[state=checked]:bg-zinc-950 data-[state=checked]:text-white">
+                              Linha {linha} ({myPendingOps.filter(o => o.linha === linha || normalizeLinha(o.linha) === linha).length})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
                 </div>
@@ -1126,6 +1311,7 @@ export default function App() {
                     openEdit={openEdit} 
                     setDeletingOp={setDeletingOp} 
                     availableParadas={availableParadas}
+                    linhaHistory={finishedOps.filter(f => f.linha === op.linha)}
                   />
                 ))}
               </div>
@@ -1158,6 +1344,9 @@ export default function App() {
                 setShowConfirmStart={setShowConfirmStart}
                 startFormData={startFormData}
                 onStartOp={onStartOp}
+                availableParadas={availableParadas}
+                setAvailableParadas={setAvailableParadas}
+                onParadaOnly={handleParadaOnly}
               />
             </div>
 
@@ -1189,29 +1378,29 @@ export default function App() {
                   </div>
                   
                   {finishedLinhas.length > 1 && (
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
-                      {finishedLinhas.map(linha => (
-                        <button
-                          key={linha}
-                          onClick={() => setSelectedLinhaFinished(linha)}
+                    <div className="relative">
+                      <Select value={selectedLinhaFinished} onValueChange={setSelectedLinhaFinished}>
+                        <SelectTrigger 
                           className={cn(
-                            "whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 border shadow-sm",
-                            selectedLinhaFinished === linha 
-                              ? "bg-emerald-600 text-white border-emerald-600" 
-                              : "bg-white text-zinc-600 border-zinc-200 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700"
+                            "w-full h-10 px-4 rounded-xl text-sm font-bold border-2 transition-all shadow-sm focus:ring-2 focus:ring-emerald-600/20 data-[state=open]:ring-2 data-[state=open]:ring-emerald-600/20",
+                            selectedLinhaFinished !== 'Todas'
+                              ? "bg-emerald-600 text-white border-emerald-600 [&>svg]:text-white"
+                              : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300 [&>svg]:text-zinc-400"
                           )}
                         >
-                          {linha}
-                          {linha !== 'Todas' && (
-                            <span className={cn(
-                              "ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none",
-                              selectedLinhaFinished === linha ? "bg-emerald-500 text-white" : "bg-zinc-100 text-zinc-500"
-                            )}>
-                              {myFinishedOps.filter(o => o.linha === linha).length}
-                            </span>
-                          )}
-                        </button>
-                      ))}
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[50vh] min-w-[200px] w-auto overflow-y-auto rounded-[1.25rem] p-2 shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50">
+                          <SelectItem value="Todas" className="font-bold py-3 px-3 rounded-xl mb-1 cursor-pointer focus:bg-emerald-50 focus:text-emerald-950 data-[state=checked]:bg-emerald-600 data-[state=checked]:text-white">
+                            Todas as Linhas ({myFinishedOps.length})
+                          </SelectItem>
+                          {finishedLinhas.filter(l => l !== 'Todas').map(linha => (
+                            <SelectItem key={linha} value={linha} className="font-bold py-3 px-3 rounded-xl mb-1 cursor-pointer focus:bg-emerald-50 focus:text-emerald-950 data-[state=checked]:bg-emerald-600 data-[state=checked]:text-white">
+                              Linha {linha} ({myFinishedOps.filter(o => o.linha === linha || normalizeLinha(o.linha) === linha).length})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   )}
                 </div>

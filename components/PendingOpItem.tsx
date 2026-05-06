@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
-import { CheckCircle2, Clock, Pencil, Trash2, ChevronDown, ChevronUp, Plus, Loader2, Search } from 'lucide-react';
+import { CheckCircle2, Clock, Pencil, Trash2, ChevronDown, ChevronUp, Plus, Loader2, Search, History } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
@@ -11,7 +11,7 @@ import { CustomTimePicker } from './CustomTimePicker';
 import { QuickCounter } from './QuickCounter';
 import { format } from 'date-fns';
 
-export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, availableParadas }: any) => {
+export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, availableParadas, linhaHistory = [] }: any) => {
   const [isFinishing, setIsFinishing] = useState(false);
   const [finishQtd, setFinishQtd] = useState('');
   const [finishQtdReprocesso, setFinishQtdReprocesso] = useState('');
@@ -30,6 +30,24 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   const [itemLoading, setItemLoading] = useState(false);
   const [isConfirmingFinish, setIsConfirmingFinish] = useState(false);
   const [showParadas, setShowParadas] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Build flattened history of all paradas from finished ops of same linha
+  const allHistoryParadas = useMemo(() => {
+    const result: Array<{ opNumber: string; carimbo?: string; horaInicial: string; parada: any }> = [];
+    for (const finishedOp of linhaHistory) {
+      if (!finishedOp.paradas || finishedOp.paradas.length === 0) continue;
+      for (const p of finishedOp.paradas) {
+        result.push({
+          opNumber: finishedOp.opNumber,
+          carimbo: finishedOp.carimbo,
+          horaInicial: finishedOp.horaInicial,
+          parada: p,
+        });
+      }
+    }
+    return result.sort((a, b) => a.parada.horaInicio?.localeCompare(b.parada.horaInicio));
+  }, [linhaHistory]);
 
   const addParada = () => {
     if (!finishParadaSelectedCode || !finishParadaStart || !finishParadaEnd) {
@@ -260,6 +278,55 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                 <Plus className="w-5 h-5 mr-2" /> Adicionar Parada
               </Button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Histórico da Linha */}
+      <div className="border border-zinc-200/80 rounded-2xl overflow-hidden bg-white shadow-sm">
+        <button
+          type="button"
+          className="flex items-center justify-between w-full px-4 py-3 sm:p-4 cursor-pointer hover:bg-zinc-50 transition-colors"
+          onClick={() => setShowHistory(!showHistory)}
+        >
+          <div className="flex items-center gap-3">
+            <History className="w-4 h-4 text-zinc-500" />
+            <span className="text-[13px] font-black text-zinc-700 uppercase tracking-widest">Histórico da Linha</span>
+            <div className={cn("text-[11px] font-bold px-2.5 py-0.5 rounded-md border transition-colors", allHistoryParadas.length > 0 ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-zinc-50 text-zinc-500 border-zinc-200 shadow-sm")}>
+              {allHistoryParadas.length} {allHistoryParadas.length === 1 ? 'parada' : 'paradas'}
+            </div>
+          </div>
+          <div className="w-8 h-8 flex items-center justify-center rounded-xl bg-white border border-zinc-200/60 shadow-sm text-zinc-500">
+            {showHistory ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </div>
+        </button>
+
+        {showHistory && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300 p-4 border-t border-zinc-200/80 bg-zinc-50/50">
+            {allHistoryParadas.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-6 bg-white border border-zinc-200/60 border-dashed rounded-2xl text-zinc-400 shadow-sm">
+                <p className="text-sm font-medium">Nenhuma parada nas OPs concluídas desta linha</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {allHistoryParadas.map((item, idx) => (
+                  <div key={idx} className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white border border-zinc-200/80 rounded-xl shadow-sm overflow-hidden">
+                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-400 opacity-70" />
+                    <div className="flex flex-col pl-3 flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[10px] font-black text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200/60">OP {item.opNumber}</span>
+                        {item.carimbo && <span className="text-[10px] font-semibold text-zinc-400">{item.carimbo}</span>}
+                      </div>
+                      <span className="text-sm font-bold text-zinc-800 leading-tight">{item.parada.seq} - {item.parada.tipologia}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 pl-3 sm:pl-0 shrink-0 bg-zinc-50 px-2.5 py-1.5 rounded-md border border-zinc-100">
+                      <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                      <span className="text-xs font-semibold text-zinc-500 whitespace-nowrap">{item.parada.horaInicio} - {item.parada.horaFim}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

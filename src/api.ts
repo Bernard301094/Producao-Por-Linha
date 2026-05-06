@@ -54,7 +54,7 @@ export const subscribeToFinishedOps = (callback: (ops: FinishedOperation[]) => v
     collection(db, 'operations'), 
     where('status', '==', 'finished'),
     orderBy('carimboInicial', 'desc'),
-    limit(150)
+    limit(1000)
   );
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as FinishedOperation)));
@@ -149,10 +149,10 @@ export const markOperationFinished = async (
 
   // 1. Write to Firebase FIRST — instant due to offline cache
   try {
-    await updateDoc(doc(db, 'operations', op.id), { 
+    await setDoc(doc(db, 'operations', op.id), { 
       ...finishedOp, 
       status: 'finished'
-    });
+    }, { merge: true });
   } catch (firebaseErr: any) {
     console.error("Firebase updateDoc failed", firebaseErr);
     throw new Error(`Erro ao salvar na nuvem: ${firebaseErr.message}`);
@@ -218,22 +218,13 @@ export const removeFinishedOperation = async (id: string, _turno: string) => {
   const opDocRef = doc(db, 'operations', id);
   const docSnap = await getDoc(opDocRef);
   
-  let apiError = null;
   if (docSnap.exists()) {
     const data = docSnap.data();
-    try {
-      const resp = await fetch(`${API_BASE}/api/delete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })
-      });
-      if (!resp.ok) {
-        apiError = await resp.text();
-      }
-    } catch (e: any) {
-      console.error('Delete API error', e);
-      apiError = e.message;
-    }
+    fetch(`${API_BASE}/api/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })
+    }).catch(e => console.error('Delete API error', e));
   }
   
   try {
@@ -241,11 +232,6 @@ export const removeFinishedOperation = async (id: string, _turno: string) => {
   } catch (firebaseErr: any) {
     console.error("Firebase deleteDoc failed", firebaseErr);
     throw new Error(`Erro ao deletar da nuvem: ${firebaseErr.message}`);
-  }
-
-  if (apiError) {
-    // Only throw after successfully deleting from Firebase so state isn't stuck
-    throw new Error(`Aviso: Operação removida do aplicativo, mas ocorreu um erro ao apagar da planilha: ${apiError}`);
   }
 };
 
@@ -255,16 +241,12 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
   if (docSnap.exists()) {
     const data = docSnap.data() as FinishedOperation;
     
-    // Attempt to remove from spreadsheet
-    try {
-      await fetch(`${API_BASE}/api/delete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })
-      });
-    } catch (e) {
-      console.error('API delete error in revert', e);
-    }
+    // Attempt to remove from spreadsheet (fire and forget)
+    fetch(`${API_BASE}/api/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })
+    }).catch(e => console.error('API delete error in revert', e));
     
     // Clean up finished-specific fields
     const newOp: Operation = {
@@ -361,19 +343,28 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
   const docSnap = await getDoc(opDocRef);
   if (docSnap.exists()) {
     const original = docSnap.data();
-    try {
-      await fetch(`${API_BASE}/api/update`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          originalData: { op: original.opNumber, linha: original.linha, produto: original.produto }, 
-          updates: data 
-        })
-      });
-    } catch (e) {
+    
+    // Background fetch to update spreadsheet
+    fetch(`${API_BASE}/api/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        originalData: { op: original.opNumber, linha: original.linha, produto: original.produto }, 
+        updates: data 
+      })
+    }).then(async (resp) => {
+      if (!resp.ok) {
+        await updateDoc(opDocRef, { syncStatus: 'error', syncError: await resp.text() });
+      } else {
+        await updateDoc(opDocRef, { syncStatus: 'success', syncError: '' });
+      }
+    }).catch(async (e) => {
       console.error('Update API error', e);
-    }
-    await updateDoc(opDocRef, data);
+      await updateDoc(opDocRef, { syncStatus: 'error', syncError: e.message });
+    });
+    
+    // Update Firebase immediately
+    await updateDoc(opDocRef, { ...data, syncStatus: 'pending' });
   }
 };
 
@@ -399,6 +390,11 @@ export const clearTurnoRecords = async (turno: string) => {
   );
   const snap = await getDocs(q);
   for (const item of snap.docs) {
+    const data = item.data();
+    if (data.status === 'finished' && data.syncStatus !== 'success') {
+      console.log(`Preserving unsynced record ${item.id} during clearTurnoRecords`);
+      continue;
+    }
     await deleteDoc(doc(db, 'operations', item.id));
   }
 };
