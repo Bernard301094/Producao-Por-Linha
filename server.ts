@@ -120,7 +120,7 @@ app.post('/api/append', async (req, res) => {
   
   try {
     const {
-      carimbo, op, litragem, produto, linha, turno, quantidade, horaInicial, horaFinal, qntReprocesso, paradas
+      carimbo, op, litragem, produto, linha, turno, quantidade, horaInicial, horaFinal, qntReprocesso, paradas, isAvulsa
     } = req.body;
 
     // Col A: DATA (carimbo)
@@ -151,21 +151,24 @@ app.post('/api/append', async (req, res) => {
     
     try {
       const msSheetName = MS_SHEET_NAME;
-      const tablesRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/tables`).get();
-      
-      let updateRes;
-      if (tablesRes.value && tablesRes.value.length > 0) {
-        const tableName = tablesRes.value[0].name;
-        updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/tables('${tableName}')/rows`)
-          .post({ values: [rowValues] });
-      } else {
-        const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-        const rowCount = usedRange.rowCount;
-        let nextRow = usedRange.rowIndex + rowCount;
-        if (rowCount === 1 && usedRange.values[0][0] === '') nextRow = 0;
-        const appendRangeStr = `A${nextRow + 1}:J${nextRow + 1}`;
-        updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`)
-          .patch({ values: [rowValues] });
+      let updateRes = null;
+
+      if (!isAvulsa) {
+        const tablesRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/tables`).get();
+        
+        if (tablesRes.value && tablesRes.value.length > 0) {
+          const tableName = tablesRes.value[0].name;
+          updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/tables('${tableName}')/rows`)
+            .post({ values: [rowValues] });
+        } else {
+          const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
+          const rowCount = usedRange.rowCount;
+          let nextRow = usedRange.rowIndex + rowCount;
+          if (rowCount === 1 && usedRange.values[0][0] === '') nextRow = 0;
+          const appendRangeStr = `A${nextRow + 1}:J${nextRow + 1}`;
+          updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`)
+            .patch({ values: [rowValues] });
+        }
       }
       
       // Sync paradas if provided
@@ -296,48 +299,55 @@ app.post('/api/update', async (req, res) => {
 
   try {
     const { originalData, updates } = req.body;
+    const isAvulsa = updates.isAvulsa || originalData.isAvulsa;
     const client = getGraphClient();
     const { driveId, itemId } = await resolveExcelFile(client);
     const msSheetName = MS_SHEET_NAME;
 
-    const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-    
     let rowIndexFound = -1;
     let excelRowFound = -1;
 
-    // Search from bottom up to find the most recent matching operation
-    for (let i = usedRange.values.length - 1; i >= 0; i--) {
-      const row = usedRange.values[i];
-      const rowLinha = String(row[6] || '').trim().replace('Linha ', '');
-      const searchLinha = String(originalData.linha || '').trim().replace('Linha ', '');
-      if (
-        String(row[1] || '').trim() === String(originalData.op || '').trim() && 
-        rowLinha === searchLinha
-      ) {
-        rowIndexFound = i;
-        excelRowFound = usedRange.rowIndex + i + 1;
-        break;
+    if (!isAvulsa) {
+      const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
+      
+      // Search from bottom up to find the most recent matching operation
+      for (let i = usedRange.values.length - 1; i >= 0; i--) {
+        const row = usedRange.values[i];
+        const rowLinha = String(row[6] || '').trim().replace('Linha ', '');
+        const searchLinha = String(originalData.linha || '').trim().replace('Linha ', '');
+        if (
+          String(row[1] || '').trim() === String(originalData.op || '').trim() && 
+          rowLinha === searchLinha
+        ) {
+          rowIndexFound = i;
+          excelRowFound = usedRange.rowIndex + i + 1;
+          break;
+        }
       }
     }
 
-    if (excelRowFound !== -1 && rowIndexFound !== -1) {
-      const existingRow = usedRange.values[rowIndexFound];
-      const updatedRow = [
-        existingRow[0], // DATA
-        updates.opNumber !== undefined ? updates.opNumber : existingRow[1],
-        updates.horaInicial !== undefined ? updates.horaInicial : existingRow[2],
-        updates.horaFinal !== undefined ? updates.horaFinal : existingRow[3],
-        updates.litragem !== undefined ? formatLitragemText(updates.litragem) : existingRow[4],
-        updates.produto !== undefined ? updates.produto : existingRow[5],
-        updates.linha !== undefined ? updates.linha : existingRow[6],
-        updates.turno !== undefined ? updates.turno : existingRow[7],
-        updates.quantidade !== undefined ? updates.quantidade : existingRow[8],
-        updates.qntReprocesso !== undefined ? updates.qntReprocesso : existingRow[9]
-      ];
+    if (isAvulsa || (excelRowFound !== -1 && rowIndexFound !== -1)) {
+      let updatedRow: any[] = [];
+      if (!isAvulsa && excelRowFound !== -1) {
+        const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
+        const existingRow = usedRange.values[rowIndexFound];
+        updatedRow = [
+          existingRow[0], // DATA
+          updates.opNumber !== undefined ? updates.opNumber : existingRow[1],
+          updates.horaInicial !== undefined ? updates.horaInicial : existingRow[2],
+          updates.horaFinal !== undefined ? updates.horaFinal : existingRow[3],
+          updates.litragem !== undefined ? formatLitragemText(updates.litragem) : existingRow[4],
+          updates.produto !== undefined ? updates.produto : existingRow[5],
+          updates.linha !== undefined ? updates.linha : existingRow[6],
+          updates.turno !== undefined ? updates.turno : existingRow[7],
+          updates.quantidade !== undefined ? updates.quantidade : existingRow[8],
+          updates.qntReprocesso !== undefined ? updates.qntReprocesso : existingRow[9]
+        ];
 
-      const appendRangeStr = `A${excelRowFound}:J${excelRowFound}`;
-      const updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`)
-        .patch({ values: [updatedRow] });
+        const appendRangeStr = `A${excelRowFound}:J${excelRowFound}`;
+        await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`)
+          .patch({ values: [updatedRow] });
+      }
       
       // Update Paradas if provided
       if (updates.paradas !== undefined) {
@@ -379,14 +389,14 @@ app.post('/api/update', async (req, res) => {
             let pNextRow = pRange.rowIndex + pRowCount;
             if (pRowCount === 1 && pRange.values[0][0] === '') pNextRow = 0;
 
-            const baseDate = updatedRow[0] || new Date().toLocaleDateString('pt-BR');
-            const baseOp = updatedRow[1] || '';
-            const baseLitragem = updatedRow[4] || '';
-            const baseProduto = updatedRow[5] || '';
-            const baseLinha = updatedRow[6] || '';
-            const baseTurno = updatedRow[7] || '';
+            const baseDate = (!isAvulsa && updatedRow[0]) || originalData.carimbo || new Date().toLocaleDateString('pt-BR');
+            const baseOp = (!isAvulsa && updatedRow[1]) || originalData.op || '';
+            const baseLitragem = (!isAvulsa && updatedRow[4]) || originalData.litragem || '';
+            const baseProduto = (!isAvulsa && updatedRow[5]) || originalData.produto || '';
+            const baseLinha = (!isAvulsa && updatedRow[6]) || originalData.linha || '';
+            const baseTurno = (!isAvulsa && updatedRow[7]) || originalData.turno || '';
 
-            const newValues = updates.paradas.map(p => [
+            const newValues = updates.paradas.map((p: any) => [
               baseDate,
               baseOp,
               baseLitragem,

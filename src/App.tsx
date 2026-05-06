@@ -861,7 +861,8 @@ export default function App() {
         ...data,
         horaInicial: sortedParadas[0].horaInicio.length === 5 ? `${sortedParadas[0].horaInicio}:00` : sortedParadas[0].horaInicio,
         litragem: derivedLitragem,
-        turno: sameTurn
+        turno: sameTurn,
+        isAvulsa: true
       };
 
       await markOperationFinished(

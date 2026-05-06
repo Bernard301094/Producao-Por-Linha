@@ -24,6 +24,7 @@ export interface Operation {
   litragem?: string;
   status?: string;
   paradas?: ParadaRecord[];
+  isAvulsa?: boolean;
 }
 
 export interface FinishedOperation extends Operation {
@@ -36,6 +37,7 @@ export interface FinishedOperation extends Operation {
   paradas?: ParadaRecord[];
   syncStatus?: 'success' | 'error' | 'pending';
   syncError?: string;
+  isAvulsa?: boolean;
 }
 
 export const subscribeToOperations = (callback: (ops: Operation[]) => void) => {
@@ -151,7 +153,8 @@ export const markOperationFinished = async (
   try {
     await setDoc(doc(db, 'operations', op.id), { 
       ...finishedOp, 
-      status: 'finished'
+      status: 'finished',
+      isAvulsa: op.isAvulsa
     }, { merge: true });
   } catch (firebaseErr: any) {
     console.error("Firebase updateDoc failed", firebaseErr);
@@ -170,7 +173,8 @@ export const markOperationFinished = async (
     qntReprocesso: qntReprocesso || '',
     horaInicial: op.horaInicial,
     horaFinal,
-    paradas: paradasFinais
+    paradas: paradasFinais,
+    isAvulsa: op.isAvulsa
   };
 
   fetch(`${API_BASE}/api/append`, {
@@ -310,7 +314,8 @@ export const syncFinishedOperation = async (opId: string) => {
       turno: data.turno,
       quantidade: data.quantidade,
       qntReprocesso: data.qntReprocesso,
-      paradas: data.paradas || []
+      paradas: data.paradas || [],
+      isAvulsa: data.isAvulsa
     }
   };
 
@@ -334,7 +339,8 @@ export const syncFinishedOperation = async (opId: string) => {
         qntReprocesso: data.qntReprocesso || '',
         horaInicial: data.horaInicial,
         horaFinal: data.horaFinal,
-        paradas: data.paradas || []
+        paradas: data.paradas || [],
+        isAvulsa: data.isAvulsa
       };
       
       const appendResp = await fetch(`${API_BASE}/api/append`, {
@@ -369,8 +375,16 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        originalData: { op: original.opNumber, linha: original.linha, produto: original.produto }, 
-        updates: data 
+        originalData: { 
+          op: original.opNumber, 
+          linha: original.linha, 
+          produto: original.produto, 
+          isAvulsa: original.isAvulsa,
+          carimbo: original.carimbo,
+          litragem: original.litragem,
+          turno: original.turno
+        }, 
+        updates: { ...data, isAvulsa: original.isAvulsa } 
       })
     }).then(async (resp) => {
       if (!resp.ok) {
