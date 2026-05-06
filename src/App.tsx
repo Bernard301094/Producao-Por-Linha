@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord, getLinhas, getProfiles, syncFinishedOperation } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, updateProduct, removeProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord, getLinhas, getProfiles, syncFinishedOperation } from './api';
 
 // Componentes UI e Ícones
 import { Button } from '../components/ui/button';
@@ -25,6 +25,7 @@ import { cn, useAutoIncrement, hashPassword } from './lib/utils';
 // Lazy loading modals to improve initial load performance
 const EditOpModal = React.lazy(() => import('./components/EditOpModal/EditOpModal').then(module => ({ default: module.EditOpModal })));
 const ChangePasswordModal = React.lazy(() => import('./components/ChangePasswordModal/ChangePasswordModal').then(module => ({ default: module.ChangePasswordModal })));
+const ProductManagerModal = React.lazy(() => import('./components/ProductManagerModal/ProductManagerModal').then(module => ({ default: module.ProductManagerModal })));
 import { toast, Toaster } from 'sonner';
 import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -264,6 +265,7 @@ export default function App() {
   const [finishParadaSelectedCode, setFinishParadaSelectedCode] = useState('');
   const [finishParadaStart, setFinishParadaStart] = useState('');
   const [finishParadaEnd, setFinishParadaEnd] = useState('');
+  const [showProductManager, setShowProductManager] = useState(false);
   
   const [profiles, setProfiles] = useState<string[]>(() => {
     try {
@@ -1179,6 +1181,12 @@ export default function App() {
                   <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-2 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight">
                     {today}
                   </p>
+                  <button 
+                    onClick={() => setShowProductManager(true)}
+                    className="flex items-center gap-1.5 text-[9px] font-black text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded transition-colors uppercase tracking-widest"
+                  >
+                    <Pencil className="w-2.5 h-2.5" /> Produtos
+                  </button>
                 </div>
               </div>
             </div>
@@ -1632,6 +1640,16 @@ export default function App() {
             setConfirmNewPassword={setConfirmNewPassword}
             handleChangePassword={handleChangePassword}
             changingPasswordLoading={changingPasswordLoading}
+          />
+        )}
+      </React.Suspense>
+      <React.Suspense fallback={null}>
+        {showProductManager && (
+          <ProductManagerModal 
+            open={showProductManager}
+            onOpenChange={setShowProductManager}
+            products={availableProducts}
+            onRefresh={loadProducts}
           />
         )}
       </React.Suspense>

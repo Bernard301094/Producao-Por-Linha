@@ -214,6 +214,26 @@ export const addProduct = async (produto: string, litragem: string) => {
   cacheProdutos = null; // invalidar cache
 };
 
+export const updateProduct = async (oldName: string, newName: string, newLitragem: string) => {
+  const oldRef = doc(db, 'produtos', oldName.toUpperCase());
+  const newRef = doc(db, 'produtos', newName.toUpperCase());
+  
+  if (oldName.toUpperCase() !== newName.toUpperCase()) {
+    // If name changed, we need to move the data
+    await setDoc(newRef, { produto: newName.toUpperCase(), litragem: newLitragem });
+    await deleteDoc(oldRef);
+  } else {
+    // Just update litragem
+    await updateDoc(oldRef, { litragem: newLitragem });
+  }
+  cacheProdutos = null;
+};
+
+export const removeProduct = async (produto: string) => {
+  await deleteDoc(doc(db, 'produtos', produto.toUpperCase()));
+  cacheProdutos = null;
+};
+
 export const removeFinishedOperation = async (id: string, _turno: string) => {
   const opDocRef = doc(db, 'operations', id);
   const docSnap = await getDoc(opDocRef);
