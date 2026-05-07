@@ -58,9 +58,7 @@ jobs:
 
       - name: Generate Android assets from SVG (icons + splash)
         run: |
-          # Install sharp-cli required by @capacitor/assets
           npm install -g @capacitor/assets --legacy-peer-deps
-          # Generate all mipmap PNG icons and splash drawables from assets/icon.svg
           npx capacitor-assets generate --android
 
       - name: Setup Gradle Wrapper
@@ -69,7 +67,6 @@ jobs:
           gradle wrapper
           sed -i 's/\r$//' gradlew
           chmod +x gradlew
-          find app/src/main/res -name "ic_launcher_background.png" -type f -delete || true
 
       - name: Build Debug APK
         working-directory: ./android
