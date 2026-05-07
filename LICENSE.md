@@ -1,13 +1,12 @@
-# Licença MIT (Modificada para Uso Privado)
+# Termo de Licença e Cessão Temporária de Uso Privado
 
 **Copyright (c) 2026 Bernard Eduardo De Freitas Castillo**
 
-A permissão é concedida, gratuitamente, a qualquer pessoa que obtenha uma cópia deste software e dos arquivos de documentação associados (o "Software"), para lidar no Software sem restrição, incluindo sem limitação os direitos de usar, copiar, modificar, mesclar, publicar, distribuir, sublicenciar e/ou vender cópias do Software, e para permitir que as pessoas a quem o Software é fornecido o façam, sujeito às seguintes condições:
+Este documento estabelece as condições de uso, direitos e limitações aplicáveis a este software e seus arquivos de documentação (doravante denominado "Software"):
 
-1. O Software só pode ser utilizado para fins de produção e uso interno na empresa **"Vonixx"**.
-2. É **estritamente proibido** usar, distribuir ou implantar este Software fora da empresa "Vonixx".
-3. O criador (**Bernard Eduardo De Freitas Castillo**) não se responsabiliza por perdas de dados, perda de informações ou quaisquer outros danos diretos ou indiretos decorrentes da utilização deste Software.
+1. **Permissão de Uso Restrito:** O uso deste Software é estritamente autorizado e limitado ao setor de Produção da empresa **Vonixx**. É terminantemente vedada a comercialização, distribuição, cópia não autorizada, sublicenciamento ou utilização por terceiros fora deste escopo corporativo.
+2. **Natureza da Concessão e Direitos Autorais:** Esta licença não constitui venda ou transferência de propriedade. O Software é disponibilizado exclusivamente em caráter de **comodato (empréstimo)**. A titularidade, a propriedade intelectual e todos os direitos sobre o código-fonte e a aplicação permanecem, de forma integral e exclusiva, sob o domínio de seu criador original (Bernard Eduardo De Freitas Castillo). 
+3. **Prazo e Revogação:** Por se tratar de uma cessão temporária e condicional, o criador reserva-se o direito unilateral de revogar esta licença e solicitar a descontinuidade imediata da utilização do Software a qualquer momento, sem necessidade de notificação prévia ou justificativa.
+4. **Limitação de Responsabilidade:** Em nenhuma hipótese o criador será responsabilizado por danos diretos, indiretos, incidentais, perdas de dados, lucros cessantes, falhas no processo produtivo ou quaisquer outros ônus decorrentes da adoção, operação ou eventual interrupção deste Software pela Vonixx.
 
-O aviso de direitos autorais acima e este aviso de permissão devem ser incluídos em todas as cópias ou partes substanciais do Software.
-
-> **O SOFTWARE É FORNECIDO "COMO ESTÁ", SEM GARANTIA DE QUALQUER TIPO, EXPRESSA OU IMPLÍCITA, INCLUINDO, MAS NÃO SE LIMITANDO A, GARANTIAS DE COMERCIALIZAÇÃO, ADEQUAÇÃO A UMA FINALIDADE ESPECÍFICA E NÃO VIOLAÇÃO. EM NENHUM CASO OS AUTORES OU TITULARES DE DIREITOS AUTORAIS SERÃO RESPONSÁVEIS POR QUALQUER REIVINDICAÇÃO, DANOS OU OUTRA RESPONSABILIDADE, SEJA EM UMA AÇÃO DE CONTRATO, DELITO OU DE OUTRA FORMA, DECORRENTE DE, OU EM CONEXÃO COM O SOFTWARE OU O USO OU OUTRAS NEGOCIAÇÕES NO SOFTWARE.**
+> **CLÁUSULA DE ISENÇÃO DE GARANTIAS:** O SOFTWARE É FORNECIDO "NO ESTADO EM QUE SE ENCONTRA" (AS IS), SEM GARANTIAS DE QUALQUER NATUREZA, EXPRESSAS OU IMPLÍCITAS. A EMPRESA VONIXX ASSUME INTEGRALMENTE OS RISCOS E AS CONSEQUÊNCIAS ASSOCIADOS À SUA IMPLEMENTAÇÃO E AO SEU USO NO AMBIENTE DE PRODUÇÃO.
