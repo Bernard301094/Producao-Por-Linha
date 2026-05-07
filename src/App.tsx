@@ -32,7 +32,7 @@ import { motion } from 'motion/react';
 
 import { getServerTime, syncServerTime, getServerTimeISO, isTimeSynced } from './lib/time';
 import { logAudit } from './lib/audit';
-import { OnboardingTour, resetTour } from './components/OnboardingTour/OnboardingTour';
+
 
 const SHIFT_TOLERANCE_MINUTES = 30;
 
@@ -241,11 +241,7 @@ export default function App() {
   const [showChangerPassword, setShowChangerPassword] = useState(false);
 
   const [mobileTab, setMobileTab] = useState<'pendentes' | 'nova' | 'concluidas'>('nova');
-  const [tourForceRun, setTourForceRun] = useState(false);
-  const handleRestartTour = () => {
-    resetTour();
-    setTourForceRun(f => !f);
-  };
+
   const [openLineSelect, setOpenLineSelect] = useState(false);
   const [openEditLineSelect, setOpenEditLineSelect] = useState(false);
   const [openLineFilterPending, setOpenLineFilterPending] = useState(false);
@@ -1171,18 +1167,7 @@ export default function App() {
   return (
     <>
       <Toaster position="top-center" />
-      <OnboardingTour 
-        forceRun={tourForceRun} 
-        onFinish={() => setTourForceRun(false)} 
-        onStepChange={(stepIndex) => {
-          // Sync mobile tabs with tour steps
-          if (window.innerWidth < 1024) {
-            if (stepIndex === 4 || stepIndex === 5) setMobileTab('nova');
-            if (stepIndex === 6 || stepIndex === 7) setMobileTab('pendentes');
-            if (stepIndex === 8) setMobileTab('concluidas');
-          }
-        }}
-      />
+
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* Header */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 shadow-sm sticky top-0 z-30 pt-[env(safe-area-inset-top)]">
@@ -1219,13 +1204,7 @@ export default function App() {
                 </span>
               </div>
 
-              <button
-                onClick={handleRestartTour}
-                className="flex items-center justify-center w-10 h-10 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 border border-zinc-200/80 bg-white transition-all shadow-sm"
-                title="Ver tutorial"
-              >
-                <HelpCircle className="w-5 h-5" />
-              </button>
+
               <div className="flex items-center gap-1 sm:gap-1.5 bg-white border-2 border-zinc-200/80 rounded-xl sm:rounded-2xl p-1 shadow-sm tour-user-menu">
                 <button 
                   onClick={() => setChangePasswordOpen(true)} 
