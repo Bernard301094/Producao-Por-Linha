@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Joyride, STATUS, EVENTS, ACTIONS } from 'react-joyride';
+import ReactDOM from 'react-dom';
+import { Joyride, STATUS, EVENTS, ACTIONS, CallBackProps, Step } from 'react-joyride';
 
-// ─── Helpers de breakpoint ──────────────────────────────────────────────────────
-const getMobileState = () =>
-  typeof window !== 'undefined' && window.innerWidth < 768;
-const getTabletState = () =>
-  typeof window !== 'undefined' &&
-  window.innerWidth >= 768 &&
-  window.innerWidth < 1024;
+// ─── Breakpoints ────────────────────────────────────────────────────────────────
+const isMobileOrTablet = () =>
+  typeof window !== 'undefined' && window.innerWidth < 1024;
 
 type PlacementType =
   | 'top' | 'top-start' | 'top-end'
@@ -16,7 +13,118 @@ type PlacementType =
   | 'right' | 'right-start' | 'right-end'
   | 'auto' | 'center';
 
-// ─── Custom Tooltip — bottom-sheet em mobile, card em desktop ──────────────────
+// ─── Shared state between CustomTooltip (inside Joyride) and the Portal ─────────
+type TooltipSharedState = {
+  index: number;
+  size: number;
+  isLastStep: boolean;
+  title: React.ReactNode;
+  content: React.ReactNode;
+  onBack: () => void;
+  onNext: () => void;
+  onSkip: () => void;
+  isSmall: boolean;
+};
+
+// We use a module-level ref so CustomTooltip can write to it without prop drilling
+let _setSharedState: ((s: TooltipSharedState | null) => void) | null = null;
+
+// ─── Portal Bottom-Sheet (rendered directly in document.body) ───────────────────
+const PortalBottomSheet: React.FC = () => {
+  const [state, setState] = useState<TooltipSharedState | null>(null);
+
+  useEffect(() => {
+    _setSharedState = setState;
+    return () => { _setSharedState = null; };
+  }, []);
+
+  if (!state || !state.isSmall) return null;
+
+  return ReactDOM.createPortal(
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 10001,
+        pointerEvents: 'auto',
+      }}
+      className="bg-white ring-1 ring-zinc-200/60 overflow-hidden rounded-t-[1.5rem] shadow-[0_-8px_40px_rgba(0,0,0,0.18)] animate-in slide-in-from-bottom-4 duration-300"
+    >
+      {/* Pill handle */}
+      <div className="flex justify-center pt-3 pb-1">
+        <div className="w-10 h-1 rounded-full bg-zinc-300" />
+      </div>
+
+      {/* Header */}
+      <div className="bg-zinc-950 relative overflow-hidden px-5 pt-3 pb-4">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff10_1px,transparent_1px),linear-gradient(to_bottom,#ffffff10_1px,transparent_1px)] bg-[size:14px_14px] opacity-20" />
+        <div className="relative z-10">
+          <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 font-mono">
+            Passo {state.index + 1} de {state.size}
+          </p>
+          {state.title && (
+            <h3 className="font-black text-white tracking-tight leading-tight text-base">
+              {state.title}
+            </h3>
+          )}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="px-5 py-3 max-h-[38vh] overflow-y-auto">
+        <div className="text-sm text-zinc-600 font-medium leading-relaxed">
+          {state.content}
+        </div>
+      </div>
+
+      {/* Progress dots */}
+      <div className="flex items-center justify-center gap-1.5 py-2">
+        {Array.from({ length: state.size }).map((_: unknown, i: number) => (
+          <div
+            key={i}
+            className={`rounded-full transition-all ${
+              i === state.index ? 'w-4 h-2 bg-zinc-950' : 'w-2 h-2 bg-zinc-200'
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div
+        className="flex items-center justify-between gap-3 px-5 py-4 border-t border-zinc-100"
+        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+      >
+        <button
+          onClick={state.onSkip}
+          className="text-xs font-bold text-zinc-400 hover:text-zinc-700 transition-colors uppercase tracking-widest focus:outline-none py-1"
+        >
+          Pular
+        </button>
+        <div className="flex items-center gap-2">
+          {state.index > 0 && (
+            <button
+              onClick={state.onBack}
+              className="h-10 px-4 rounded-xl text-xs font-black text-zinc-600 border border-zinc-200 hover:bg-zinc-50 transition-colors focus:outline-none"
+            >
+              ← Anterior
+            </button>
+          )}
+          <button
+            onClick={state.onNext}
+            className="h-10 px-5 rounded-xl text-xs font-black text-white bg-zinc-950 hover:bg-zinc-800 transition-colors shadow-lg shadow-zinc-950/20 focus:outline-none"
+          >
+            {state.isLastStep ? '✓ Entendido!' : 'Próximo →'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// ─── CustomTooltip — invisible on mobile (portal handles it), normal on desktop ──
 const CustomTooltip = ({
   index,
   step,
@@ -27,81 +135,70 @@ const CustomTooltip = ({
   size,
   isLastStep,
 }: any) => {
-  const [isMobile, setIsMobile] = useState(getMobileState);
-  const [isTablet, setIsTablet] = useState(getTabletState);
+  const isSmall = isMobileOrTablet();
 
+  // Push state to the portal
   useEffect(() => {
-    const onResize = () => {
-      setIsMobile(getMobileState());
-      setIsTablet(getTabletState());
-    };
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
+    if (!_setSharedState) return;
+    if (isSmall) {
+      _setSharedState({
+        index,
+        size,
+        isLastStep,
+        title: step.title,
+        content: step.content,
+        onBack: () => backProps.onClick(),
+        onNext: () => primaryProps.onClick(),
+        onSkip: () => closeProps.onClick(),
+        isSmall,
+      });
+    } else {
+      _setSharedState(null);
+    }
+  });
 
-  const isSmall = isMobile || isTablet;
+  // On mobile: render an invisible 0-size element so Joyride is happy
+  if (isSmall) {
+    return (
+      <div
+        {...tooltipProps}
+        style={{ width: 0, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }}
+      />
+    );
+  }
 
-  // ── Bottom-sheet styles para mobile/tablet ──
-  const wrapperStyle: React.CSSProperties = isSmall
-    ? {
-        fontFamily: 'inherit',
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        width: '100%',
-        maxWidth: '100%',
-        margin: 0,
-        borderRadius: '1.5rem 1.5rem 0 0',
-        zIndex: 10000,
-        boxShadow: '0 -8px 40px rgba(0,0,0,0.18)',
-      }
-    : {
-        fontFamily: 'inherit',
-        maxWidth: 380,
-        width: 'min(calc(100vw - 2rem), 380px)',
-      };
-
+  // Desktop: full card
   return (
     <div
       {...tooltipProps}
-      style={wrapperStyle}
-      className="bg-white ring-1 ring-zinc-200/60 overflow-hidden"
-      // Impede que o Joyride aplique transforms de posição em mobile
-      data-is-bottom-sheet={isSmall ? 'true' : 'false'}
+      style={{ fontFamily: 'inherit', maxWidth: 380, width: 'min(calc(100vw - 2rem), 380px)' }}
+      className="bg-white ring-1 ring-zinc-200/60 overflow-hidden rounded-2xl"
     >
-      {/* Pill handle só em mobile */}
-      {isSmall && (
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-zinc-300" />
-        </div>
-      )}
-
-      {/* Header escuro */}
-      <div className={`bg-zinc-950 relative overflow-hidden ${isSmall ? 'px-5 pt-3 pb-4' : 'px-5 pt-5 pb-4'}`}>
+      {/* Header */}
+      <div className="bg-zinc-950 relative overflow-hidden px-5 pt-5 pb-4">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff10_1px,transparent_1px),linear-gradient(to_bottom,#ffffff10_1px,transparent_1px)] bg-[size:14px_14px] opacity-20" />
         <div className="relative z-10">
           <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 font-mono">
             Passo {index + 1} de {size}
           </p>
           {step.title && (
-            <h3 className={`font-black text-white tracking-tight leading-tight ${isSmall ? 'text-base' : 'text-lg'}`}>
+            <h3 className="font-black text-white tracking-tight leading-tight text-lg">
               {step.title}
             </h3>
           )}
         </div>
       </div>
 
-      {/* Corpo */}
-      <div className={`${isSmall ? 'px-5 py-3 max-h-[38vh] overflow-y-auto' : 'px-5 py-4'}`}>
+      {/* Body */}
+      <div className="px-5 py-4">
         <div className="text-sm text-zinc-600 font-medium leading-relaxed">
           {step.content}
         </div>
       </div>
 
-      {/* Bolinhas de progresso */}
+      {/* Progress dots */}
       <div className="flex items-center justify-center gap-1.5 py-2">
-        {Array.from({ length: size }).map((_: any, i: number) => (
+        {Array.from({ length: size }).map((_: unknown, i: number) => (
           <div
             key={i}
             className={`rounded-full transition-all ${
@@ -111,18 +208,14 @@ const CustomTooltip = ({
         ))}
       </div>
 
-      {/* Rodapé com botões */}
-      <div
-        className="flex items-center justify-between gap-3 px-5 py-4 border-t border-zinc-100"
-        style={{ paddingBottom: isSmall ? 'calc(1rem + env(safe-area-inset-bottom, 0px))' : '1rem' }}
-      >
+      {/* Footer */}
+      <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-zinc-100">
         <button
           {...closeProps}
           className="text-xs font-bold text-zinc-400 hover:text-zinc-700 transition-colors uppercase tracking-widest focus:outline-none py-1"
         >
           Pular
         </button>
-
         <div className="flex items-center gap-2">
           {index > 0 && (
             <button
@@ -144,34 +237,18 @@ const CustomTooltip = ({
   );
 };
 
-// ─── Resolve target: se o elemento não existe no DOM, usa 'body' ────────────────
+// ─── Resolve target ──────────────────────────────────────────────────────────────
 const resolveTarget = (selector: string): string => {
   if (selector === 'body') return 'body';
   if (typeof document === 'undefined') return 'body';
-  const el = document.querySelector(selector);
-  return el ? selector : 'body';
+  return document.querySelector(selector) ? selector : 'body';
 };
 
-const resolvePlacement = (
-  selector: string,
-  desktopPlacement: PlacementType,
-  mobileOverride: PlacementType = 'bottom'
-): PlacementType => {
-  const isMob = getMobileState();
-  const isTab = getTabletState();
-  if (selector === 'body') return 'center';
-  const el = typeof document !== 'undefined' ? document.querySelector(selector) : null;
-  if (!el) return 'center';
-  if (isMob || isTab) return mobileOverride;
-  return desktopPlacement;
-};
-
-// ─── Definição estática dos passos (sem lógica de DOM) ──────────────────────────
+// ─── Step definitions ────────────────────────────────────────────────────────────
 const STEP_DEFS = [
   {
     target: 'body',
     desktopPlacement: 'center' as PlacementType,
-    mobilePlacement: 'center' as PlacementType,
     title: '👋 Bem-vindo ao Diário de Bordo!',
     content: (
       <div className="space-y-3">
@@ -189,7 +266,6 @@ const STEP_DEFS = [
   {
     target: 'header',
     desktopPlacement: 'bottom' as PlacementType,
-    mobilePlacement: 'bottom' as PlacementType,
     title: '🗓️ Cabeçalho — Data e Turno',
     content: (
       <div className="space-y-2">
@@ -210,7 +286,6 @@ const STEP_DEFS = [
   {
     target: '.tour-user-menu',
     desktopPlacement: 'bottom-end' as PlacementType,
-    mobilePlacement: 'bottom' as PlacementType,
     title: '🔑 Menu do Usuário',
     content: (
       <div className="space-y-2">
@@ -218,15 +293,11 @@ const STEP_DEFS = [
         <ul className="space-y-1.5 text-sm">
           <li className="flex items-start gap-2">
             <span className="mt-0.5">🔐</span>
-            <span>
-              <strong className="text-zinc-900">Senha:</strong> altere a senha do seu perfil de turno.
-            </span>
+            <span><strong className="text-zinc-900">Senha:</strong> altere a senha do seu perfil de turno.</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-0.5">🚪</span>
-            <span>
-              <strong className="text-zinc-900">Sair:</strong> encerra a sessão e volta ao login.
-            </span>
+            <span><strong className="text-zinc-900">Sair:</strong> encerra a sessão e volta ao login.</span>
           </li>
         </ul>
         <p className="text-xs bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-amber-700">
@@ -238,7 +309,6 @@ const STEP_DEFS = [
   {
     target: '.tour-tab-bar',
     desktopPlacement: 'top' as PlacementType,
-    mobilePlacement: 'top' as PlacementType,
     title: '📱 Navegação — Três Abas',
     content: (
       <div className="space-y-2">
@@ -263,7 +333,6 @@ const STEP_DEFS = [
   {
     target: '.tour-nova-op',
     desktopPlacement: 'right' as PlacementType,
-    mobilePlacement: 'bottom' as PlacementType,
     title: '➕ Nova OP — Abrir uma Produção',
     content: (
       <div className="space-y-2.5">
@@ -286,7 +355,6 @@ const STEP_DEFS = [
   {
     target: '.tour-nova-op-form',
     desktopPlacement: 'right' as PlacementType,
-    mobilePlacement: 'bottom' as PlacementType,
     title: '📝 Iniciar ou Registrar Paradas',
     content: (
       <div className="space-y-2.5">
@@ -310,7 +378,6 @@ const STEP_DEFS = [
   {
     target: '.tour-pendentes',
     desktopPlacement: 'left' as PlacementType,
-    mobilePlacement: 'bottom' as PlacementType,
     title: '📋 Pendentes — OPs em Andamento',
     content: (
       <div className="space-y-2.5">
@@ -328,7 +395,6 @@ const STEP_DEFS = [
   {
     target: '.tour-pendentes-items',
     desktopPlacement: 'left' as PlacementType,
-    mobilePlacement: 'bottom' as PlacementType,
     title: '👆 Como Encerrar uma OP',
     content: (
       <div className="space-y-2.5">
@@ -353,7 +419,6 @@ const STEP_DEFS = [
   {
     target: '.tour-concluidas',
     desktopPlacement: 'left' as PlacementType,
-    mobilePlacement: 'bottom' as PlacementType,
     title: '✅ Concluídas — Histórico do Turno',
     content: (
       <div className="space-y-2.5">
@@ -375,7 +440,6 @@ const STEP_DEFS = [
   {
     target: 'body',
     desktopPlacement: 'center' as PlacementType,
-    mobilePlacement: 'center' as PlacementType,
     title: '🎉 Pronto para Começar!',
     content: (
       <div className="space-y-3">
@@ -406,23 +470,20 @@ const STEP_DEFS = [
   },
 ];
 
-// ─── Constrói steps do Joyride resolvendo targets dinamicamente ─────────────────
-const buildSteps = () => {
-  const isMob = getMobileState();
-  const isTab = getTabletState();
-  const isSmall = isMob || isTab;
-
+// ─── Build Joyride steps resolving DOM targets ───────────────────────────────────
+const buildSteps = (): Step[] => {
+  const small = isMobileOrTablet();
   return STEP_DEFS.map((def) => {
     const domTarget = resolveTarget(def.target);
-    const placement = domTarget === 'body' && def.target !== 'body'
-      ? 'center'
-      : isSmall
-      ? def.mobilePlacement
-      : def.desktopPlacement;
-
+    const placement: PlacementType =
+      domTarget === 'body' && def.target !== 'body'
+        ? 'center'
+        : small
+        ? 'bottom'
+        : def.desktopPlacement;
     return {
       target: domTarget,
-      placement: placement as PlacementType,
+      placement,
       disableBeacon: true,
       title: def.title,
       content: def.content,
@@ -430,25 +491,21 @@ const buildSteps = () => {
   });
 };
 
-// ─── Estilos do Joyride ─────────────────────────────────────────────────────────
+// ─── Joyride styles ──────────────────────────────────────────────────────────────
 const joyrideStyles = {
   options: {
-    arrowColor: '#fff',
+    arrowColor: '#18181b',
     backgroundColor: 'transparent',
     overlayColor: 'rgba(0,0,0,0.55)',
     zIndex: 9999,
   },
-  spotlight: {
-    borderRadius: 20,
-  },
-  // Remove o overlay de spotlight nos steps com target=body/center
-  overlay: {},
+  spotlight: { borderRadius: 20 },
 };
 
-// ─── Chave de localStorage ───────────────────────────────────────────────────────
+// ─── Tour storage key ─────────────────────────────────────────────────────────────
 const TOUR_STORAGE_KEY = 'diario-bordo-tour-done-v1';
 
-// ─── Componente exportado ────────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────────
 interface OnboardingTourProps {
   forceRun?: boolean;
   onFinish?: () => void;
@@ -462,31 +519,29 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
 }) => {
   const [run, setRun] = useState(false);
   const [tourKey, setTourKey] = useState(0);
-  const [steps, setSteps] = useState(() => buildSteps());
+  const [steps, setSteps] = useState<Step[]>(() => buildSteps());
 
-  // Reconstrói steps ao iniciar (garante targets atualizados)
   const startTour = useCallback(() => {
     setSteps(buildSteps());
     setTourKey((prev) => prev + 1);
     setRun(true);
   }, []);
 
-  // Auto-start para novos usuários
+  // Auto-start for new users
   useEffect(() => {
-    const done = localStorage.getItem(TOUR_STORAGE_KEY);
-    if (!done) {
+    if (!localStorage.getItem(TOUR_STORAGE_KEY)) {
       const t = setTimeout(startTour, 900);
       return () => clearTimeout(t);
     }
   }, [startTour]);
 
-  // Force run externo
+  // External force-run
   useEffect(() => {
     if (forceRun) startTour();
   }, [forceRun, startTour]);
 
   const handleCallback = useCallback(
-    (data: any) => {
+    (data: CallBackProps) => {
       const { status, index, type } = data;
 
       if (type === EVENTS.STEP_AFTER) {
@@ -494,6 +549,8 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
       }
 
       if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
+        // Clear portal state
+        _setSharedState?.(null);
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
         setRun(false);
         onFinish?.();
@@ -503,34 +560,39 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
   );
 
   return (
-    <Joyride
-      key={tourKey}
-      steps={steps}
-      run={run}
-      continuous
-      scrollToFirstStep
-      scrollOffset={80}
-      showProgress={false}
-      showSkipButton={false}
-      disableOverlayClose={false}
-      disableScrollParentFix={false}
-      spotlightClicks={false}
-      tooltipComponent={CustomTooltip}
-      styles={joyrideStyles}
-      locale={{
-        back: 'Anterior',
-        close: 'Fechar',
-        last: 'Entendido!',
-        next: 'Próximo',
-        open: 'Abrir',
-        skip: 'Pular',
-      }}
-      callback={handleCallback}
-    />
+    <>
+      {/* Portal renders the bottom-sheet outside Joyride's floater tree */}
+      <PortalBottomSheet />
+
+      <Joyride
+        key={tourKey}
+        steps={steps}
+        run={run}
+        continuous
+        scrollToFirstStep
+        scrollOffset={80}
+        showProgress={false}
+        showSkipButton={false}
+        disableOverlayClose={false}
+        disableScrollParentFix={false}
+        spotlightClicks={false}
+        tooltipComponent={CustomTooltip}
+        styles={joyrideStyles}
+        locale={{
+          back: 'Anterior',
+          close: 'Fechar',
+          last: 'Entendido!',
+          next: 'Próximo',
+          open: 'Abrir',
+          skip: 'Pular',
+        }}
+        callback={handleCallback}
+      />
+    </>
   );
 };
 
-// ─── Utilitário para resetar o tour ─────────────────────────────────────────────
+// ─── Reset utility ────────────────────────────────────────────────────────────────
 export function resetTour() {
   localStorage.removeItem(TOUR_STORAGE_KEY);
 }
