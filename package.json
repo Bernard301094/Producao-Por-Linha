@@ -10,7 +10,9 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "android:build": "vite build && npx cap sync android",
+    "android:open": "npx cap open android"
   },
   "dependencies": {
     "@azure/identity": "^4.13.1",
