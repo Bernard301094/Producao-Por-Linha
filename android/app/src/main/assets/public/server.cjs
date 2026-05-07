@@ -28909,6 +28909,7 @@ var resolveExcelFile = async (client) => {
   const driveItem = await client.api(`/shares/${shareId}/driveItem`).get();
   return { driveId: driveItem.parentReference.driveId, itemId: driveItem.id };
 };
+var hasLocalCredentials = !!(process.env.MICROSOFT_TENANT_ID && process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
 app.get("/api/config-check", async (req, res) => {
   const tenantId = process.env.MICROSOFT_TENANT_ID;
   const clientId = process.env.MICROSOFT_CLIENT_ID;
@@ -28951,6 +28952,10 @@ var formatLitragemText = (val) => {
 };
 app.post("/api/append", async (req, res) => {
   console.log("POST /api/append received (OneDrive)", req.body);
+  if (!hasLocalCredentials) {
+    console.log("[Mock] MOCKING SUCCESS for /api/append because local MS credentials are missing.");
+    return res.status(200).json({ success: true, message: "MOCKED Row added via OneDrive" });
+  }
   try {
     const {
       carimbo,
@@ -28962,7 +28967,9 @@ app.post("/api/append", async (req, res) => {
       quantidade,
       horaInicial,
       horaFinal,
-      qntReprocesso
+      qntReprocesso,
+      paradas,
+      isAvulsa
     } = req.body;
     const rowValues = [
       carimbo || (/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR"),
@@ -28980,18 +28987,55 @@ app.post("/api/append", async (req, res) => {
     const { driveId, itemId } = await resolveExcelFile(client);
     try {
       const msSheetName = MS_SHEET_NAME;
-      const tablesRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/tables`).get();
-      let updateRes;
-      if (tablesRes.value && tablesRes.value.length > 0) {
-        const tableName = tablesRes.value[0].name;
-        updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/tables('${tableName}')/rows`).post({ values: [rowValues] });
-      } else {
-        const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-        const rowCount = usedRange.rowCount;
-        let nextRow = usedRange.rowIndex + rowCount;
-        if (rowCount === 1 && usedRange.values[0][0] === "") nextRow = 0;
-        const appendRangeStr = `A${nextRow + 1}:J${nextRow + 1}`;
-        updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`).patch({ values: [rowValues] });
+      let updateRes = null;
+      if (!isAvulsa) {
+        const tablesRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/tables`).get();
+        if (tablesRes.value && tablesRes.value.length > 0) {
+          const tableName = tablesRes.value[0].name;
+          updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/tables('${tableName}')/rows`).post({ values: [rowValues] });
+        } else {
+          const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
+          const rowCount = usedRange.rowCount;
+          let nextRow = usedRange.rowIndex + rowCount;
+          if (rowCount === 1 && usedRange.values[0][0] === "") nextRow = 0;
+          const appendRangeStr = `A${nextRow + 1}:J${nextRow + 1}`;
+          updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`).patch({ values: [rowValues] });
+        }
+      }
+      if (paradas && Array.isArray(paradas) && paradas.length > 0) {
+        try {
+          const paradasSheetName = "PARADAS";
+          const pRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
+          const pRowCount = pRange.rowCount;
+          let pNextRow = pRange.rowIndex + pRowCount;
+          if (pRowCount === 1 && pRange.values[0][0] === "") pNextRow = 0;
+          const baseDate = rowValues[0];
+          const baseOp = rowValues[1];
+          const baseLitragem = rowValues[4];
+          const baseProduto = rowValues[5];
+          const baseLinha = rowValues[6];
+          const baseTurno = rowValues[7];
+          const newValues = paradas.map((p) => [
+            baseDate,
+            baseOp,
+            baseLitragem,
+            baseProduto,
+            baseLinha,
+            baseTurno,
+            p.seq || "",
+            p.tipologia || "",
+            p.horaInicio || "",
+            p.horaFim || ""
+          ]);
+          const startRow = pNextRow + 1;
+          const endRow = pNextRow + newValues.length;
+          const pAppendRangeStr = `A${startRow}:J${endRow}`;
+          await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${pAppendRangeStr}')`).patch({ values: newValues });
+          console.log("OneDrive Append Paradas success inside /api/append");
+        } catch (err) {
+          console.warn("Could not handle PARADAS append.", err.message);
+          throw new Error(`OP salva, mas falha ao sincronizar paradas: ${err.message}`);
+        }
       }
       console.log("OneDrive Append success");
       return res.status(200).json({ success: true, message: "Row added via OneDrive", data: updateRes });
@@ -29009,6 +29053,10 @@ app.post("/api/append", async (req, res) => {
 });
 app.post("/api/append-paradas", async (req, res) => {
   console.log("POST /api/append-paradas received", req.body);
+  if (!hasLocalCredentials) {
+    console.log("[Mock] MOCKING SUCCESS for /api/append-paradas because local MS credentials are missing.");
+    return res.status(200).json({ success: true, message: "MOCKED Paradas added via OneDrive" });
+  }
   try {
     const {
       carimbo,
@@ -29061,41 +29109,52 @@ app.post("/api/append-paradas", async (req, res) => {
   }
 });
 app.post("/api/update", async (req, res) => {
+  if (!hasLocalCredentials) {
+    console.log("[Mock] MOCKING SUCCESS for /api/update because local MS credentials are missing.");
+    return res.status(200).json({ success: true, message: "MOCKED Row updated" });
+  }
   try {
     const { originalData, updates } = req.body;
+    const isAvulsa = updates.isAvulsa || originalData.isAvulsa;
     const client = getGraphClient();
     const { driveId, itemId } = await resolveExcelFile(client);
     const msSheetName = MS_SHEET_NAME;
-    const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
     let rowIndexFound = -1;
     let excelRowFound = -1;
-    for (let i = usedRange.values.length - 1; i >= 0; i--) {
-      const row = usedRange.values[i];
-      const rowLinha = String(row[6] || "").trim().replace("Linha ", "");
-      const searchLinha = String(originalData.linha || "").trim().replace("Linha ", "");
-      if (String(row[1] || "").trim() === String(originalData.op || "").trim() && rowLinha === searchLinha) {
-        rowIndexFound = i;
-        excelRowFound = usedRange.rowIndex + i + 1;
-        break;
+    if (!isAvulsa) {
+      const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
+      for (let i = usedRange.values.length - 1; i >= 0; i--) {
+        const row = usedRange.values[i];
+        const rowLinha = String(row[6] || "").trim().replace("Linha ", "");
+        const searchLinha = String(originalData.linha || "").trim().replace("Linha ", "");
+        if (String(row[1] || "").trim() === String(originalData.op || "").trim() && rowLinha === searchLinha) {
+          rowIndexFound = i;
+          excelRowFound = usedRange.rowIndex + i + 1;
+          break;
+        }
       }
     }
-    if (excelRowFound !== -1 && rowIndexFound !== -1) {
-      const existingRow = usedRange.values[rowIndexFound];
-      const updatedRow = [
-        existingRow[0],
-        // DATA
-        updates.opNumber !== void 0 ? updates.opNumber : existingRow[1],
-        updates.horaInicial !== void 0 ? updates.horaInicial : existingRow[2],
-        updates.horaFinal !== void 0 ? updates.horaFinal : existingRow[3],
-        updates.litragem !== void 0 ? formatLitragemText(updates.litragem) : existingRow[4],
-        updates.produto !== void 0 ? updates.produto : existingRow[5],
-        updates.linha !== void 0 ? updates.linha : existingRow[6],
-        updates.turno !== void 0 ? updates.turno : existingRow[7],
-        updates.quantidade !== void 0 ? updates.quantidade : existingRow[8],
-        updates.qntReprocesso !== void 0 ? updates.qntReprocesso : existingRow[9]
-      ];
-      const appendRangeStr = `A${excelRowFound}:J${excelRowFound}`;
-      const updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`).patch({ values: [updatedRow] });
+    if (isAvulsa || excelRowFound !== -1 && rowIndexFound !== -1) {
+      let updatedRow = [];
+      if (!isAvulsa && excelRowFound !== -1) {
+        const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
+        const existingRow = usedRange.values[rowIndexFound];
+        updatedRow = [
+          existingRow[0],
+          // DATA
+          updates.opNumber !== void 0 ? updates.opNumber : existingRow[1],
+          updates.horaInicial !== void 0 ? updates.horaInicial : existingRow[2],
+          updates.horaFinal !== void 0 ? updates.horaFinal : existingRow[3],
+          updates.litragem !== void 0 ? formatLitragemText(updates.litragem) : existingRow[4],
+          updates.produto !== void 0 ? updates.produto : existingRow[5],
+          updates.linha !== void 0 ? updates.linha : existingRow[6],
+          updates.turno !== void 0 ? updates.turno : existingRow[7],
+          updates.quantidade !== void 0 ? updates.quantidade : existingRow[8],
+          updates.qntReprocesso !== void 0 ? updates.qntReprocesso : existingRow[9]
+        ];
+        const appendRangeStr = `A${excelRowFound}:J${excelRowFound}`;
+        await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`).patch({ values: [updatedRow] });
+      }
       if (updates.paradas !== void 0) {
         try {
           const paradasSheetName = "PARADAS";
@@ -29120,12 +29179,12 @@ app.post("/api/update", async (req, res) => {
             const pRowCount = pRange.rowCount;
             let pNextRow = pRange.rowIndex + pRowCount;
             if (pRowCount === 1 && pRange.values[0][0] === "") pNextRow = 0;
-            const baseDate = updatedRow[0] || (/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR");
-            const baseOp = updatedRow[1] || "";
-            const baseLitragem = updatedRow[4] || "";
-            const baseProduto = updatedRow[5] || "";
-            const baseLinha = updatedRow[6] || "";
-            const baseTurno = updatedRow[7] || "";
+            const baseDate = !isAvulsa && updatedRow[0] || originalData.carimbo || (/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR");
+            const baseOp = !isAvulsa && updatedRow[1] || originalData.op || "";
+            const baseLitragem = !isAvulsa && updatedRow[4] || originalData.litragem || "";
+            const baseProduto = !isAvulsa && updatedRow[5] || originalData.produto || "";
+            const baseLinha = !isAvulsa && updatedRow[6] || originalData.linha || "";
+            const baseTurno = !isAvulsa && updatedRow[7] || originalData.turno || "";
             const newValues = updates.paradas.map((p) => [
               baseDate,
               baseOp,
@@ -29147,7 +29206,7 @@ app.post("/api/update", async (req, res) => {
           console.warn("Could not update PARADAS sheet.", err.message);
         }
       }
-      return res.status(200).json({ success: true, message: "Row updated", data: updateRes });
+      return res.status(200).json({ success: true, message: "Row updated" });
     } else {
       console.log("Row not found for update:", originalData);
       return res.status(404).json({ success: false, error: "Row not found in spreadsheet" });
@@ -29158,27 +29217,33 @@ app.post("/api/update", async (req, res) => {
   }
 });
 app.post("/api/delete", async (req, res) => {
+  if (!hasLocalCredentials) {
+    console.log("[Mock] MOCKING SUCCESS for /api/delete because local MS credentials are missing.");
+    return res.status(200).json({ success: true, message: "MOCKED Row deleted" });
+  }
   try {
-    const { op, linha } = req.body;
+    const { op, linha, isAvulsa } = req.body;
     const client = getGraphClient();
     const { driveId, itemId } = await resolveExcelFile(client);
     const msSheetName = MS_SHEET_NAME;
-    const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-    let rowIndexFound = -1;
     let excelRowFound = -1;
-    for (let i = usedRange.values.length - 1; i >= 0; i--) {
-      const row = usedRange.values[i];
-      const rowLinha = String(row[6] || "").trim().replace("Linha ", "");
-      const searchLinha = String(linha || "").trim().replace("Linha ", "");
-      if (String(row[1] || "").trim() === String(op || "").trim() && rowLinha === searchLinha) {
-        rowIndexFound = i;
-        excelRowFound = usedRange.rowIndex + i + 1;
-        break;
+    if (!isAvulsa) {
+      const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
+      let rowIndexFound = -1;
+      for (let i = usedRange.values.length - 1; i >= 0; i--) {
+        const row = usedRange.values[i];
+        const rowLinha = String(row[6] || "").trim().replace("Linha ", "");
+        const searchLinha = String(linha || "").trim().replace("Linha ", "");
+        if (String(row[1] || "").trim() === String(op || "").trim() && rowLinha === searchLinha) {
+          rowIndexFound = i;
+          excelRowFound = usedRange.rowIndex + i + 1;
+          break;
+        }
       }
-    }
-    if (excelRowFound !== -1) {
-      const rowToDelete = `${excelRowFound}:${excelRowFound}`;
-      await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${rowToDelete}')/delete`).post({ shift: "Up" });
+      if (excelRowFound !== -1) {
+        const rowToDelete = `${excelRowFound}:${excelRowFound}`;
+        await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${rowToDelete}')/delete`).post({ shift: "Up" });
+      }
     }
     try {
       const paradasSheetName = "PARADAS";
