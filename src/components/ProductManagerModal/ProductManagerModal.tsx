@@ -81,9 +81,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
         <button type="button" autoFocus aria-hidden="true" className="sr-only" />
         <div className="bg-zinc-950 p-6 text-center relative overflow-hidden shrink-0">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:14px_14px] opacity-20" />
-          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/10 shadow-inner">
-            <Package className="w-6 h-6 text-white" />
-          </div>
+          <img src="/icon.svg" className="w-12 h-12 object-contain mx-auto mb-3 drop-shadow-[0_0_15px_rgba(255,255,255,0.6)]" alt="Icon" />
           <DialogTitle className="text-xl font-black text-white tracking-tight">Gerenciar Produtos</DialogTitle>
           <DialogDescription className="text-zinc-400 font-medium text-[10px] mt-0.5 uppercase tracking-widest">
             Edite ou remova produtos cadastrados

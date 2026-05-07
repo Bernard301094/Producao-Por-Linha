@@ -104,9 +104,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:16px_16px] opacity-20" />
         <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/10 rounded-[1.25rem] flex items-center justify-center border border-white/10 shadow-inner">
-               <Package className="w-6 h-6 text-white" />
-            </div>
             <div className="flex flex-col">
               <CardTitle className="text-base sm:text-lg font-black text-white tracking-widest uppercase mb-1 leading-none">Nova OP</CardTitle>
               <p className="text-xs sm:text-sm font-medium text-zinc-400">Preencha os dados da ordem</p>

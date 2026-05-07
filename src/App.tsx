@@ -1171,10 +1171,7 @@ export default function App() {
           <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 2xl:px-8 py-3 sm:py-0 min-h-[4rem] sm:h-20 flex items-center justify-between gap-4">
             {/* Logo & App Name */}
             <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-950 rounded-xl sm:rounded-[1.25rem] flex items-center justify-center shadow-lg shadow-zinc-950/10 shrink-0 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:8px_8px] opacity-20" />
-                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white relative z-10" />
-              </div>
+              <img src="/icon.svg" className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 object-contain drop-shadow-md" alt="Vonixx" />
               <div className="min-w-0 flex flex-col justify-center pt-1 md:pt-0">
                 <h1 className="text-base sm:text-lg font-black text-zinc-950 tracking-tight leading-none truncate mb-1.5">
                   Diário de Bordo

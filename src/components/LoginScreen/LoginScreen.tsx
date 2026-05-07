@@ -38,9 +38,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           <div className="absolute top-[-20%] left-[-10%] w-[140%] h-[140%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.1)_0%,transparent_70%)]" />
           
           <div className="relative z-10 flex flex-col gap-6 mt-12">
-            <div className="w-20 h-20 bg-white/10 backdrop-blur-xl rounded-3xl flex items-center justify-center border border-white/20 shadow-2xl">
-              <Package className="w-10 h-10 text-white" />
-            </div>
+            <img src="/icon.svg" className="w-20 h-20 object-contain drop-shadow-[0_0_25px_rgba(255,255,255,0.6)] flex-shrink-0" alt="Icon" />
             <div>
               <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tighter leading-[1.1] mb-6">
                 Diário de<br />Bordo
@@ -62,9 +60,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             
             {/* Mobile/Tablet Branding */}
             <div className="lg:hidden flex flex-col items-center gap-4 mb-8 pt-4 text-center">
-              <div className="w-16 h-16 bg-zinc-950 rounded-[1.25rem] flex items-center justify-center shadow-xl shadow-zinc-900/20">
-                <Package className="w-8 h-8 text-white" />
-              </div>
+              <img src="/icon.svg" className="w-16 h-16 object-contain drop-shadow-md flex-shrink-0" alt="Icon" />
               <div>
                 <h1 className="text-2xl font-black text-zinc-950 tracking-tight leading-none mb-1">Diário de Bordo</h1>
                 <p className="text-xs text-zinc-500 font-mono uppercase tracking-widest font-bold">Vonixx</p>
@@ -78,7 +74,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             
             <div className="space-y-8 flex-1 flex flex-col">
               {!selectedProfile ? (
-                <div className="flex-1">
+                 <div className="flex-1">
                   <p className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-4 text-center lg:text-left">Selecione seu perfil</p>
                   <div className="grid grid-cols-2 gap-3 sm:gap-4">
                     {profiles.length === 0 && (
@@ -91,17 +87,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         key={profile}
                         onClick={() => { setSelectedProfile(profile); setPasswordInput(''); setShowPassword(false); }}
                         className={cn(
-                          'w-full h-auto aspect-[2/1] p-3 sm:p-4 rounded-2xl font-bold text-xs sm:text-sm lg:text-base transition-all duration-200 border-2 text-left flex items-center justify-start group gap-2.5 sm:gap-4',
-                          'bg-white border-zinc-200/60 text-zinc-700 hover:border-zinc-900 hover:text-zinc-950 hover:shadow-lg focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-900/20'
+                          'w-full h-auto aspect-[2/1] p-3 sm:p-4 rounded-2xl font-black text-sm lg:text-base transition-all duration-200 border-2 text-center flex items-center justify-center group',
+                          'bg-white border-zinc-200/60 text-zinc-700 hover:border-zinc-900 hover:bg-zinc-950 hover:text-white hover:shadow-lg focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-900/20'
                         )}
                       >
-                        <div className={cn(
-                          "w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex flex-shrink-0 items-center justify-center border",
-                          "bg-zinc-50 border-zinc-200/60 group-hover:bg-zinc-950 group-hover:border-zinc-950 transition-colors"
-                        )}>
-                          <Package className="w-5 h-5 sm:w-6 sm:h-6 text-zinc-400 group-hover:text-white transition-colors" />
-                        </div>
-                        <span className="flex-1 truncate">{profile.replace('Turno ', 'Turno ')}</span>
+                        <span className="truncate">{profile}</span>
                       </button>
                     ))}
                   </div>
@@ -115,13 +105,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                     ← Mudar Perfil
                   </button>
 
-                  <div className="flex items-center gap-5 p-5 bg-[#F9FAFB] rounded-[1.5rem] border border-zinc-200/80 shadow-inner">
-                    <div className={cn(
-                      'w-14 h-14 rounded-[1rem] flex flex-shrink-0 items-center justify-center border',
-                      'bg-white border-zinc-200 shadow-sm'
-                    )}>
-                      <Package className="w-7 h-7 text-zinc-800" />
-                    </div>
+                  <div className="flex items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[#F9FAFB] rounded-[1.5rem] border border-zinc-200/80 shadow-inner">
                     <div className="flex-1">
                       <p className="text-xs text-zinc-500 uppercase tracking-widest font-black mb-1">Perfil Selecionado</p>
                       <p className="text-xl font-black text-zinc-950 truncate">{selectedProfile}</p>
