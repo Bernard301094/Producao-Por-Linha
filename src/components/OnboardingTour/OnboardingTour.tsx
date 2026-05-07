@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Joyride, STATUS } from 'react-joyride';
 
+// ─── Detecta se é mobile/tablet ────────────────────────────────────────────────
+const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768;
+const isTablet = () => typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth < 1024;
+
+type PlacementType =
+  | 'top' | 'top-start' | 'top-end'
+  | 'bottom' | 'bottom-start' | 'bottom-end'
+  | 'left' | 'left-start' | 'left-end'
+  | 'right' | 'right-start' | 'right-end'
+  | 'auto' | 'center';
+
 // ─── Custom Tooltip ────────────────────────────────────────────────────────────
 const CustomTooltip = ({
   continuous,
@@ -18,20 +29,20 @@ const CustomTooltip = ({
       {...tooltipProps}
       style={{
         fontFamily: 'inherit',
-        maxWidth: 340,
-        width: 'calc(100vw - 2.5rem)',
+        maxWidth: 360,
+        width: 'min(calc(100vw - 2rem), 360px)',
       }}
       className="bg-white rounded-[1.75rem] shadow-2xl ring-1 ring-zinc-200/60 overflow-hidden"
     >
       {/* Header escuro */}
-      <div className="bg-zinc-950 px-6 pt-6 pb-5 relative overflow-hidden">
+      <div className="bg-zinc-950 px-5 pt-5 pb-4 relative overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff10_1px,transparent_1px),linear-gradient(to_bottom,#ffffff10_1px,transparent_1px)] bg-[size:14px_14px] opacity-20" />
         <div className="relative z-10">
           <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 font-mono">
             Passo {index + 1} de {size}
           </p>
           {step.title && (
-            <h3 className="text-xl font-black text-white tracking-tight leading-tight">
+            <h3 className="text-lg font-black text-white tracking-tight leading-tight">
               {step.title}
             </h3>
           )}
@@ -39,7 +50,7 @@ const CustomTooltip = ({
       </div>
 
       {/* Corpo */}
-      <div className="px-6 py-5">
+      <div className="px-5 py-4">
         <div className="text-sm text-zinc-600 font-medium leading-relaxed">
           {step.content}
         </div>
@@ -58,7 +69,7 @@ const CustomTooltip = ({
       </div>
 
       {/* Rodapé com botões */}
-      <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-zinc-100">
+      <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-zinc-100">
         <button
           {...closeProps}
           className="text-xs font-bold text-zinc-400 hover:text-zinc-700 transition-colors uppercase tracking-widest focus:outline-none py-1"
@@ -87,11 +98,20 @@ const CustomTooltip = ({
   );
 };
 
+// ─── Placement responsivo ────────────────────────────────────────────────────────
+const getPlacement = (
+  desktopPlacement: PlacementType,
+  mobileOverride: PlacementType = 'bottom'
+): PlacementType => {
+  if (isMobile() || isTablet()) return mobileOverride;
+  return desktopPlacement;
+};
+
 // ─── Passos do tour ─────────────────────────────────────────────────────────────
 const STEPS = [
   {
     target: 'body',
-    placement: 'center' as const,
+    placement: 'center' as PlacementType,
     disableBeacon: true,
     title: '👋 Bem-vindo ao Diário de Bordo!',
     content: (
@@ -109,7 +129,7 @@ const STEPS = [
   },
   {
     target: 'header',
-    placement: 'bottom' as const,
+    placement: 'bottom' as PlacementType,
     disableBeacon: true,
     title: '🗓️ Cabeçalho — Data e Turno',
     content: (
@@ -130,7 +150,7 @@ const STEPS = [
   },
   {
     target: '.tour-user-menu',
-    placement: 'bottom-end' as const,
+    placement: 'bottom-end' as PlacementType,
     disableBeacon: true,
     title: '🔑 Menu do Usuário',
     content: (
@@ -158,7 +178,7 @@ const STEPS = [
   },
   {
     target: '.tour-tab-bar',
-    placement: 'top' as const,
+    placement: 'top' as PlacementType,
     disableBeacon: true,
     title: '📱 Navegação — Três Abas',
     content: (
@@ -197,7 +217,7 @@ const STEPS = [
   },
   {
     target: '.tour-nova-op',
-    placement: 'right' as const,
+    placement: getPlacement('right', 'bottom'),
     disableBeacon: true,
     title: '➕ Nova OP — Abrir uma Produção',
     content: (
@@ -229,7 +249,7 @@ const STEPS = [
   },
   {
     target: '.tour-nova-op-form',
-    placement: 'right' as const,
+    placement: getPlacement('right', 'bottom'),
     disableBeacon: true,
     title: '📝 Iniciar ou Registrar Paradas',
     content: (
@@ -255,7 +275,7 @@ const STEPS = [
   },
   {
     target: '.tour-pendentes',
-    placement: 'left' as const,
+    placement: getPlacement('left', 'bottom'),
     disableBeacon: true,
     title: '📋 Pendentes — OPs em Andamento',
     content: (
@@ -273,7 +293,7 @@ const STEPS = [
   },
   {
     target: '.tour-pendentes-items',
-    placement: 'left' as const,
+    placement: getPlacement('left', 'bottom'),
     disableBeacon: true,
     title: '👆 Como Encerrar uma OP',
     content: (
@@ -307,7 +327,7 @@ const STEPS = [
   },
   {
     target: '.tour-concluidas',
-    placement: 'left' as const,
+    placement: getPlacement('left', 'bottom'),
     disableBeacon: true,
     title: '✅ Concluídas — Histórico do Turno',
     content: (
@@ -337,7 +357,7 @@ const STEPS = [
   },
   {
     target: 'body',
-    placement: 'center' as const,
+    placement: 'center' as PlacementType,
     disableBeacon: true,
     title: '🎉 Pronto para Começar!',
     content: (
@@ -356,11 +376,11 @@ const STEPS = [
           ].map((item) => (
             <div
               key={item.title}
-              className="bg-zinc-50 border border-zinc-200 rounded-xl p-3 text-center"
+              className="bg-zinc-50 border border-zinc-200 rounded-xl p-2.5 text-center"
             >
-              <p className="text-xl mb-1">{item.icon}</p>
-              <p className="font-black text-zinc-700">{item.title}</p>
-              <p className="text-zinc-400">{item.desc}</p>
+              <p className="text-lg mb-1">{item.icon}</p>
+              <p className="font-black text-zinc-700 text-[11px]">{item.title}</p>
+              <p className="text-zinc-400 text-[10px]">{item.desc}</p>
             </div>
           ))}
         </div>
@@ -437,9 +457,11 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({ forceRun = false
       run={run}
       continuous
       scrollToFirstStep
+      scrollOffset={80}
       showProgress={false}
       showSkipButton={false}
       disableOverlayClose={false}
+      disableScrollParentFix={false}
       spotlightClicks={false}
       tooltipComponent={CustomTooltip}
       styles={joyrideStyles}
