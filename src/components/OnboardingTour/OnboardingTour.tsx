@@ -20,7 +20,6 @@ type PortalState = {
   isLastStep: boolean;
   title: React.ReactNode;
   content: React.ReactNode;
-  // Full Joyride prop objects so the portal buttons fire native Joyride actions
   backProps: React.HTMLAttributes<HTMLButtonElement>;
   primaryProps: React.HTMLAttributes<HTMLButtonElement>;
   closeProps: React.HTMLAttributes<HTMLButtonElement>;
@@ -28,7 +27,7 @@ type PortalState = {
 
 let _setPortalState: ((s: PortalState) => void) | null = null;
 
-// ─── Portal — renders bottom-sheet directly in document.body ────────────────────
+// ─── Portal — renders bottom-sheet directly in document.body ─────────────────────
 const PortalBottomSheet: React.FC = () => {
   const [state, setState] = useState<PortalState>(null);
 
@@ -43,21 +42,13 @@ const PortalBottomSheet: React.FC = () => {
 
   return ReactDOM.createPortal(
     <div
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 10001,
-      }}
+      style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10001 }}
       className="bg-white ring-1 ring-zinc-200/60 overflow-hidden rounded-t-[1.5rem] shadow-[0_-8px_40px_rgba(0,0,0,0.18)]"
     >
-      {/* Pill handle */}
       <div className="flex justify-center pt-3 pb-1">
         <div className="w-10 h-1 rounded-full bg-zinc-300" />
       </div>
 
-      {/* Header */}
       <div className="bg-zinc-950 relative overflow-hidden px-5 pt-3 pb-4">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff10_1px,transparent_1px),linear-gradient(to_bottom,#ffffff10_1px,transparent_1px)] bg-[size:14px_14px] opacity-20" />
         <div className="relative z-10">
@@ -72,14 +63,12 @@ const PortalBottomSheet: React.FC = () => {
         </div>
       </div>
 
-      {/* Body */}
       <div className="px-5 py-3 max-h-[38vh] overflow-y-auto">
         <div className="text-sm text-zinc-600 font-medium leading-relaxed">
           {content}
         </div>
       </div>
 
-      {/* Progress dots */}
       <div className="flex items-center justify-center gap-1.5 py-2">
         {Array.from({ length: size }).map((_: unknown, i: number) => (
           <div
@@ -91,7 +80,6 @@ const PortalBottomSheet: React.FC = () => {
         ))}
       </div>
 
-      {/* Footer — spread full Joyride props so onClick fires the real Joyride action */}
       <div
         className="flex items-center justify-between gap-3 px-5 py-4 border-t border-zinc-100"
         style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
@@ -124,7 +112,7 @@ const PortalBottomSheet: React.FC = () => {
   );
 };
 
-// ─── CustomTooltip — invisible on mobile (portal handles it), full card on desktop ──
+// ─── CustomTooltip — invisible on mobile (portal handles it), full card on desktop
 const CustomTooltip = ({
   index,
   step,
@@ -137,7 +125,6 @@ const CustomTooltip = ({
 }: any) => {
   const isSmall = isMobileOrTablet();
 
-  // Every render: push current props to the portal
   useEffect(() => {
     if (!_setPortalState) return;
     if (isSmall) {
@@ -156,7 +143,6 @@ const CustomTooltip = ({
     }
   });
 
-  // On mobile: 0-size invisible placeholder so Joyride stays happy
   if (isSmall) {
     return (
       <div
@@ -166,7 +152,6 @@ const CustomTooltip = ({
     );
   }
 
-  // Desktop: full inline card
   return (
     <div
       {...tooltipProps}
@@ -232,14 +217,14 @@ const CustomTooltip = ({
   );
 };
 
-// ─── Resolve target ──────────────────────────────────────────────────────────────
+// ─── Resolve target ───────────────────────────────────────────────────────────────
 const resolveTarget = (selector: string): string => {
   if (selector === 'body') return 'body';
   if (typeof document === 'undefined') return 'body';
   return document.querySelector(selector) ? selector : 'body';
 };
 
-// ─── Step definitions ────────────────────────────────────────────────────────────
+// ─── Step definitions ─────────────────────────────────────────────────────────────
 const STEP_DEFS = [
   {
     target: 'body',
@@ -439,17 +424,26 @@ const STEP_DEFS = [
   },
 ];
 
-// ─── Build Joyride steps ─────────────────────────────────────────────────────────────
+// ─── Build Joyride steps — on mobile all targets default to 'body'/'bottom' ───────
+// The actual spotlight/target is irrelevant on mobile since we use a portal bottom-sheet.
+// Setting target='body' prevents Joyride from skipping steps whose DOM element is hidden.
 const buildSteps = (): Step[] => {
   const small = isMobileOrTablet();
   return STEP_DEFS.map((def) => {
+    if (small) {
+      // On mobile: always target body so Joyride never skips a step
+      return {
+        target: 'body',
+        placement: 'center' as PlacementType,
+        disableBeacon: true,
+        title: def.title,
+        content: def.content,
+      };
+    }
+    // Desktop: resolve real DOM target
     const domTarget = resolveTarget(def.target);
     const placement: PlacementType =
-      domTarget === 'body' && def.target !== 'body'
-        ? 'center'
-        : small
-        ? 'bottom'
-        : def.desktopPlacement;
+      domTarget === 'body' && def.target !== 'body' ? 'center' : def.desktopPlacement;
     return {
       target: domTarget,
       placement,
@@ -460,7 +454,7 @@ const buildSteps = (): Step[] => {
   });
 };
 
-// ─── Joyride styles ─────────────────────────────────────────────────────────────
+// ─── Joyride styles ───────────────────────────────────────────────────────────────
 const joyrideStyles = {
   options: {
     arrowColor: '#18181b',
@@ -477,6 +471,7 @@ const TOUR_STORAGE_KEY = 'diario-bordo-tour-done-v1';
 interface OnboardingTourProps {
   forceRun?: boolean;
   onFinish?: () => void;
+  /** Fired after each step completes — receives the NEXT step index */
   onStepChange?: (index: number) => void;
 }
 
@@ -509,9 +504,12 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
   const handleCallback = useCallback(
     (data: CallBackProps) => {
       const { status, index, type } = data;
+
+      // Fire onStepChange AFTER a step completes so App.tsx can switch tabs
       if (type === EVENTS.STEP_AFTER) {
         onStepChange?.(index + 1);
       }
+
       if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
         _setPortalState?.(null);
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
