@@ -56,10 +56,12 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Make gradlew executable
+      - name: Setup Gradle Wrapper
+        working-directory: ./android
         run: |
-          sed -i 's/\r$//' android/gradlew
-          chmod +x android/gradlew
+          gradle wrapper
+          sed -i 's/\r$//' gradlew
+          chmod +x gradlew
 
       - name: Build Debug APK
         working-directory: ./android
