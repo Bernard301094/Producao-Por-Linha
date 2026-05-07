@@ -219,7 +219,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                         <input 
                           type="text"
                           placeholder="Nome da linha..."
-                          className="bg-[#F9FAFB] text-sm h-10 rounded-lg px-3 border border-zinc-200/80 font-medium w-full focus:outline-none focus:border-zinc-400"
+                          className="bg-[#F9FAFB] text-base sm:text-sm h-10 rounded-lg px-3 border border-zinc-200/80 font-medium w-full focus:outline-none focus:border-zinc-400"
                           value={searchLine}
                           onChange={(e) => setSearchLine(e.target.value)}
                           onKeyDown={(e) => {
@@ -302,7 +302,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 </motion.div>
               </div>
 
-              <DialogContent className="w-[calc(100%-2rem)] max-w-[440px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
+              <DialogContent className="w-[calc(100%-2rem)] max-w-[440px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
                 <DialogHeader className="text-center space-y-3 mb-8">
                   <div className="w-16 h-16 bg-zinc-100 text-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-zinc-200 shadow-sm">
                     <Play className="w-8 h-8 fill-current ml-1" />
@@ -346,7 +346,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 setParadaEnd('');
               } 
             }}>
-              <DialogContent className="w-[calc(100%-2rem)] max-w-[480px] rounded-[2.5rem] p-0 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 overflow-hidden bg-white max-h-[95vh] flex flex-col">
+              <DialogContent className="w-[calc(100%-2rem)] max-w-[480px] rounded-b-none rounded-t-[2.5rem] sm:rounded-[2.5rem] p-0 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 overflow-hidden bg-white max-h-[95dvh] flex flex-col top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2">
                 <div className="bg-zinc-950 p-6 text-center relative overflow-hidden shrink-0">
                   <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:14px_14px] opacity-20" />
                   <div className="relative z-10 flex flex-col items-center">
@@ -404,7 +404,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                             return (p.tipologia.toLowerCase().includes(term) || p.seq.toString().includes(term)) ? 1 : 0;
                           }}>
                             <div className="p-2 border-b border-zinc-100">
-                              <CommandInput placeholder="Procurar motivo..." className="h-9 bg-zinc-50 rounded-lg" />
+                              <CommandInput placeholder="Procurar motivo..." className="h-9 bg-zinc-50 rounded-lg text-base sm:text-sm" />
                             </div>
                             <CommandList className="max-h-[240px] p-1.5">
                               <CommandEmpty className="py-4 px-2 text-center">

@@ -99,7 +99,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
 
   return (
     <Dialog open={!!editingOp} onOpenChange={(o) => { if (!o) setEditingOp(null); }}>
-      <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-xl rounded-[2rem] p-5 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 max-h-[90vh] overflow-y-auto scrollbar-none gap-0">
+      <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-xl rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-5 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 max-h-[90dvh] overflow-y-auto scrollbar-none gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
         <DialogHeader className="mb-6 space-y-2">
           <div className="w-12 h-12 bg-zinc-100 rounded-xl flex items-center justify-center mb-2 shadow-sm border border-zinc-200/60">
              <Pencil className="w-6 h-6 text-zinc-700" />
@@ -161,7 +161,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-1.5 shadow-2xl border-zinc-200 rounded-2xl z-[50]" align="start">
                   <Command className="border-none" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
-                    <CommandInput placeholder="Buscar linha..." className="bg-transparent text-sm h-12" value={searchEditLine} onValueChange={setSearchEditLine} />
+                    <CommandInput placeholder="Buscar linha..." className="bg-transparent text-base sm:text-sm h-12" value={searchEditLine} onValueChange={setSearchEditLine} />
                     <CommandList className="max-h-[250px] overflow-y-auto mt-2 p-1">
                       <CommandEmpty className="py-4 text-center text-sm text-zinc-500">
                           {searchEditLine ? (
@@ -285,14 +285,14 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                               : <span className="text-zinc-400 font-bold text-sm sm:text-base flex items-center pr-2"><ChevronDown className="w-5 h-5 mr-3 shrink-0 text-zinc-300" />Toque para selecionar...</span>}
                           </SelectValue>
                         </SelectTrigger>
-                        <SelectContent className="max-h-[50vh] w-[calc(100vw-3rem)] sm:w-[--radix-select-trigger-width] overflow-y-auto overflow-x-hidden rounded-[1.5rem] p-2 shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50">
+                        <SelectContent className="max-h-[50dvh] w-[calc(100vw-3rem)] sm:w-[--radix-select-trigger-width] overflow-y-auto overflow-x-hidden rounded-[1.5rem] p-2 shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50">
                           <div className="p-2 border-b border-zinc-100/80 sticky top-0 bg-white/95 backdrop-blur-xl z-[60] -m-2 mb-2">
                             <div className="relative">
                               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                               <input 
                                 type="text" 
                                 placeholder="Buscar parada..." 
-                                className="w-full h-10 pl-9 pr-4 bg-zinc-50 border border-zinc-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 placeholder:text-zinc-400"
+                                className="w-full h-10 pl-9 pr-4 bg-zinc-50 border border-zinc-200/60 rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 placeholder:text-zinc-400"
                                 value={searchParadaText}
                                 onChange={(e) => setSearchParadaText(e.target.value)}
                                 onKeyDown={(e) => e.stopPropagation()}

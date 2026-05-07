@@ -27,11 +27,12 @@ const EditOpModal = React.lazy(() => import('./components/EditOpModal/EditOpModa
 const ChangePasswordModal = React.lazy(() => import('./components/ChangePasswordModal/ChangePasswordModal').then(module => ({ default: module.ChangePasswordModal })));
 const ProductManagerModal = React.lazy(() => import('./components/ProductManagerModal/ProductManagerModal').then(module => ({ default: module.ProductManagerModal })));
 import { toast, Toaster } from 'sonner';
-import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
 import { getServerTime, syncServerTime, getServerTimeISO, isTimeSynced } from './lib/time';
 import { logAudit } from './lib/audit';
+import { OnboardingTour, resetTour } from './components/OnboardingTour/OnboardingTour';
 
 const SHIFT_TOLERANCE_MINUTES = 30;
 
@@ -240,6 +241,11 @@ export default function App() {
   const [showChangerPassword, setShowChangerPassword] = useState(false);
 
   const [mobileTab, setMobileTab] = useState<'pendentes' | 'nova' | 'concluidas'>('nova');
+  const [tourForceRun, setTourForceRun] = useState(false);
+  const handleRestartTour = () => {
+    resetTour();
+    setTourForceRun(f => !f);
+  };
   const [openLineSelect, setOpenLineSelect] = useState(false);
   const [openEditLineSelect, setOpenEditLineSelect] = useState(false);
   const [openLineFilterPending, setOpenLineFilterPending] = useState(false);
@@ -1165,9 +1171,21 @@ export default function App() {
   return (
     <>
       <Toaster position="top-center" />
+      <OnboardingTour 
+        forceRun={tourForceRun} 
+        onFinish={() => setTourForceRun(false)} 
+        onStepChange={(stepIndex) => {
+          // Sync mobile tabs with tour steps
+          if (window.innerWidth < 1024) {
+            if (stepIndex === 4 || stepIndex === 5) setMobileTab('nova');
+            if (stepIndex === 6 || stepIndex === 7) setMobileTab('pendentes');
+            if (stepIndex === 8) setMobileTab('concluidas');
+          }
+        }}
+      />
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 shadow-sm sticky top-0 z-30">
+        <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 shadow-sm sticky top-0 z-30 pt-[env(safe-area-inset-top)]">
           <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 2xl:px-8 py-3 sm:py-0 min-h-[4rem] sm:h-20 flex items-center justify-between gap-4">
             {/* Logo & App Name */}
             <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
@@ -1201,6 +1219,13 @@ export default function App() {
                 </span>
               </div>
 
+              <button
+                onClick={handleRestartTour}
+                className="flex items-center justify-center w-10 h-10 rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 border border-zinc-200/80 bg-white transition-all shadow-sm"
+                title="Ver tutorial"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </button>
               <div className="flex items-center gap-1 sm:gap-1.5 bg-white border-2 border-zinc-200/80 rounded-xl sm:rounded-2xl p-1 shadow-sm tour-user-menu">
                 <button 
                   onClick={() => setChangePasswordOpen(true)} 
@@ -1229,7 +1254,7 @@ export default function App() {
         </header>
 
         {/* Mobile Tab Bar */}
-        <div className="lg:hidden fixed bottom-0 left-0 w-full z-50 bg-white border-t border-zinc-200/80 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] pb-safe-area tour-tab-bar">
+        <div className="lg:hidden fixed bottom-0 left-0 w-full z-50 bg-white border-t border-zinc-200/80 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] pb-[env(safe-area-inset-bottom)] tour-tab-bar">
           <div className="flex">
             {(['pendentes', 'nova', 'concluidas'] as const).map((tab) => (
               <button
@@ -1274,7 +1299,7 @@ export default function App() {
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
                       <Search className="w-4 h-4" />
                     </div>
-                    <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Pesquisar produto, linha..." className="w-full h-10 pl-9 pr-3 bg-white border border-zinc-200/80 rounded-xl text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-sm transition-all" />
+                    <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Pesquisar produto, linha..." className="w-full h-10 pl-9 pr-3 bg-white border border-zinc-200/80 rounded-xl text-base sm:text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-sm transition-all" />
                   </div>
                   
                   {pendingLinhas.length > 1 && (
@@ -1428,7 +1453,7 @@ export default function App() {
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
                       <Search className="w-4 h-4" />
                     </div>
-                    <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Pesquisar OP ou produto..." className="w-full h-10 pl-9 pr-3 bg-white border border-zinc-200/80 rounded-xl text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-sm transition-all" />
+                    <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Pesquisar OP ou produto..." className="w-full h-10 pl-9 pr-3 bg-white border border-zinc-200/80 rounded-xl text-base sm:text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-sm transition-all" />
                   </div>
                   
                   {finishedLinhas.length > 1 && (
@@ -1515,7 +1540,7 @@ export default function App() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deletingOp} onOpenChange={(o: boolean) => { if (!o) setDeletingOp(null); }}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
           <DialogHeader className="text-center space-y-2 mb-8">
             <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200/50 shadow-sm">
               <Trash2 className="w-8 h-8" />
@@ -1536,7 +1561,7 @@ export default function App() {
 
       {/* Revert to Pending Confirmation Dialog */}
       <Dialog open={!!revertingOp} onOpenChange={(o: boolean) => { if (!o) setRevertingOp(null); }}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
           <DialogHeader className="text-center space-y-2 mb-8">
             <div className="w-16 h-16 bg-amber-100/50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200/50 shadow-sm">
               <RotateCcw className="w-8 h-8" />
@@ -1559,7 +1584,7 @@ export default function App() {
 
       {/* Override Supervisor Dialog */}
       <Dialog open={overrideModalOpen} onOpenChange={setOverrideModalOpen}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
           <DialogHeader className="text-center space-y-2 mb-8">
             <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200/50 shadow-sm">
               <KeyRound className="w-8 h-8" />
@@ -1573,7 +1598,7 @@ export default function App() {
                <Input
                  type="password"
                  placeholder="Digite a senha"
-                 className="h-14 px-4 bg-zinc-50 border-0 ring-1 ring-zinc-200/50 focus-visible:ring-2 focus-visible:ring-zinc-900 rounded-xl"
+                 className="h-14 px-4 bg-zinc-50 border-0 ring-1 ring-zinc-200/50 focus-visible:ring-2 focus-visible:ring-zinc-900 rounded-xl text-base sm:text-sm"
                  value={overridePassword}
                  onChange={(e) => setOverridePassword(e.target.value)}
                />
@@ -1583,7 +1608,7 @@ export default function App() {
                <Input
                  type="text"
                  placeholder="Ex: Correção de OP atrasada"
-                 className="h-14 px-4 bg-zinc-50 border-0 ring-1 ring-zinc-200/50 focus-visible:ring-2 focus-visible:ring-zinc-900 rounded-xl"
+                 className="h-14 px-4 bg-zinc-50 border-0 ring-1 ring-zinc-200/50 focus-visible:ring-2 focus-visible:ring-zinc-900 rounded-xl text-base sm:text-sm"
                  value={overrideReason}
                  onChange={(e) => setOverrideReason(e.target.value)}
                />

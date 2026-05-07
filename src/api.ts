@@ -100,11 +100,9 @@ const isCapacitor = Capacitor.isNativePlatform();
  * DETERMINISTIC API BASE URL
  * In Capacitor native environments, nested fetch('/api/...') calls default to capacitor://localhost/api/...
  * which doesn't exist. We must point to the absolute URL of the deployed backend.
- * We MUST point to the Shared App URL (ais-pre) because the Dev URL (ais-dev) is protected and denies access from the mobile phone.
- * The user must click "Share" in the AI Studio platform to publish the backend.
  */
 // @ts-ignore
-const API_BASE = import.meta.env?.VITE_API_URL || (isCapacitor ? 'https://ais-pre-lr3elaaqn26vdipvtk4fc5-246875337716.us-east1.run.app' : '');
+const API_BASE = import.meta.env?.VITE_API_URL || (isCapacitor ? 'https://producao-por-linha.vercel.app' : '');
 
 const formatSheetLitragem = (l: string) => {
   if (!l) return '';

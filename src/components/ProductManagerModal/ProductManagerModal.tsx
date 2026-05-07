@@ -76,7 +76,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="w-[calc(100%-2rem)] max-w-[500px] rounded-[2rem] p-0 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 overflow-hidden bg-white max-h-[90vh] flex flex-col"
+        className="w-[calc(100%-2rem)] max-w-[500px] rounded-b-none rounded-t-[2.5rem] sm:rounded-[2rem] p-0 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 overflow-hidden bg-white max-h-[90dvh] flex flex-col top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-0"
       >
         <button type="button" autoFocus aria-hidden="true" className="sr-only" />
         <div className="bg-zinc-950 p-6 text-center relative overflow-hidden shrink-0">
@@ -95,7 +95,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
               placeholder="Buscar produto..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-12 rounded-xl border-2 border-zinc-100 focus:border-zinc-900 bg-zinc-50/50"
+              className="pl-10 h-12 rounded-xl border-2 border-zinc-100 focus:border-zinc-900 bg-zinc-50/50 text-base sm:text-sm"
             />
           </div>
 
@@ -111,14 +111,14 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
                       <Input 
                         value={newName}
                         onChange={(e) => setNewName(e.target.value)}
-                        className="h-10 text-sm font-bold bg-white border-2 border-blue-200 focus:border-blue-500 rounded-xl"
+                        className="h-10 text-base sm:text-sm font-bold bg-white border-2 border-blue-200 focus:border-blue-500 rounded-xl"
                         placeholder="Nome do produto"
                         autoFocus
                       />
                       <Input 
                         value={newLitragem}
                         onChange={(e) => setNewLitragem(e.target.value)}
-                        className="h-9 text-[11px] font-bold bg-white border-zinc-200 rounded-lg"
+                        className="h-9 text-base sm:text-[11px] font-bold bg-white border-zinc-200 rounded-lg"
                         placeholder="Litragem (ex: 500ml)"
                       />
                       <div className="flex gap-2">

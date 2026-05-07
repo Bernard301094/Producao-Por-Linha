@@ -273,7 +273,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                           <input 
                             type="text" 
                             placeholder="Buscar parada..." 
-                            className="w-full h-10 pl-9 pr-4 bg-zinc-50 border border-zinc-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 placeholder:text-zinc-400"
+                            className="w-full h-10 pl-9 pr-4 bg-zinc-50 border border-zinc-200/60 rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 placeholder:text-zinc-400"
                             value={searchParadaText}
                             onChange={(e) => setSearchParadaText(e.target.value)}
                             onKeyDown={(e) => e.stopPropagation()}
@@ -395,7 +395,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
       {/* Main Actions Block */}
       {isFinishing ? (
         <div className="mt-1 pt-4 border-t border-zinc-200/60 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 w-full items-start">
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 w-full items-start">
             <QuickCounter 
               label="Quantidade (UN)" 
               value={finishQtd} 
@@ -426,7 +426,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                   {itemLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar Encerramento'}
                 </Button>
               </motion.div>
-              <DialogContent className="w-[calc(100%-2rem)] max-w-[420px] rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0">
+              <DialogContent className="w-[calc(100%-2rem)] max-w-[420px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
                 <DialogHeader className="text-center space-y-3 mb-8">
                   <div className="w-16 h-16 bg-emerald-100/50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-emerald-200/50 shadow-sm">
                     <CheckCircle2 className="w-8 h-8" />
