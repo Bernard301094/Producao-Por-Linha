@@ -40,6 +40,10 @@ const PortalBottomSheet: React.FC = () => {
 
   const { index, size, isLastStep, title, content, backProps, primaryProps, closeProps } = state;
 
+  // On the last step Joyride maps the "confirm" action to closeProps, not primaryProps.
+  // On skip ("Pular") we always want closeProps so Joyride fires STATUS.SKIPPED.
+  const confirmProps = isLastStep ? closeProps : primaryProps;
+
   return ReactDOM.createPortal(
     <div
       style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10001 }}
@@ -84,12 +88,17 @@ const PortalBottomSheet: React.FC = () => {
         className="flex items-center justify-between gap-3 px-5 py-4 border-t border-zinc-100"
         style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
       >
-        <button
-          {...closeProps}
-          className="text-xs font-bold text-zinc-400 hover:text-zinc-700 transition-colors uppercase tracking-widest focus:outline-none py-1"
-        >
-          Pular
-        </button>
+        {/* Pular: always closeProps — fires STATUS.SKIPPED */}
+        {!isLastStep && (
+          <button
+            {...closeProps}
+            className="text-xs font-bold text-zinc-400 hover:text-zinc-700 transition-colors uppercase tracking-widest focus:outline-none py-1"
+          >
+            Pular
+          </button>
+        )}
+        {isLastStep && <div />}
+
         <div className="flex items-center gap-2">
           {index > 0 && (
             <button
@@ -99,8 +108,9 @@ const PortalBottomSheet: React.FC = () => {
               ← Anterior
             </button>
           )}
+          {/* Last step: closeProps fires STATUS.FINISHED. Other steps: primaryProps advances. */}
           <button
-            {...primaryProps}
+            {...confirmProps}
             className="h-10 px-5 rounded-xl text-xs font-black text-white bg-zinc-950 hover:bg-zinc-800 transition-colors shadow-lg shadow-zinc-950/20 focus:outline-none"
           >
             {isLastStep ? '✓ Entendido!' : 'Próximo →'}
@@ -152,6 +162,9 @@ const CustomTooltip = ({
     );
   }
 
+  // Desktop: full inline card — same logic: last step uses closeProps
+  const confirmProps = isLastStep ? closeProps : primaryProps;
+
   return (
     <div
       {...tooltipProps}
@@ -190,12 +203,15 @@ const CustomTooltip = ({
       </div>
 
       <div className="flex items-center justify-between gap-3 px-5 py-4 border-t border-zinc-100">
-        <button
-          {...closeProps}
-          className="text-xs font-bold text-zinc-400 hover:text-zinc-700 transition-colors uppercase tracking-widest focus:outline-none py-1"
-        >
-          Pular
-        </button>
+        {!isLastStep && (
+          <button
+            {...closeProps}
+            className="text-xs font-bold text-zinc-400 hover:text-zinc-700 transition-colors uppercase tracking-widest focus:outline-none py-1"
+          >
+            Pular
+          </button>
+        )}
+        {isLastStep && <div />}
         <div className="flex items-center gap-2">
           {index > 0 && (
             <button
@@ -206,7 +222,7 @@ const CustomTooltip = ({
             </button>
           )}
           <button
-            {...primaryProps}
+            {...confirmProps}
             className="h-10 px-5 rounded-xl text-xs font-black text-white bg-zinc-950 hover:bg-zinc-800 transition-colors shadow-lg shadow-zinc-950/20 focus:outline-none"
           >
             {isLastStep ? '✓ Entendido!' : 'Próximo →'}
@@ -424,14 +440,11 @@ const STEP_DEFS = [
   },
 ];
 
-// ─── Build Joyride steps — on mobile all targets default to 'body'/'bottom' ───────
-// The actual spotlight/target is irrelevant on mobile since we use a portal bottom-sheet.
-// Setting target='body' prevents Joyride from skipping steps whose DOM element is hidden.
+// ─── Build Joyride steps ─────────────────────────────────────────────────────────────
 const buildSteps = (): Step[] => {
   const small = isMobileOrTablet();
   return STEP_DEFS.map((def) => {
     if (small) {
-      // On mobile: always target body so Joyride never skips a step
       return {
         target: 'body',
         placement: 'center' as PlacementType,
@@ -440,7 +453,6 @@ const buildSteps = (): Step[] => {
         content: def.content,
       };
     }
-    // Desktop: resolve real DOM target
     const domTarget = resolveTarget(def.target);
     const placement: PlacementType =
       domTarget === 'body' && def.target !== 'body' ? 'center' : def.desktopPlacement;
@@ -471,7 +483,6 @@ const TOUR_STORAGE_KEY = 'diario-bordo-tour-done-v1';
 interface OnboardingTourProps {
   forceRun?: boolean;
   onFinish?: () => void;
-  /** Fired after each step completes — receives the NEXT step index */
   onStepChange?: (index: number) => void;
 }
 
@@ -504,12 +515,9 @@ export const OnboardingTour: React.FC<OnboardingTourProps> = ({
   const handleCallback = useCallback(
     (data: CallBackProps) => {
       const { status, index, type } = data;
-
-      // Fire onStepChange AFTER a step completes so App.tsx can switch tabs
       if (type === EVENTS.STEP_AFTER) {
         onStepChange?.(index + 1);
       }
-
       if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
         _setPortalState?.(null);
         localStorage.setItem(TOUR_STORAGE_KEY, '1');
