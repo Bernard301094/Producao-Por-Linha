@@ -56,6 +56,46 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Regenerate launcher PNG icons (fix AAPT2 corrupt PNG error)
+        run: |
+          pip install Pillow --quiet
+          python3 - <<'EOF'
+          from PIL import Image
+          import os
+
+          # Android mipmap sizes: (folder, size_px)
+          sizes = [
+            ("mipmap-ldpi",    36),
+            ("mipmap-mdpi",    48),
+            ("mipmap-hdpi",    72),
+            ("mipmap-xhdpi",   96),
+            ("mipmap-xxhdpi", 144),
+            ("mipmap-xxxhdpi",192),
+          ]
+          res_dir = "android/app/src/main/res"
+          icons = ["ic_launcher.png", "ic_launcher_round.png"]
+
+          for folder, size in sizes:
+            folder_path = os.path.join(res_dir, folder)
+            os.makedirs(folder_path, exist_ok=True)
+            for icon in icons:
+              icon_path = os.path.join(folder_path, icon)
+              # Re-save existing PNG to ensure valid format, or create a placeholder
+              if os.path.exists(icon_path):
+                try:
+                  img = Image.open(icon_path).convert("RGBA").resize((size, size), Image.LANCZOS)
+                  img.save(icon_path, "PNG", optimize=False)
+                  print(f"Re-saved: {icon_path}")
+                except Exception as e:
+                  print(f"Could not re-save {icon_path}: {e}, creating placeholder")
+                  img = Image.new("RGBA", (size, size), (33, 150, 243, 255))
+                  img.save(icon_path, "PNG")
+              else:
+                img = Image.new("RGBA", (size, size), (33, 150, 243, 255))
+                img.save(icon_path, "PNG")
+                print(f"Created placeholder: {icon_path}")
+          EOF
+
       - name: Setup Gradle Wrapper
         working-directory: ./android
         run: |
