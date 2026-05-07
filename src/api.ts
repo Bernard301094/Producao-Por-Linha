@@ -154,7 +154,7 @@ export const markOperationFinished = async (
     await setDoc(doc(db, 'operations', op.id), { 
       ...finishedOp, 
       status: 'finished',
-      isAvulsa: op.isAvulsa
+      isAvulsa: op.isAvulsa ?? false
     }, { merge: true });
   } catch (firebaseErr: any) {
     console.error("Firebase updateDoc failed", firebaseErr);
@@ -174,7 +174,7 @@ export const markOperationFinished = async (
     horaInicial: op.horaInicial,
     horaFinal,
     paradas: paradasFinais,
-    isAvulsa: op.isAvulsa
+    isAvulsa: op.isAvulsa ?? false
   };
 
   fetch(`${API_BASE}/api/append`, {
@@ -379,12 +379,12 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
           op: original.opNumber, 
           linha: original.linha, 
           produto: original.produto, 
-          isAvulsa: original.isAvulsa,
+          isAvulsa: original.isAvulsa ?? false,
           carimbo: original.carimbo,
           litragem: original.litragem,
           turno: original.turno
         }, 
-        updates: { ...data, isAvulsa: original.isAvulsa } 
+        updates: { ...data, isAvulsa: original.isAvulsa ?? false } 
       })
     }).then(async (resp) => {
       if (!resp.ok) {

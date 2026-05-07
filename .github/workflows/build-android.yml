@@ -56,11 +56,6 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Generate Android assets from SVG (icons + splash)
-        run: |
-          npm install -g @capacitor/assets --legacy-peer-deps
-          npx capacitor-assets generate --android
-
       - name: Setup Gradle Wrapper
         working-directory: ./android
         run: |
