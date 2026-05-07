@@ -56,43 +56,12 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Fix all PNG files in android/res (prevent AAPT2 compile errors)
+      - name: Generate Android assets from SVG (icons + splash)
         run: |
-          pip install Pillow --quiet
-          python3 - <<'EOF'
-          from PIL import Image
-          import os
-          import glob
-
-          res_dir = "android/app/src/main/res"
-          png_files = glob.glob(os.path.join(res_dir, "**", "*.png"), recursive=True)
-
-          print(f"Found {len(png_files)} PNG files to process")
-          fixed = 0
-          failed = 0
-
-          for png_path in png_files:
-            try:
-              img = Image.open(png_path)
-              # Preserve original mode (RGBA, RGB, P, etc.)
-              if img.mode not in ("RGBA", "RGB"):
-                img = img.convert("RGBA")
-              # Re-save as a clean, valid PNG
-              img.save(png_path, "PNG", optimize=False)
-              fixed += 1
-            except Exception as e:
-              print(f"WARNING: Could not fix {png_path}: {e}")
-              # Replace with a small transparent placeholder so build doesn't fail
-              try:
-                placeholder = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
-                placeholder.save(png_path, "PNG")
-                print(f"  -> Replaced with transparent placeholder")
-              except Exception as e2:
-                print(f"  -> Could not replace: {e2}")
-              failed += 1
-
-          print(f"Done: {fixed} fixed, {failed} replaced with placeholder")
-          EOF
+          # Install sharp-cli required by @capacitor/assets
+          npm install -g @capacitor/assets --legacy-peer-deps
+          # Generate all mipmap PNG icons and splash drawables from assets/icon.svg
+          npx capacitor-assets generate --android
 
       - name: Setup Gradle Wrapper
         working-directory: ./android
