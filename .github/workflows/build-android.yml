@@ -62,6 +62,7 @@ jobs:
           gradle wrapper
           sed -i 's/\r$//' gradlew
           chmod +x gradlew
+          find app/src/main/res -name "ic_launcher_background.png" -type f -delete || true
 
       - name: Build Debug APK
         working-directory: ./android
