@@ -149,24 +149,30 @@ function computeCardPos(sr: SpotRect | null): CardPos {
 
   const spaceBelow = H - sr.bottom;
   const spaceAbove = sr.top;
-  const placeAbove = spaceBelow < CARD_H && spaceAbove > spaceBelow;
+  const NEEDED     = CARD_H + 12; // gap between spotlight edge and card
 
-  if (placeAbove) {
-    // Pin to top of viewport — avoids status-bar clipping regardless of actual card height
+  // ── Case 1: enough room BELOW the spotlight ──────────────────────────────
+  if (spaceBelow >= NEEDED) {
+    const top = Math.min(sr.bottom + 12, H - CARD_H - MARGIN);
     return {
-      centered: false,
-      placeAbove: true,
+      centered: false, placeAbove: false,
+      style: { position: 'fixed', top: Math.max(MARGIN, top), left, width: cardWidth, maxWidth },
+    };
+  }
+
+  // ── Case 2: enough room ABOVE the spotlight ──────────────────────────────
+  if (spaceAbove >= NEEDED) {
+    return {
+      centered: false, placeAbove: true,
       style: { position: 'fixed', top: MARGIN, left, width: cardWidth, maxWidth },
     };
   }
 
-  // Anchor to top of card = bottom of spotlight + gap; clamp so card stays on screen
-  const topAnchor = sr.bottom + 12;
-  const clampedTop = Math.min(topAnchor, H - CARD_H - MARGIN);
+  // ── Case 3: neither fits → bottom-sheet ──────────────────────────────────
+  // Card anchors to the bottom; spotlight content stays visible above it.
   return {
-    centered: false,
-    placeAbove: false,
-    style: { position: 'fixed', top: Math.max(MARGIN, clampedTop), left, width: cardWidth, maxWidth },
+    centered: false, placeAbove: false,
+    style: { position: 'fixed', bottom: MARGIN, left, width: cardWidth, maxWidth },
   };
 }
 
