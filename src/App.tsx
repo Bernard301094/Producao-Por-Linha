@@ -216,14 +216,22 @@ const TOUR_MOCK_OPS: Operation[] = [
   {
     id: '__tour_p1', opNumber: '47923', produto: 'V-FLOC 1.5L', linha: '05',
     turno: 'Turno B', horaInicial: '08:00',
-    carimboInicial: new Date(Date.now() - 9840000).toISOString(),
+    carimboInicial: new Date(Date.now() - 9840000).toISOString(), // ~2h 44m
     litragem: '1.5L', paradas: [], isAvulsa: false,
   },
   {
     id: '__tour_p2', opNumber: '47924', produto: 'LAVA AUTOS PREMIUM 2L', linha: '08',
     turno: 'Turno B', horaInicial: '10:15',
-    carimboInicial: new Date(Date.now() - 3600000).toISOString(),
+    carimboInicial: new Date(Date.now() - 3600000).toISOString(), // ~1h
     litragem: '2L', paradas: [], isAvulsa: false,
+  },
+  {
+    id: '__tour_p3', opNumber: '47925', produto: 'SUPER CLEAN 5L', linha: '02',
+    turno: 'Turno B', horaInicial: '09:00',
+    carimboInicial: new Date(Date.now() - 5400000).toISOString(), // ~1h 30m
+    litragem: '5L',
+    paradas: [{ seq: 1, tipologia: 'Falta de Material', horaInicio: '09:45', horaFim: '10:10', detalhamento: 'Aguardando embalagem' }],
+    isAvulsa: false,
   },
 ];
 const TOUR_MOCK_FINISHED: FinishedOperation[] = [
@@ -241,6 +249,18 @@ const TOUR_MOCK_FINISHED: FinishedOperation[] = [
     carimboInicial: new Date(Date.now() - 14400000).toISOString(),
     litragem: '500ML',
     paradas: [{ seq: 1, tipologia: 'Troca de Produto', horaInicio: '07:00', horaFim: '07:15' }],
+    syncStatus: 'success', isAvulsa: false,
+  },
+  {
+    id: '__tour_f3', opNumber: '47922', produto: 'DESENGRAXANTE IBC', linha: '01',
+    turno: 'Turno B', horaInicial: '06:00', horaFinal: '09:30',
+    quantidade: '2400', qntReprocesso: '120',
+    carimboInicial: new Date(Date.now() - 21600000).toISOString(),
+    litragem: 'IBC',
+    paradas: [
+      { seq: 1, tipologia: 'Manutenção Corretiva', horaInicio: '07:30', horaFim: '08:00', detalhamento: 'Vedação da bomba' },
+      { seq: 2, tipologia: 'Troca de Produto', horaInicio: '08:45', horaFim: '09:00' },
+    ],
     syncStatus: 'success', isAvulsa: false,
   },
 ];
