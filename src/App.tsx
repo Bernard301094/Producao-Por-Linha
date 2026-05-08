@@ -27,7 +27,7 @@ const EditOpModal = React.lazy(() => import('./components/EditOpModal/EditOpModa
 const ChangePasswordModal = React.lazy(() => import('./components/ChangePasswordModal/ChangePasswordModal').then(module => ({ default: module.ChangePasswordModal })));
 const ProductManagerModal = React.lazy(() => import('./components/ProductManagerModal/ProductManagerModal').then(module => ({ default: module.ProductManagerModal })));
 import { toast, Toaster } from 'sonner';
-import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
+import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp, HelpCircle, X } from 'lucide-react';
 import { motion } from 'motion/react';
 
 import { getServerTime, syncServerTime, getServerTimeISO, isTimeSynced } from './lib/time';
@@ -240,7 +240,9 @@ export default function App() {
   const [changingPasswordLoading, setChangingPasswordLoading] = useState(false);
   const [showChangerPassword, setShowChangerPassword] = useState(false);
 
-  const [mobileTab, setMobileTab] = useState<'pendentes' | 'nova' | 'concluidas'>('nova');
+  const [mobileTab, setMobileTab] = useState<'pendentes' | 'concluidas'>('pendentes');
+  const [isNovaSheetOpen, setIsNovaSheetOpen] = useState(false);
+  const [profileSheetOpen, setProfileSheetOpen] = useState(false);
 
   const [openLineSelect, setOpenLineSelect] = useState(false);
   const [openEditLineSelect, setOpenEditLineSelect] = useState(false);
@@ -1171,15 +1173,15 @@ export default function App() {
       <div className="min-h-screen bg-[#F9FAFB]">
         {/* Header */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 shadow-sm sticky top-0 z-30 pt-[env(safe-area-inset-top)]">
-          <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 2xl:px-8 py-3 sm:py-0 min-h-[4rem] sm:h-20 flex items-center justify-between gap-4">
+          <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-6 2xl:px-8 py-2.5 sm:py-0 min-h-[3.75rem] sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
             {/* Logo & App Name */}
-            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-              <img src="/icon.svg" className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 object-contain drop-shadow-md" alt="Vonixx" />
+            <div className="flex items-center gap-2.5 sm:gap-4 flex-1 min-w-0">
+              <img src="/icon.svg" className="w-9 h-9 sm:w-12 sm:h-12 shrink-0 object-contain drop-shadow-md" alt="Vonixx" />
               <div className="min-w-0 flex flex-col justify-center pt-1 md:pt-0">
                 <h1 className="text-base sm:text-lg font-black text-zinc-950 tracking-tight leading-none truncate mb-1.5">
                   Diário de Bordo
                 </h1>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1.5 sm:gap-2">
+                <div className="hidden min-[390px]:flex flex-col sm:flex-row items-start sm:items-center gap-1.5 sm:gap-2">
                   <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-2 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight shrink-0">
                     {today}
                   </p>
@@ -1194,7 +1196,7 @@ export default function App() {
             </div>
 
             {/* Actions Block */}
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               <ToleranceCountdown profile={loginProfile} onExpire={handleLogout} />
               
               {/* Profile Badge (Desktop only) */}
@@ -1232,34 +1234,91 @@ export default function App() {
           </div>
         </header>
 
-        {/* Mobile Tab Bar */}
-        <div className="lg:hidden fixed bottom-0 left-0 w-full z-50 bg-white border-t border-zinc-200/80 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)] pb-[env(safe-area-inset-bottom)] tour-tab-bar">
-          <div className="flex">
-            {(['pendentes', 'nova', 'concluidas'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setMobileTab(tab)}
-                className={cn(
-                  'flex-1 h-16 flex flex-col items-center justify-center gap-1 text-[10px] font-black uppercase tracking-wider transition-colors',
-                  mobileTab === tab
-                    ? 'text-zinc-950 bg-zinc-50'
-                    : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50/50'
-                )}
-              >
-                {tab === 'pendentes' && <ClipboardList className={cn("w-5 h-5", mobileTab === tab ? "text-zinc-950" : "text-zinc-400")} />}
-                {tab === 'nova' && <Plus className={cn("w-5 h-5", mobileTab === tab ? "text-zinc-950" : "text-zinc-400")} />}
-                {tab === 'concluidas' && <CheckCircle2 className={cn("w-5 h-5", mobileTab === tab ? "text-zinc-950" : "text-zinc-400")} />}
-                {tab === 'pendentes' ? `Pendentes (${visiblePendingOps.length})` : tab === 'nova' ? 'Nova OP' : `Concluídas`}
-              </button>
-            ))}
+        {/* Mobile Bottom Bar — Floating Pill */}
+        <div className="lg:hidden fixed bottom-0 left-0 w-full z-50 px-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] pointer-events-none tour-tab-bar">
+          <div className="pointer-events-auto bg-zinc-950/95 backdrop-blur-xl rounded-full ring-1 ring-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.45)] flex items-center h-[60px] px-2">
+            {/* Turno */}
+            <div className="flex items-center gap-2 pl-2 flex-1 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-white/10 ring-1 ring-white/15 flex items-center justify-center shrink-0">
+                <span className="text-sm font-black text-white">{currentTurnForView?.slice(-1)}</span>
+              </div>
+              <span className="text-sm font-black text-white leading-none truncate">Turno {currentTurnForView?.slice(-1)}</span>
+            </div>
+            {/* Nova OP */}
+            <button
+              onClick={() => setIsNovaSheetOpen(true)}
+              className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-zinc-950 font-black text-[13px] tracking-tight px-5 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              Nova OP
+            </button>
+            {/* Company */}
+            <div className="flex-1 flex justify-end pr-3 min-w-0">
+              <span className="text-sm font-black text-white/70 leading-none truncate max-w-[90px]">Vonixx</span>
+            </div>
           </div>
         </div>
 
-        <div className="w-full max-w-[1920px] mx-auto px-0 sm:px-4 lg:px-6 2xl:px-8 py-0 sm:py-6 lg:py-8 pb-20 lg:pb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-6 lg:gap-8 items-start">
+        {/* Mobile Nav Cards */}
+        <div className="lg:hidden px-3 py-2.5 bg-[#F9FAFB] sticky top-[calc(3.75rem+env(safe-area-inset-top))] z-20 border-b border-zinc-200/60">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setMobileTab('pendentes')}
+              className={cn(
+                "relative rounded-2xl p-4 text-left transition-all active:scale-[0.98]",
+                mobileTab === 'pendentes'
+                  ? "bg-zinc-950 shadow-xl shadow-zinc-950/20"
+                  : "bg-white border border-zinc-200/80 shadow-sm"
+              )}
+            >
+              <p className={cn("text-[9px] font-black uppercase tracking-widest mb-2 leading-none", mobileTab === 'pendentes' ? "text-zinc-400" : "text-zinc-400")}>Em andamento</p>
+              <p className={cn("text-4xl font-black leading-none", mobileTab === 'pendentes' ? "text-white" : "text-zinc-900")}>{myPendingOps.length}</p>
+              {mobileTab === 'pendentes' && <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-amber-400" />}
+            </button>
+            <button
+              onClick={() => setMobileTab('concluidas')}
+              className={cn(
+                "relative rounded-2xl p-4 text-left transition-all active:scale-[0.98]",
+                mobileTab === 'concluidas'
+                  ? "bg-emerald-600 shadow-xl shadow-emerald-500/25"
+                  : "bg-white border border-zinc-200/80 shadow-sm"
+              )}
+            >
+              <p className={cn("text-[9px] font-black uppercase tracking-widest mb-2 leading-none", mobileTab === 'concluidas' ? "text-emerald-100/70" : "text-zinc-400")}>Concluídas</p>
+              <p className={cn("text-4xl font-black leading-none", mobileTab === 'concluidas' ? "text-white" : "text-zinc-900")}>{myFinishedOps.length}</p>
+              <p className={cn("text-[11px] font-bold mt-1.5 leading-none", mobileTab === 'concluidas' ? "text-emerald-100" : "text-emerald-600")}>{totalUnidades.toLocaleString()} UN</p>
+            </button>
+          </div>
+        </div>
+
+        {/* Desktop stats strip */}
+        <div className="hidden lg:block bg-zinc-950 border-b border-zinc-800">
+          <div className="w-full max-w-[1920px] mx-auto px-6 2xl:px-8 h-10 flex items-center gap-5 2xl:gap-7">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-black text-white">{myPendingOps.length}</span>
+              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Em andamento</span>
+            </div>
+            <div className="h-3 w-px bg-zinc-700" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-black text-emerald-400">{myFinishedOps.length}</span>
+              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Concluídas</span>
+            </div>
+            <div className="h-3 w-px bg-zinc-700" />
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-black text-emerald-400">{totalUnidades.toLocaleString()} UN</span>
+              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Produzido</span>
+            </div>
+            <div className="ml-auto text-[9px] font-bold text-zinc-600 uppercase tracking-widest">
+              {new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
+            </div>
+          </div>
+        </div>
+
+        <div className="w-full max-w-[1920px] mx-auto px-0 sm:px-4 lg:px-6 2xl:px-8 py-0 sm:py-6 lg:py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-24 lg:pb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-0 sm:gap-6 lg:gap-5 2xl:gap-7 items-start">
 
             {/* Pendentes */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-4 2xl:col-span-4 lg:order-2 border-none h-[calc(100dvh-128px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-pendentes', mobileTab !== 'pendentes' && 'hidden lg:flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden md:col-span-1 lg:col-span-5 xl:col-span-5 2xl:col-span-5 lg:order-2 border-none min-h-[calc(100dvh-7.75rem-env(safe-area-inset-bottom))] max-h-none md:h-[calc(100dvh-9rem)] lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-pendentes', mobileTab !== 'pendentes' && 'hidden md:flex')}>
               <div className="p-4 sm:p-5 border-b border-zinc-100 flex flex-col gap-3 bg-zinc-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:14px_14px] opacity-50" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
@@ -1302,12 +1361,12 @@ export default function App() {
                             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-40" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0 rounded-[1.25rem] shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50 overflow-hidden" align="start">
+                        <PopoverContent className="w-[min(var(--radix-popover-trigger-width),calc(100vw-1.5rem))] p-0 rounded-[1.25rem] shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50 overflow-hidden" align="start">
                           <Command className="bg-transparent">
                             <div className="p-2 border-b border-zinc-100">
                               <CommandInput placeholder="Filtrar linha..." className="h-9 border-0 focus:ring-0" />
                             </div>
-                            <CommandList className="max-h-[300px] overflow-y-auto p-1 custom-scrollbar">
+                            <CommandList className="max-h-[min(300px,50dvh)] overflow-y-auto p-1 custom-scrollbar">
                               <CommandEmpty className="py-6 text-center text-xs text-zinc-400">Nenhuma linha.</CommandEmpty>
                               <CommandGroup>
                                 {pendingLinhas.map((linha) => (
@@ -1367,7 +1426,7 @@ export default function App() {
                         const isSameLinha = normalizeLinha(p.linha) === normalizeLinha(op.linha);
                         const isSameTurno = p.turno === op.turno;
                         const isSameDate = (!p.carimboInicial || !op.carimboInicial) ? true : (p.carimboInicial.substring(0, 10) === op.carimboInicial.substring(0, 10));
-                        return p.id !== op.id && isSameLinha && isSameTurno && isSameDate;
+                        return isSameLinha && isSameTurno && isSameDate;
                       })
                     ]}
                   />
@@ -1376,7 +1435,7 @@ export default function App() {
             </div>
 
             {/* Nova OP */}
-            <div className={cn('flex flex-col lg:col-span-4 xl:col-span-3 2xl:col-span-3 lg:order-1 h-[calc(100dvh-128px)] lg:h-[calc(100vh-10rem)] tour-nova-op', mobileTab !== 'nova' && 'hidden lg:flex')}>
+            <div className="hidden md:flex flex-col md:col-span-1 lg:col-span-4 xl:col-span-3 2xl:col-span-3 lg:order-1 md:h-[calc(100dvh-9rem)] lg:h-[calc(100dvh-11rem)] tour-nova-op">
               <StartOpForm
                 currentTurnForView={currentTurnForView}
                 handleSubmit={handleSubmit}
@@ -1409,7 +1468,7 @@ export default function App() {
             </div>
 
             {/* Concluídas */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-5 2xl:col-span-5 lg:order-3 border-none h-[calc(100dvh-128px)] lg:h-[calc(100vh-10rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-concluidas', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden md:col-span-1 lg:col-span-3 xl:col-span-4 2xl:col-span-4 lg:order-3 border-none min-h-[calc(100dvh-7.75rem-env(safe-area-inset-bottom))] max-h-none md:h-[calc(100dvh-9rem)] lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-concluidas', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
               <div className="p-4 sm:p-5 border-b border-zinc-100 flex flex-col gap-3 bg-emerald-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#05966910_1px,transparent_1px),linear-gradient(to_bottom,#05966910_1px,transparent_1px)] bg-[size:14px_14px] opacity-70" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
@@ -1456,12 +1515,12 @@ export default function App() {
                             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-40" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0 rounded-[1.25rem] shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50 overflow-hidden" align="start">
+                        <PopoverContent className="w-[min(var(--radix-popover-trigger-width),calc(100vw-1.5rem))] p-0 rounded-[1.25rem] shadow-2xl border-0 ring-1 ring-zinc-200/80 bg-white/95 backdrop-blur-xl z-50 overflow-hidden" align="start">
                           <Command className="bg-transparent">
                             <div className="p-2 border-b border-zinc-100">
                               <CommandInput placeholder="Filtrar linha..." className="h-9 border-0 focus:ring-0" />
                             </div>
-                            <CommandList className="max-h-[300px] overflow-y-auto p-1 custom-scrollbar">
+                            <CommandList className="max-h-[min(300px,50dvh)] overflow-y-auto p-1 custom-scrollbar">
                               <CommandEmpty className="py-6 text-center text-xs text-zinc-400">Nenhuma linha.</CommandEmpty>
                               <CommandGroup>
                                 {finishedLinhas.map((linha) => (
@@ -1517,9 +1576,78 @@ export default function App() {
         </div>
       </div>
 
+      <Dialog open={isNovaSheetOpen} onOpenChange={setIsNovaSheetOpen}>
+        <DialogContent showCloseButton={false} className="w-full max-w-full rounded-t-[2rem] p-0 border-0 gap-0 top-auto bottom-0 translate-y-0 max-h-[94dvh] overflow-hidden flex flex-col bg-white shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.25)]">
+          {/* Drag handle */}
+          <div className="flex-shrink-0 flex flex-col items-center pt-3 pb-1 cursor-pointer" onClick={() => setIsNovaSheetOpen(false)}>
+            <div className="w-10 h-1 rounded-full bg-zinc-200" />
+          </div>
+          {/* Sheet header */}
+          <div className="flex items-center justify-between px-5 pb-3 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-zinc-950 flex items-center justify-center shadow-lg">
+                <Plus className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-base font-black text-zinc-950 leading-none">Nova Ordem de Produção</p>
+                <p className="text-[11px] font-semibold text-zinc-400 mt-0.5">Turno {currentTurnForView}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsNovaSheetOpen(false)}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-500 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="h-px bg-zinc-100 flex-shrink-0" />
+          {/* Form — overflow scroll */}
+          <div className="flex-1 overflow-y-auto">
+          <StartOpForm
+            hideHeader
+            currentTurnForView={currentTurnForView}
+            handleSubmit={handleSubmit}
+            handlePreStartOp={handlePreStartOp}
+            loadingNewOp={loadingNewOp}
+            register={register}
+            watch={watch}
+            setValue={setValue}
+            errors={errors}
+            isTypingProduct={isTypingProduct}
+            setIsTypingProduct={setIsTypingProduct}
+            showProductSuggestions={showProductSuggestions}
+            setShowProductSuggestions={setShowProductSuggestions}
+            filteredProducts={filteredProducts}
+            openLineSelect={openLineSelect}
+            setOpenLineSelect={setOpenLineSelect}
+            searchLine={searchLine}
+            setSearchLine={setSearchLine}
+            allLinhas={allLinhas}
+            setCustomLinhas={setCustomLinhas}
+            loginProfile={loginProfile}
+            showConfirmStart={showConfirmStart}
+            setShowConfirmStart={setShowConfirmStart}
+            startFormData={startFormData}
+            onStartOp={async (data: any) => {
+              await onStartOp(data);
+              setIsNovaSheetOpen(false);
+              setMobileTab('pendentes');
+            }}
+            availableParadas={availableParadas}
+            setAvailableParadas={setAvailableParadas}
+            onParadaOnly={async (data: any, paradas: any) => {
+              await handleParadaOnly(data, paradas);
+              setIsNovaSheetOpen(false);
+              setMobileTab('concluidas');
+            }}
+          />
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deletingOp} onOpenChange={(o: boolean) => { if (!o) setDeletingOp(null); }}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
           <DialogHeader className="text-center space-y-2 mb-8">
             <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200/50 shadow-sm">
               <Trash2 className="w-8 h-8" />
@@ -1540,7 +1668,7 @@ export default function App() {
 
       {/* Revert to Pending Confirmation Dialog */}
       <Dialog open={!!revertingOp} onOpenChange={(o: boolean) => { if (!o) setRevertingOp(null); }}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
           <DialogHeader className="text-center space-y-2 mb-8">
             <div className="w-16 h-16 bg-amber-100/50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200/50 shadow-sm">
               <RotateCcw className="w-8 h-8" />
@@ -1563,7 +1691,7 @@ export default function App() {
 
       {/* Override Supervisor Dialog */}
       <Dialog open={overrideModalOpen} onOpenChange={setOverrideModalOpen}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
           <DialogHeader className="text-center space-y-2 mb-8">
             <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200/50 shadow-sm">
               <KeyRound className="w-8 h-8" />
