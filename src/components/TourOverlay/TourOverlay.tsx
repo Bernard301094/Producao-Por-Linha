@@ -333,10 +333,18 @@ export function TourOverlay({ isDesktop, setMobileTab, onFinish }: TourOverlayPr
 
   // Lock body scroll for the entire tour duration so the page never scrolls
   // while the user reads or (accidentally) swipes inside the spotlight area.
+  // On desktop: compensate scrollbar width so layout doesn't jump when the
+  // scrollbar disappears (scrollbarWidth === 0 on mobile → no-op there).
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    const scrollbarW = window.innerWidth - document.documentElement.clientWidth;
+    const prevOverflow = document.body.style.overflow;
+    const prevPadding  = document.body.style.paddingRight;
+    document.body.style.overflow     = 'hidden';
+    document.body.style.paddingRight = scrollbarW > 0 ? `${scrollbarW}px` : '';
+    return () => {
+      document.body.style.overflow     = prevOverflow;
+      document.body.style.paddingRight = prevPadding;
+    };
   }, []);
 
   const handleNext = () => { if (isLast) onFinish(); else setStep(s => s + 1); };
