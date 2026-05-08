@@ -29,6 +29,7 @@ const ProductManagerModal = React.lazy(() => import('./components/ProductManager
 import { toast, Toaster } from 'sonner';
 import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp, HelpCircle, X } from 'lucide-react';
 import { motion } from 'motion/react';
+import { TourOverlay } from './components/TourOverlay/TourOverlay';
 
 import { getServerTime, syncServerTime, getServerTimeISO, isTimeSynced } from './lib/time';
 import { logAudit } from './lib/audit';
@@ -210,6 +211,41 @@ function ToleranceCountdown({ profile, onExpire }: { profile: string | null; onE
   );
 }
 
+// ── Tour mock data (injected only while the tour is active) ─────────────────
+const TOUR_MOCK_OPS: Operation[] = [
+  {
+    id: '__tour_p1', opNumber: '47923', produto: 'V-FLOC 1.5L', linha: '05',
+    turno: 'Turno B', horaInicial: '08:00',
+    carimboInicial: new Date(Date.now() - 9840000).toISOString(),
+    litragem: '1.5L', paradas: [], isAvulsa: false,
+  },
+  {
+    id: '__tour_p2', opNumber: '47924', produto: 'LAVA AUTOS PREMIUM 2L', linha: '08',
+    turno: 'Turno B', horaInicial: '10:15',
+    carimboInicial: new Date(Date.now() - 3600000).toISOString(),
+    litragem: '2L', paradas: [], isAvulsa: false,
+  },
+];
+const TOUR_MOCK_FINISHED: FinishedOperation[] = [
+  {
+    id: '__tour_f1', opNumber: '47920', produto: 'V-FLOC 1.5L', linha: '05',
+    turno: 'Turno B', horaInicial: '06:00', horaFinal: '08:00',
+    quantidade: '850', qntReprocesso: '0',
+    carimboInicial: new Date(Date.now() - 18000000).toISOString(),
+    litragem: '1.5L', paradas: [], syncStatus: 'success', isAvulsa: false,
+  },
+  {
+    id: '__tour_f2', opNumber: '47921', produto: 'CLEAN CAR 500ML', linha: '03',
+    turno: 'Turno B', horaInicial: '06:15', horaFinal: '07:45',
+    quantidade: '1200', qntReprocesso: '50',
+    carimboInicial: new Date(Date.now() - 14400000).toISOString(),
+    litragem: '500ML',
+    paradas: [{ seq: 1, tipologia: 'Troca de Produto', horaInicio: '07:00', horaFim: '07:15' }],
+    syncStatus: 'success', isAvulsa: false,
+  },
+];
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function App() {
   function extractLitragem(produto: string): string {
     const upper = (produto || '').toUpperCase();
@@ -241,6 +277,7 @@ export default function App() {
   const [showChangerPassword, setShowChangerPassword] = useState(false);
 
   const [mobileTab, setMobileTab] = useState<'pendentes' | 'concluidas'>('pendentes');
+  const [tourActive, setTourActive] = useState(false);
   const [isNovaSheetOpen, setIsNovaSheetOpen] = useState(false);
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
 
@@ -1100,6 +1137,13 @@ export default function App() {
   const totalUnidades = myFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0);
   const visibleTotalUnidades = visibleFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0);
 
+  const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+  const displayPendingOps = tourActive ? TOUR_MOCK_OPS : visiblePendingOps;
+  const displayFinishedOps = tourActive ? TOUR_MOCK_FINISHED : visibleFinishedOps;
+  const displayTotalUnidades = tourActive
+    ? TOUR_MOCK_FINISHED.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0)
+    : visibleTotalUnidades;
+
   const confirmDelete = async () => {
     const doDelete = async () => {
       if (!deletingOp) return;
@@ -1181,15 +1225,21 @@ export default function App() {
                 <h1 className="text-base sm:text-lg font-black text-zinc-950 tracking-tight leading-none truncate mb-1.5">
                   Diário de Bordo
                 </h1>
-                <div className="hidden min-[390px]:flex flex-col sm:flex-row items-start sm:items-center gap-1.5 sm:gap-2">
-                  <p className="text-[10px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-2 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight shrink-0">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
+                  <p className="text-[9px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-1.5 sm:px-2 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight shrink-0">
                     {today}
                   </p>
                   <button 
                     onClick={() => setShowProductManager(true)}
-                    className="flex w-fit items-center gap-1.5 text-[9px] font-black text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded transition-colors uppercase tracking-widest shrink-0"
+                    className="flex w-fit items-center gap-1 text-[8px] sm:text-[9px] font-black text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-1.5 sm:px-2 py-0.5 rounded transition-colors uppercase tracking-widest shrink-0"
                   >
                     <Pencil className="w-2.5 h-2.5" /> Produtos
+                  </button>
+                  <button 
+                    onClick={() => setTourActive(true)}
+                    className="flex w-fit items-center gap-1 text-[8px] sm:text-[9px] font-black text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-1.5 sm:px-2 py-0.5 rounded transition-colors uppercase tracking-widest shrink-0"
+                  >
+                    <HelpCircle className="w-2.5 h-2.5" /> Tour
                   </button>
                 </div>
               </div>
@@ -1315,10 +1365,10 @@ export default function App() {
         </div>
 
         <div className="w-full max-w-[1920px] mx-auto px-0 sm:px-4 lg:px-6 2xl:px-8 py-0 sm:py-6 lg:py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-24 lg:pb-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-0 sm:gap-6 lg:gap-5 2xl:gap-7 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-4 lg:gap-5 2xl:gap-7 items-start">
 
             {/* Pendentes */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden md:col-span-1 lg:col-span-5 xl:col-span-5 2xl:col-span-5 lg:order-2 border-none min-h-[calc(100dvh-7.75rem-env(safe-area-inset-bottom))] max-h-none md:h-[calc(100dvh-9rem)] lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-pendentes', mobileTab !== 'pendentes' && 'hidden md:flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-5 xl:col-span-5 2xl:col-span-5 lg:order-2 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-pendentes', mobileTab !== 'pendentes' && 'hidden md:flex')}>
               <div className="p-4 sm:p-5 border-b border-zinc-100 flex flex-col gap-3 bg-zinc-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:14px_14px] opacity-50" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
@@ -1328,7 +1378,7 @@ export default function App() {
                     </div>
                     <div className="flex flex-col">
                       <span className="text-base font-black text-zinc-900 tracking-tight leading-none mb-1">Pendentes</span>
-                      <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest leading-none">{visiblePendingOps.length} {visiblePendingOps.length === 1 ? 'registro' : 'registros'}</span>
+                      <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest leading-none">{displayPendingOps.length} {displayPendingOps.length === 1 ? 'registro' : 'registros'}</span>
                     </div>
                   </div>
                 </div>
@@ -1396,8 +1446,8 @@ export default function App() {
                 </div>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-3 sm:p-5 bg-zinc-50/50 tour-pendentes-items">
-                {visiblePendingOps.length === 0 ? (
+              <div className="flex-1 overflow-y-auto p-3 pb-[5.5rem] sm:p-5 bg-zinc-50/50 tour-pendentes-items">
+                {displayPendingOps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full min-h-[250px] py-12 text-zinc-400 text-center animate-in fade-in duration-500">
                     <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-4">
                       <ClipboardList className="w-8 h-8 text-zinc-300" />
@@ -1405,7 +1455,7 @@ export default function App() {
                     <p className="text-sm font-black text-zinc-600 mb-1">Nada por aqui</p>
                     <p className="text-xs font-medium text-zinc-500 max-w-[200px]">Não há OPs pendentes aguardando fechamento.</p>
                   </div>
-                ) : visiblePendingOps.map(op => (
+                ) : displayPendingOps.map(op => (
                   <PendingOpItem 
                     key={op.id} 
                     op={op} 
@@ -1435,7 +1485,7 @@ export default function App() {
             </div>
 
             {/* Nova OP */}
-            <div className="hidden md:flex flex-col md:col-span-1 lg:col-span-4 xl:col-span-3 2xl:col-span-3 lg:order-1 md:h-[calc(100dvh-9rem)] lg:h-[calc(100dvh-11rem)] tour-nova-op">
+            <div className="hidden lg:flex flex-col lg:col-span-4 xl:col-span-3 2xl:col-span-3 lg:order-1 lg:h-[calc(100dvh-11rem)] tour-nova-op">
               <StartOpForm
                 currentTurnForView={currentTurnForView}
                 handleSubmit={handleSubmit}
@@ -1468,7 +1518,7 @@ export default function App() {
             </div>
 
             {/* Concluídas */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden md:col-span-1 lg:col-span-3 xl:col-span-4 2xl:col-span-4 lg:order-3 border-none min-h-[calc(100dvh-7.75rem-env(safe-area-inset-bottom))] max-h-none md:h-[calc(100dvh-9rem)] lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-concluidas', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-3 xl:col-span-4 2xl:col-span-4 lg:order-3 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-concluidas', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
               <div className="p-4 sm:p-5 border-b border-zinc-100 flex flex-col gap-3 bg-emerald-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#05966910_1px,transparent_1px),linear-gradient(to_bottom,#05966910_1px,transparent_1px)] bg-[size:14px_14px] opacity-70" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
@@ -1478,12 +1528,12 @@ export default function App() {
                     </div>
                     <div className="flex flex-col">
                       <span className="text-base font-black text-zinc-900 tracking-tight leading-none mb-1">Concluídas</span>
-                      <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest leading-none">{visibleFinishedOps.length} {visibleFinishedOps.length === 1 ? 'registro' : 'registros'}</span>
+                      <span className="text-[10px] font-semibold text-zinc-500 uppercase tracking-widest leading-none">{displayFinishedOps.length} {displayFinishedOps.length === 1 ? 'registro' : 'registros'}</span>
                     </div>
                   </div>
                   <div className="text-right bg-white px-2 py-1.5 rounded-lg border border-emerald-100 shadow-sm shrink-0">
                     <p className="text-[9px] text-emerald-600/70 uppercase tracking-widest font-black mb-0.5">Total</p>
-                    <p className="text-sm font-black text-emerald-700 tracking-tighter leading-none">{visibleTotalUnidades.toLocaleString()} UN</p>
+                    <p className="text-sm font-black text-emerald-700 tracking-tighter leading-none">{displayTotalUnidades.toLocaleString()} UN</p>
                   </div>
                 </div>
                 <div className="relative z-10 flex flex-col gap-3">
@@ -1550,8 +1600,8 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-3 sm:p-5 bg-zinc-50/50">
-                {visibleFinishedOps.length === 0 ? (
+              <div className="flex-1 overflow-y-auto p-3 pb-[5.5rem] sm:p-5 bg-zinc-50/50">
+                {displayFinishedOps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full min-h-[250px] py-12 text-zinc-400 text-center animate-in fade-in duration-500">
                     <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-4">
                       <CheckCircle2 className="w-8 h-8 text-zinc-300" />
@@ -1559,7 +1609,7 @@ export default function App() {
                     <p className="text-sm font-black text-zinc-600 mb-1">Nada por aqui</p>
                     <p className="text-xs font-medium text-zinc-500 max-w-[200px]">Nenhuma operação foi concluída neste turno ainda.</p>
                   </div>
-                ) : visibleFinishedOps.map((op) => (
+                ) : displayFinishedOps.map((op) => (
                   <FinishedOpItem
                     key={op.id}
                     op={op} 
@@ -1799,6 +1849,14 @@ export default function App() {
           />
         )}
       </React.Suspense>
+
+      {tourActive && (
+        <TourOverlay
+          isDesktop={isDesktop}
+          setMobileTab={setMobileTab}
+          onFinish={() => setTourActive(false)}
+        />
+      )}
     </>
   );
 }

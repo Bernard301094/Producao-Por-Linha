@@ -29,7 +29,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
   handleLogin
 }) => {
   return (
-    <div className="min-h-[100dvh] bg-[#F9FAFB] flex flex-col items-center justify-center p-0 sm:p-4 md:p-6 lg:p-8">
+    <div className="min-h-[100dvh] bg-[#F9FAFB] flex flex-col items-center justify-center px-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:p-4 md:p-6 lg:p-8">
       <div className="w-full max-w-6xl bg-white sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row min-h-[100dvh] sm:min-h-[600px] lg:min-h-[700px] ring-0 sm:ring-1 ring-zinc-200/50">
         
         {/* Left Side: Branding / Background */}
@@ -54,7 +54,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
         </div>
 
         {/* Right Side: Login Content */}
-        <div className="flex-1 p-6 md:p-12 lg:p-16 flex flex-col justify-center bg-white relative">
+        <div className="flex-1 px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-6 md:p-12 lg:p-16 flex flex-col justify-center bg-white relative">
           
           <div className="w-full max-w-md mx-auto relative z-10 flex flex-col h-full lg:h-auto lg:h-full lg:justify-center">
             
@@ -76,7 +76,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               {!selectedProfile ? (
                  <div className="flex-1">
                   <p className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-4 text-center lg:text-left">Selecione seu perfil</p>
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 sm:gap-4">
                     {profiles.length === 0 && (
                       <p className="text-sm text-zinc-400 font-medium col-span-2 text-center lg:text-left">
                         Nenhum perfil encontrado.
