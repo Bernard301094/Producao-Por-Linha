@@ -20,7 +20,7 @@ import { PendingOpItem } from '../components/PendingOpItem';
 import { FinishedOpItem } from '../components/FinishedOpItem';
 import { LoginScreen } from './components/LoginScreen/LoginScreen';
 import { StartOpForm } from './components/StartOpForm/StartOpForm';
-import { cn, useAutoIncrement, hashPassword } from './lib/utils';
+import { cn, useAutoIncrement } from './lib/utils';
 
 // Lazy loading modals to improve initial load performance
 const EditOpModal = React.lazy(() => import('./components/EditOpModal/EditOpModal').then(module => ({ default: module.EditOpModal })));
@@ -680,8 +680,10 @@ export default function App() {
   // Login
   const handleLogin = async () => {
     if (!selectedProfile) return;
-    
-
+    if (!passwordInput.trim()) {
+      toast.error('Digite sua senha.');
+      return;
+    }
     
     const shiftCheck = isShiftAllowed(selectedProfile);
     
@@ -720,6 +722,8 @@ export default function App() {
       const code = err?.code || '';
       if (['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found'].includes(code)) {
         toast.error('Senha incorreta. Tente novamente.');
+      } else if (code === 'auth/too-many-requests') {
+        toast.error('Muitas tentativas inválidas. O acesso a esta conta foi temporariamente bloqueado. Tente novamente mais tarde.');
       } else {
         console.error('Login error:', err);
         toast.error('Erro ao verificar senha.');
@@ -753,6 +757,8 @@ export default function App() {
       const code = err?.code || '';
       if (['auth/invalid-credential', 'auth/wrong-password'].includes(code)) {
         toast.error('Senha atual incorreta.');
+      } else if (code === 'auth/too-many-requests') {
+        toast.error('Muitas tentativas inválidas. Tente novamente mais tarde.');
       } else {
         toast.error(err.message || 'Erro ao alterar a senha.');
       }

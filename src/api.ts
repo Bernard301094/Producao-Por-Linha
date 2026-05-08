@@ -1,6 +1,6 @@
 import { db, auth } from './firebase';
 import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, updateDoc, query, where, onSnapshot, limit, orderBy } from 'firebase/firestore';
-import { signInWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import firebaseConfig from '../firebase-applet-config.json';
 
 export interface Parada {
@@ -507,18 +507,11 @@ export const clearTurnoRecords = async (turno: string) => {
 
 // ─── Firebase Auth helpers ──────────────────────────────────────────────────
 
-/** SHA-256 hex hash — used only to store a verifiable hash in Firestore for the supervisor override check. */
-const sha256 = async (text: string): Promise<string> => {
-  const buf = new TextEncoder().encode(text);
-  const hashBuf = await crypto.subtle.digest('SHA-256', buf);
-  return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
-};
-
 /** Maps a profile display name to its Firebase Auth email.
  *  Uses an explicit map to match accounts already created in the Firebase console.
  *  Unknown profiles fall back to a slug formula (lowercase, dots for spaces). */
 const PROFILE_EMAIL_MAP: Record<string, string> = {
-  'Turno A':    'turno.a@vonixx.com',
+  'Turno A':    'turnoa@vonixx.com',
   'Turno B':    'turnob@vonixx.com',
   'Turno C':    'turnoc@vonixx.com',
   'Turno D':    'turnod@vonixx.com',
@@ -537,7 +530,25 @@ const profileToEmail = (profileName: string): string => {
 
 /** Sign in a profile via Firebase Auth (email/password). */
 export const signInToFirebase = async (profileName: string, password: string) => {
-  await signInWithEmailAndPassword(auth, profileToEmail(profileName), password);
+  const email = profileToEmail(profileName);
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (err: any) {
+    if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+      // NOTE: invalid-credential in new Firebase versions also happens if user doesn't exist.
+      // We will try to create the user. If it already exists, this new call will fail with email-already-in-use.
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        return; // Success creating and signing in
+      } catch (createErr: any) {
+        if (createErr.code === 'auth/email-already-in-use') {
+          throw err; // The user exists, so it was indeed a wrong password
+        }
+        throw createErr;
+      }
+    }
+    throw err;
+  }
 };
 
 /** Sign out the current Firebase Auth user. */
@@ -636,11 +647,10 @@ export const updateAuthProfile = async (profileName: string, dataOrPassword: str
     if (auth.currentUser) {
       await updatePassword(auth.currentUser, dataOrPassword);
     }
-    // 2. Persist SHA-256 hash in Firestore ONLY for the supervisor override check — never plaintext
-    const hash = await sha256(dataOrPassword);
+    // Update lastChangedAt only
     try {
       await setDoc(doc(db, 'profiles', safeProfileName), {
-        name: profileName, lastChangedAt: now, password: hash
+        name: profileName, lastChangedAt: now
       }, { merge: true });
       cacheProfiles = null;
     } catch (err) {

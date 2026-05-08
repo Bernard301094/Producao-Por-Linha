@@ -6,12 +6,12 @@ const config = JSON.parse(fs.readFileSync("./firebase-applet-config.json", "utf-
 const app = initializeApp(config);
 const db = getFirestore(app, config.firestoreDatabaseId);
 
-const PROFILES = {
-  'Turno A': 'TurnoA@Vonixx2026',
-  'Turno B': 'TurnoB@Vonixx2026',
-  'Turno C': 'TurnoC@Vonixx2026',
-  'Turno D': 'TurnoD@Vonixx2026'
-};
+const PROFILES = [
+  'Turno A',
+  'Turno B',
+  'Turno C',
+  'Turno D'
+];
 
 const LINHAS = Array.from({ length: 16 }, (_, i) => `Linha ${String(i + 1).padStart(2, '0')}`);
 
@@ -30,10 +30,9 @@ try {
 
 async function seed() {
   console.log("Seeding profiles...");
-  for (const [name, password] of Object.entries(PROFILES)) {
+  for (const name of PROFILES) {
     await setDoc(doc(db, "profiles", name), {
       name,
-      password,
       lastChangedAt: new Date().toISOString()
     });
   }
