@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { X, ArrowRight, ArrowLeft, MoveHorizontal } from 'lucide-react';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'motion/react';
+import { X, ArrowRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface TourStep {
   id: string;
@@ -170,6 +170,67 @@ function computeCardPos(sr: SpotRect | null): CardPos {
   };
 }
 
+// ─── Swipe-gesture simulation card (pendentes-items step) ──────────────────
+function SwipeHintCard({ rect }: { rect: SpotRect }) {
+  const x            = useMotionValue(0);
+  const amberOpacity = useTransform(x, [-70, -20, 0], [1, 0.35, 0]);
+  const greenOpacity = useTransform(x, [0,   20, 70], [0, 0.35, 1]);
+
+  useEffect(() => {
+    // sequence: center → swipe left (parada) → back → swipe right (concluir) → back
+    const ctrl = animate(x, [0, -65, -65, 0, 65, 65, 0], {
+      duration: 4,
+      repeat: Infinity,
+      ease: 'easeInOut',
+      times: [0, 0.2, 0.35, 0.5, 0.68, 0.82, 1],
+    });
+    return () => ctrl.stop();
+  }, [x]);
+
+  const cardW = Math.max(0, rect.width - 20);
+
+  return (
+    <div
+      className="pointer-events-none"
+      style={{ position: 'fixed', top: rect.top + 16, left: rect.left + 10, width: cardW, height: 72 }}
+    >
+      {/* ← Amber background — Parada */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl bg-amber-500 flex items-center px-4 gap-2"
+        style={{ opacity: amberOpacity }}
+      >
+        <AlertTriangle className="w-5 h-5 text-white shrink-0" />
+        <span className="text-sm font-black text-white">Registrar Parada</span>
+      </motion.div>
+
+      {/* → Green background — Concluir */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl bg-emerald-500 flex items-center justify-end px-4 gap-2"
+        style={{ opacity: greenOpacity }}
+      >
+        <span className="text-sm font-black text-white">Concluir OP</span>
+        <CheckCircle2 className="w-5 h-5 text-white shrink-0" />
+      </motion.div>
+
+      {/* Skeleton card that physically drags */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl bg-white shadow-lg ring-1 ring-zinc-100 flex items-center px-4 gap-3"
+        style={{ x }}
+      >
+        <div className="w-1.5 h-9 rounded-full bg-amber-400 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="h-3 w-24 rounded-md bg-zinc-200 mb-2" />
+          <div className="h-2 w-14 rounded-md bg-zinc-100" />
+        </div>
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          <div className="h-2.5 w-12 rounded-md bg-zinc-200" />
+          <div className="h-2 w-8  rounded-md bg-zinc-100" />
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ─── Card content (shared between centered & positioned) ──────────────────────
 function TourCard({
   step, steps, current, isLast, onFinish, handleNext,
@@ -299,39 +360,19 @@ export function TourOverlay({ isDesktop, setMobileTab, onFinish }: TourOverlayPr
         )}
       </AnimatePresence>
 
-      {/* ── Swipe hint — pendentes-items step only ────────────────────── */}
+      {/* ── Swipe gesture simulation — pendentes-items step only ────────── */}
       <AnimatePresence>
         {current.id === 'pendentes-items' && sr && (
           <motion.div
             key="swipe-hint"
-            className="fixed pointer-events-none"
-            style={{
-              top:   (sr.top + sr.bottom) / 2 - 22,
-              left:  sr.left,
-              width: sr.width,
-              zIndex: 10000,
-            }}
+            className="fixed inset-0 pointer-events-none"
+            style={{ zIndex: 10000 }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ delay: 0.55, duration: 0.3 }}
+            transition={{ delay: 0.5, duration: 0.3 }}
           >
-            {/* centering wrapper — no transform, uses flexbox */}
-            <div className="flex justify-center">
-              <motion.div
-                className="flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-2xl px-3 py-2.5 shadow-xl ring-1 ring-zinc-200/60"
-                animate={{ x: [-38, 38, -38] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <ArrowLeft  className="w-4 h-4 text-amber-500 shrink-0" />
-                <span className="text-[11px] font-black text-amber-600 whitespace-nowrap">Parada</span>
-                <div className="w-px h-4 bg-zinc-200 mx-0.5" />
-                <MoveHorizontal className="w-4 h-4 text-zinc-400 shrink-0" />
-                <div className="w-px h-4 bg-zinc-200 mx-0.5" />
-                <span className="text-[11px] font-black text-emerald-600 whitespace-nowrap">Concluir</span>
-                <ArrowRight className="w-4 h-4 text-emerald-500 shrink-0" />
-              </motion.div>
-            </div>
+            <SwipeHintCard rect={sr} />
           </motion.div>
         )}
       </AnimatePresence>
