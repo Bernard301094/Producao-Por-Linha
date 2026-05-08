@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, updateProduct, removeProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord, getLinhas, getProfiles, syncFinishedOperation, invalidateCaches } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, updateProduct, removeProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord, getLinhas, getProfiles, syncFinishedOperation, invalidateCaches, convertAvulsaToOp, signInToFirebase, signOutFromFirebase, reauthenticateCurrentUser, verifySupervisorPassword } from './api';
 
 // Componentes UI e Ícones
 import { Button } from '../components/ui/button';
@@ -702,43 +702,28 @@ export default function App() {
     setLoginLoading(true);
 
     try {
-      const profileData = await getAuthProfile(selectedProfile);
-      const correctPassword = profileData?.password || profileData?.senha;
-      
-      if (!correctPassword) {
-         toast.error('Perfil não configurado adequadamente.');
-         setLoginLoading(false);
-         return;
-      }
-
-      const inputHash = await hashPassword(passwordInput.trim());
-      const isLegacyMatch = correctPassword.length !== 64 && passwordInput.trim() === correctPassword;
-      const isHashMatch = inputHash === correctPassword;
-
-      if (isLegacyMatch || isHashMatch) {
-        if (isLegacyMatch) {
-          // Upgrade to hash in the background
-          updateAuthProfile(selectedProfile, inputHash).catch(console.error);
-        }
-        logAudit({
-          userProfile: selectedProfile,
-          action: 'LOGIN',
-          expectedShift: selectedProfile,
-          activeShift: shiftCheck.activeTurno,
-          serverTimestamp: getServerTimeISO(),
-          result: shiftCheck.toleranceApplied ? 'TOLERANCE' : 'ALLOWED'
-        });
-        localStorage.setItem('loginProfile', selectedProfile);
-        setLoginProfile(selectedProfile);
-        setValue('turno', selectedProfile.replace('Turno ', ''));
-        setPasswordInput('');
-        setSelectedProfile(null);
-      } else {
-        toast.error('Senha incorreta. Tente novamente.');
-      }
+      await signInToFirebase(selectedProfile, passwordInput.trim());
+      logAudit({
+        userProfile: selectedProfile,
+        action: 'LOGIN',
+        expectedShift: selectedProfile,
+        activeShift: shiftCheck.activeTurno,
+        serverTimestamp: getServerTimeISO(),
+        result: shiftCheck.toleranceApplied ? 'TOLERANCE' : 'ALLOWED'
+      });
+      localStorage.setItem('loginProfile', selectedProfile);
+      setLoginProfile(selectedProfile);
+      setValue('turno', selectedProfile.replace('Turno ', ''));
+      setPasswordInput('');
+      setSelectedProfile(null);
     } catch (err: any) {
-      console.error("Login fetch error:", err);
-      toast.error('Erro ao verificar senha.');
+      const code = err?.code || '';
+      if (['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found'].includes(code)) {
+        toast.error('Senha incorreta. Tente novamente.');
+      } else {
+        console.error('Login error:', err);
+        toast.error('Erro ao verificar senha.');
+      }
     } finally {
       setLoginLoading(false);
     }
@@ -757,28 +742,20 @@ export default function App() {
 
     setChangingPasswordLoading(true);
     try {
-      const profileData = await getAuthProfile(loginProfile);
-      const correctPassword = profileData?.password || profileData?.senha;
-      
-      const inputHash = await hashPassword(changerOldPassword);
-      const isLegacyMatch = correctPassword && correctPassword.length !== 64 && changerOldPassword === correctPassword;
-      const isHashMatch = correctPassword && inputHash === correctPassword;
-      
-      if (!correctPassword || (!isLegacyMatch && !isHashMatch)) {
-        toast.error('Senha atual incorreta.');
-        setChangingPasswordLoading(false);
-        return;
-      }
-
-      const newHash = await hashPassword(newPassword);
-      await updateAuthProfile(loginProfile, newHash);
+      await reauthenticateCurrentUser(loginProfile, changerOldPassword);
+      await updateAuthProfile(loginProfile, newPassword);
       toast.success('Senha alterada com sucesso!');
       setChangePasswordOpen(false);
       setChangerOldPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
     } catch (err: any) {
-      toast.error(err.message || 'Erro ao alterar a senha.');
+      const code = err?.code || '';
+      if (['auth/invalid-credential', 'auth/wrong-password'].includes(code)) {
+        toast.error('Senha atual incorreta.');
+      } else {
+        toast.error(err.message || 'Erro ao alterar a senha.');
+      }
     } finally {
       setChangingPasswordLoading(false);
     }
@@ -805,6 +782,7 @@ export default function App() {
     setLoginProfile(null);
     setSelectedProfile(null);
     setPasswordInput('');
+    signOutFromFirebase().catch(console.error);
   };
 
   const handlePreStartOp = (data: StartOpFormValues) => {
@@ -1064,31 +1042,14 @@ export default function App() {
     }
     
     try {
-      const supervisorProfile = await getAuthProfile("Supervisor");
-      const correctPw = supervisorProfile?.password || supervisorProfile?.senha;
-      
-      if (!correctPw) {
-        toast.error('Perfil de supervisor não configurado.');
-        return;
-      }
-      
-      const inputHash = await hashPassword(overridePassword.trim());
-      const isLegacyMatch = correctPw.length !== 64 && overridePassword.trim() === correctPw;
-      const isHashMatch = inputHash === correctPw;
-      
-      if (!isLegacyMatch && !isHashMatch) {
+      const isValid = await verifySupervisorPassword(overridePassword.trim());
+      if (!isValid) {
         toast.error('Senha de supervisor incorreta!');
         return;
       }
-      
-      if (isLegacyMatch) {
-         updateAuthProfile("Supervisor", inputHash).catch(console.error);
-      }
-      
       if (pendingOverrideAction) {
         pendingOverrideAction();
       }
-      
       setOverrideModalOpen(false);
       setOverrideReason("");
       setOverridePassword("");
@@ -1657,11 +1618,22 @@ export default function App() {
                 ) : displayFinishedOps.map((op) => (
                   <FinishedOpItem
                     key={op.id}
-                    op={op} 
-                    openEdit={openEdit} 
-                    setDeletingOp={setDeletingOp} 
-                    setRevertingOp={setRevertingOp} 
+                    op={op}
+                    openEdit={openEdit}
+                    setDeletingOp={setDeletingOp}
+                    setRevertingOp={setRevertingOp}
                     onSyncRetry={handleSyncRetry}
+                    availableParadas={availableParadas}
+                    onAddForgottenParada={async (finOp: FinishedOperation, parada: ParadaRecord) => {
+                      const updated = [...(finOp.paradas || []), parada];
+                      await updateFinishedOperation(finOp.id, { paradas: updated }, finOp.turno);
+                    }}
+                    onConvertToOp={async (finOp: FinishedOperation, data: { horaInicial: string; horaFinal: string }) => {
+                      await convertAvulsaToOp(
+                        finOp.id, data.horaInicial, data.horaFinal,
+                        (ok, err) => { if (!ok) toast.warning(`Salvo, mas erro na planilha: ${err}`); }
+                      );
+                    }}
                   />
                 ))}
               </div>

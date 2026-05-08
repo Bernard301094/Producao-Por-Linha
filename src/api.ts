@@ -1,5 +1,7 @@
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, updateDoc, query, where, onSnapshot, limit, orderBy } from 'firebase/firestore';
+import { signInWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import firebaseConfig from '../firebase-applet-config.json';
 
 export interface Parada {
   seq: number;
@@ -187,11 +189,7 @@ export const markOperationFinished = async (
     isAvulsa: op.isAvulsa ?? false
   };
 
-  fetch(`${API_BASE}/api/append`, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: { 'Content-Type': 'application/json' }
-  }).then(async res => {
+  authedFetch(`${API_BASE}/api/append`, JSON.stringify(payload)).then(async res => {
     if (!res.ok) {
       const errText = await res.text();
       await updateDoc(doc(db, 'operations', op.id), { syncStatus: 'error', syncError: errText });
@@ -254,11 +252,7 @@ export const removeFinishedOperation = async (id: string, _turno: string) => {
   
   if (docSnap.exists()) {
     const data = docSnap.data();
-    fetch(`${API_BASE}/api/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto, isAvulsa: data.isAvulsa })
-    }).catch(e => console.error('Delete API error', e));
+    authedFetch(`${API_BASE}/api/delete`, JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto, isAvulsa: data.isAvulsa })).catch(e => console.error('Delete API error', e));
   }
   
   try {
@@ -276,11 +270,7 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
     const data = docSnap.data() as FinishedOperation;
     
     // Attempt to remove from spreadsheet (fire and forget)
-    fetch(`${API_BASE}/api/delete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto, isAvulsa: data.isAvulsa })
-    }).catch(e => console.error('API delete error in revert', e));
+    authedFetch(`${API_BASE}/api/delete`, JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto, isAvulsa: data.isAvulsa })).catch(e => console.error('API delete error in revert', e));
     
     // Clean up finished-specific fields
     const newOp: Operation = {
@@ -330,11 +320,7 @@ export const syncFinishedOperation = async (opId: string) => {
   };
 
   try {
-    const resp = await fetch(`${API_BASE}/api/update`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    const resp = await authedFetch(`${API_BASE}/api/update`, JSON.stringify(payload));
     
     // Fallback: If /api/update returns 404, it means the OP was NEVER appended to the main sheet originally.
     if (resp.status === 404) {
@@ -353,11 +339,7 @@ export const syncFinishedOperation = async (opId: string) => {
         isAvulsa: data.isAvulsa
       };
       
-      const appendResp = await fetch(`${API_BASE}/api/append`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(appendPayload)
-      });
+      const appendResp = await authedFetch(`${API_BASE}/api/append`, JSON.stringify(appendPayload));
       
       if (!appendResp.ok) {
         throw new Error(await appendResp.text());
@@ -377,43 +359,122 @@ export const syncFinishedOperation = async (opId: string) => {
 export const updateFinishedOperation = async (oldId: string, data: Partial<FinishedOperation>, _turno: string) => {
   const opDocRef = doc(db, 'operations', oldId);
   const docSnap = await getDoc(opDocRef);
-  if (docSnap.exists()) {
-    const original = docSnap.data();
-    
-    // Background fetch to update spreadsheet
-    fetch(`${API_BASE}/api/update`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        originalData: { 
-          op: original.opNumber, 
-          linha: original.linha, 
-          produto: original.produto, 
-          isAvulsa: original.isAvulsa ?? false,
-          carimbo: original.carimbo,
-          litragem: original.litragem,
-          turno: original.turno
-        }, 
-        updates: { ...data, isAvulsa: original.isAvulsa ?? false } 
-      })
-    }).then(async (resp) => {
-      if (!resp.ok) {
-        await updateDoc(opDocRef, { syncStatus: 'error', syncError: await resp.text() });
+  if (!docSnap.exists()) return;
+
+  const original = docSnap.data() as FinishedOperation;
+  // Merge original + updates so the fallback append has all fields
+  const mergedOp = { ...original, ...data } as FinishedOperation;
+
+  // Background fetch to update spreadsheet
+  authedFetch(`${API_BASE}/api/update`, JSON.stringify({
+    originalData: {
+      op:       original.opNumber,
+      linha:    original.linha,
+      produto:  original.produto,
+      isAvulsa: original.isAvulsa ?? false,
+      carimbo:  original.carimbo,
+      litragem: original.litragem,
+      turno:    original.turno
+    },
+    updates: { ...data, isAvulsa: original.isAvulsa ?? false }
+  })).then(async (resp) => {
+    // 404 means the Apontamento row was never created — create it now (non-avulsa only)
+    if (resp.status === 404 && !original.isAvulsa) {
+      const appendResp = await authedFetch(`${API_BASE}/api/append`, JSON.stringify({
+          carimbo:       `'${mergedOp.carimbo}`,
+          op:            mergedOp.opNumber,
+          litragem:      mergedOp.litragem || '',
+          produto:       mergedOp.produto,
+          linha:         mergedOp.linha,
+          turno:         mergedOp.turno,
+          quantidade:    mergedOp.quantidade || '0',
+          qntReprocesso: mergedOp.qntReprocesso || '0',
+          horaInicial:   mergedOp.horaInicial,
+          horaFinal:     mergedOp.horaFinal,
+          paradas:       mergedOp.paradas || [],
+          isAvulsa:      false
+        }));
+      if (!appendResp.ok) {
+        await updateDoc(opDocRef, { syncStatus: 'error', syncError: await appendResp.text() });
       } else {
         await updateDoc(opDocRef, { syncStatus: 'success', syncError: '' });
       }
-    }).catch(async (e) => {
-      console.error('Update API error', e);
-      await updateDoc(opDocRef, { syncStatus: 'error', syncError: e.message });
-    });
-    
-    // Update Firebase immediately
-    await updateDoc(opDocRef, { ...data, syncStatus: 'pending' });
-  }
+    } else if (!resp.ok) {
+      await updateDoc(opDocRef, { syncStatus: 'error', syncError: await resp.text() });
+    } else {
+      await updateDoc(opDocRef, { syncStatus: 'success', syncError: '' });
+    }
+  }).catch(async (e) => {
+    console.error('Update API error', e);
+    await updateDoc(opDocRef, { syncStatus: 'error', syncError: e.message });
+  });
+
+  // Update Firebase immediately (optimistic)
+  await updateDoc(opDocRef, { ...data, syncStatus: 'pending' });
 };
 
 export const updateOperation = async (id: string, data: Partial<Operation>) => {
   await updateDoc(doc(db, 'operations', id), data);
+};
+
+/**
+ * Converts a finished "isAvulsa" record into a regular production OP.
+ * 1. Updates Firestore in-place (sets isAvulsa=false + production fields).
+ * 2. Removes the old avulsa row from the spreadsheet (fire-and-forget).
+ * 3. Appends a new full production row to the spreadsheet (fire-and-forget).
+ * No existing documents are deleted; only the spreadsheet row is replaced.
+ */
+export const convertAvulsaToOp = async (
+  opId: string,
+  horaInicial: string,
+  horaFinal: string,
+  onSync?: (success: boolean, error?: string) => void
+) => {
+  const opDocRef = doc(db, 'operations', opId);
+  const docSnap  = await getDoc(opDocRef);
+  if (!docSnap.exists()) throw new Error('Operação não encontrada.');
+
+  const original = docSnap.data() as FinishedOperation;
+
+  // 1. Update Firestore: set production times and clear avulsa flag
+  await updateDoc(opDocRef, {
+    horaInicial,
+    horaFinal,
+    isAvulsa:   false,
+    syncStatus: 'pending',
+    syncError:  ''
+  });
+
+  // 2. Append the production summary to Apontamento ONLY (fire and forget).
+  //    Existing PARADAS rows are intentionally preserved — they were written at avulsa creation.
+  const payload = {
+    carimbo:       `'${original.carimbo}`,
+    op:            original.opNumber,
+    litragem:      formatSheetLitragem(original.litragem || ''),
+    produto:       original.produto,
+    linha:         original.linha,
+    turno:         original.turno,
+    quantidade:    original.quantidade || '0',
+    qntReprocesso: original.qntReprocesso || '0',
+    horaInicial,
+    horaFinal,
+    paradas:       [],
+    isAvulsa:      false
+  };
+
+  authedFetch(`${API_BASE}/api/append`, JSON.stringify(payload)).then(async res => {
+    if (!res.ok) {
+      const err = await res.text();
+      await updateDoc(opDocRef, { syncStatus: 'error', syncError: err });
+      onSync?.(false, err);
+    } else {
+      await updateDoc(opDocRef, { syncStatus: 'success', syncError: '' });
+      onSync?.(true);
+    }
+  }).catch(async error => {
+    await updateDoc(opDocRef, { syncStatus: 'error', syncError: error.message });
+    onSync?.(false, error.message);
+  });
 };
 
 export const getReportForDateAndShift = async (date: string, shift: string) => {
@@ -443,6 +504,95 @@ export const clearTurnoRecords = async (turno: string) => {
   }
 };
 
+
+// ─── Firebase Auth helpers ──────────────────────────────────────────────────
+
+/** SHA-256 hex hash — used only to store a verifiable hash in Firestore for the supervisor override check. */
+const sha256 = async (text: string): Promise<string> => {
+  const buf = new TextEncoder().encode(text);
+  const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+/** Maps a profile display name to its Firebase Auth email.
+ *  Uses an explicit map to match accounts already created in the Firebase console.
+ *  Unknown profiles fall back to a slug formula (lowercase, dots for spaces). */
+const PROFILE_EMAIL_MAP: Record<string, string> = {
+  'Turno A':    'turno.a@vonixx.com',
+  'Turno B':    'turnob@vonixx.com',
+  'Turno C':    'turnoc@vonixx.com',
+  'Turno D':    'turnod@vonixx.com',
+  'Supervisor': 'supervisao@vonixx.com',
+};
+
+const profileToEmail = (profileName: string): string => {
+  if (PROFILE_EMAIL_MAP[profileName]) return PROFILE_EMAIL_MAP[profileName];
+  const slug = profileName
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '.')
+    .replace(/[^a-z0-9.]/g, '');
+  return `${slug}@vonixx.com`;
+};
+
+/** Sign in a profile via Firebase Auth (email/password). */
+export const signInToFirebase = async (profileName: string, password: string) => {
+  await signInWithEmailAndPassword(auth, profileToEmail(profileName), password);
+};
+
+/** Sign out the current Firebase Auth user. */
+export const signOutFromFirebase = async () => {
+  await signOut(auth);
+};
+
+/** Re-authenticate the currently signed-in user (required before password change). */
+export const reauthenticateCurrentUser = async (profileName: string, password: string) => {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Nenhum usuário autenticado.');
+  const credential = EmailAuthProvider.credential(profileToEmail(profileName), password);
+  await reauthenticateWithCredential(user, credential);
+};
+
+/**
+ * Verifies supervisor credentials via the Firebase Auth REST API WITHOUT
+ * changing the current app session — safe to call while another user is logged in.
+ */
+export const verifySupervisorPassword = async (password: string): Promise<boolean> => {
+  try {
+    const apiKey = (firebaseConfig as any).apiKey;
+    const resp = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: profileToEmail('Supervisor'), password, returnSecureToken: false })
+      }
+    );
+    return resp.ok;
+  } catch {
+    return false;
+  }
+};
+
+/** Returns Content-Type + Authorization JWT headers for all backend /api/* calls. */
+const getApiHeaders = async (): Promise<Record<string, string>> => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  try {
+    if (auth.currentUser) {
+      const token = await auth.currentUser.getIdToken();
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  } catch (e) {
+    console.warn('Could not attach auth token to request:', e);
+  }
+  return headers;
+};
+
+/** Authenticated POST wrapper for all /api/* backend calls. */
+const authedFetch = (url: string, body: string): Promise<Response> =>
+  getApiHeaders().then(headers => fetch(url, { method: 'POST', headers, body }));
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const getProfiles = async (): Promise<{name: string}[]> => {
   if (cacheProfiles) return cacheProfiles;
@@ -479,41 +629,35 @@ export const checkSheetConnection = async () => {
 
 export const updateAuthProfile = async (profileName: string, dataOrPassword: string | Record<string, any>) => {
   const now = new Date().toISOString();
-  
-  let existing: any = null;
   const safeProfileName = String(profileName).replace(/\//g, '_');
-  try {
-    const docRef = doc(db, 'profiles', safeProfileName);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      existing = docSnap.data();
-    }
-  } catch (err) {
-    console.warn("Could not fetch profile from firestore", err);
-  }
 
-  let newProfile: any = { name: profileName, lastChangedAt: now };
-  
   if (typeof dataOrPassword === 'string') {
-    newProfile.password = dataOrPassword;
-  } else {
-    newProfile = { ...existing, ...dataOrPassword, name: profileName, lastChangedAt: now };
+    // 1. Update Firebase Auth password (primary credential store)
+    if (auth.currentUser) {
+      await updatePassword(auth.currentUser, dataOrPassword);
+    }
+    // 2. Persist SHA-256 hash in Firestore ONLY for the supervisor override check — never plaintext
+    const hash = await sha256(dataOrPassword);
+    try {
+      await setDoc(doc(db, 'profiles', safeProfileName), {
+        name: profileName, lastChangedAt: now, password: hash
+      }, { merge: true });
+      cacheProfiles = null;
+    } catch (err) {
+      console.warn('Could not update Firestore profile metadata:', err);
+    }
+    return;
   }
 
-  // FIx deeply nested corrupted password
-  let currentPassword = newProfile.password;
-  while (currentPassword && typeof currentPassword === 'object') {
-     currentPassword = currentPassword.password;
-  }
-  if (typeof currentPassword === 'string') {
-     newProfile.password = currentPassword;
-  }
-  
+  // Object update — strip any credential fields, persist metadata only
+  const { password: _pw, senha: _senha, ...safeMeta } = dataOrPassword as Record<string, any>;
   try {
-    await setDoc(doc(db, 'profiles', safeProfileName), newProfile, { merge: true });
-    cacheProfiles = null; // invalidar cache
+    await setDoc(doc(db, 'profiles', safeProfileName), {
+      ...safeMeta, name: profileName, lastChangedAt: now
+    }, { merge: true });
+    cacheProfiles = null;
   } catch (err: any) {
-    console.error("Error saving profile to firestore", err);
+    console.error('Error saving profile to Firestore:', err);
     throw new Error(`Erro ao salvar na nuvem: ${err?.message || err}`);
   }
 };

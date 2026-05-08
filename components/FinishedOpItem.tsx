@@ -1,7 +1,57 @@
-import React from 'react';
-import { Clock, Pencil, RotateCcw, Trash2, CloudOff, RefreshCw, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, Pencil, RotateCcw, Trash2, CloudOff, RefreshCw, Plus, ArrowRightLeft, Search, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { CustomTimePicker } from './CustomTimePicker';
+import { cn } from '../src/lib/utils';
+import { toast } from 'sonner';
 
-export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setRevertingOp, onSyncRetry }: any) => {
+export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setRevertingOp, onSyncRetry, availableParadas = [], onAddForgottenParada, onConvertToOp }: any) => {
+  // ── Parada Esquecida modal ──────────────────────────────────────────────────
+  const [showForgotModal, setShowForgotModal]   = useState(false);
+  const [forgotMotivo,    setForgotMotivo]       = useState('');
+  const [forgotStart,     setForgotStart]        = useState('');
+  const [forgotEnd,       setForgotEnd]          = useState('');
+  const [forgotSearch,    setForgotSearch]       = useState('');
+  const [loadingForgot,   setLoadingForgot]      = useState(false);
+
+  // ── Converter para OP modal ─────────────────────────────────────────────────
+  const [showConvertModal, setShowConvertModal]  = useState(false);
+  const [convHoraInicial,  setConvHoraInicial]   = useState('');
+  const [convHoraFinal,    setConvHoraFinal]     = useState('');
+  const [loadingConvert,   setLoadingConvert]    = useState(false);
+
+  const resetForgot  = () => { setForgotMotivo(''); setForgotStart(''); setForgotEnd(''); setForgotSearch(''); };
+  const resetConvert = () => { setConvHoraInicial(''); setConvHoraFinal(''); };
+
+  const handleAddForgot = async () => {
+    if (!forgotMotivo || !forgotStart || !forgotEnd) { toast.error('Preencha motivo e horários.'); return; }
+    const base = availableParadas.find((p: any) => p.seq.toString() === forgotMotivo);
+    if (!base) { toast.error('Selecione um motivo válido.'); return; }
+    setLoadingForgot(true);
+    try {
+      await onAddForgottenParada?.(op, { ...base, horaInicio: forgotStart, horaFim: forgotEnd });
+      toast.success('Parada adicionada ao histórico!');
+      setShowForgotModal(false); resetForgot();
+    } catch (e: any) { toast.error(`Erro: ${e.message}`); }
+    finally { setLoadingForgot(false); }
+  };
+
+  const handleConvert = async () => {
+    if (!convHoraInicial || !convHoraFinal) {
+      toast.error('Preencha a hora de início e de término.'); return;
+    }
+    setLoadingConvert(true);
+    try {
+      await onConvertToOp?.(op, { horaInicial: convHoraInicial, horaFinal: convHoraFinal });
+      toast.success('OP convertida com sucesso!');
+      setShowConvertModal(false); resetConvert();
+    } catch (e: any) { toast.error(`Erro: ${e.message}`); }
+    finally { setLoadingConvert(false); }
+  };
+
   return (
     <div className={`relative bg-white rounded-2xl xl:rounded-3xl overflow-hidden mb-3 border transition-all shadow-sm hover:shadow-md ${op.syncStatus === 'error' ? 'border-red-200 ring-1 ring-red-100' : 'border-zinc-200/70'}`}>
       {/* Top accent */}
@@ -83,7 +133,14 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
 
         {/* Actions */}
         <div className="flex items-center gap-2 pt-3 xl:pt-4 border-t border-zinc-100">
-          {!op.isAvulsa && (
+          {op.isAvulsa ? (
+            <button
+              onClick={() => { resetConvert(); setShowConvertModal(true); }}
+              className="flex-1 flex items-center justify-center gap-1.5 h-10 xl:h-12 text-xs xl:text-sm font-black bg-amber-500 hover:bg-amber-600 text-white rounded-xl xl:rounded-2xl transition-all"
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> Converter para OP
+            </button>
+          ) : (
             <button
               onClick={() => setRevertingOp(op)}
               className="flex-1 flex items-center justify-center gap-1.5 h-10 xl:h-12 text-xs xl:text-sm font-black bg-zinc-950 hover:bg-zinc-800 text-white rounded-xl xl:rounded-2xl transition-all"
@@ -93,10 +150,9 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
           )}
           <button
             onClick={() => openEdit(op)}
-            className={`flex items-center justify-center gap-1.5 h-10 xl:h-12 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl xl:rounded-2xl transition-colors border border-zinc-200/60 bg-white ${op.isAvulsa ? 'flex-1 px-4 font-bold text-xs xl:text-sm' : 'w-10 xl:w-12'}`}
+            className="w-10 xl:w-12 h-10 xl:h-12 flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl xl:rounded-2xl transition-colors border border-zinc-200/60 bg-white"
           >
             <Pencil className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
-            {op.isAvulsa && 'Editar'}
           </button>
           <button
             onClick={() => setDeletingOp(op)}
@@ -105,7 +161,146 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
             <Trash2 className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
           </button>
         </div>
+
+        {/* + Adicionar Parada Esquecida */}
+        <button
+          onClick={() => { resetForgot(); setShowForgotModal(true); }}
+          className="w-full mt-2 flex items-center justify-center gap-1.5 h-9 text-[11px] xl:text-xs font-bold text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 rounded-xl transition-colors border border-dashed border-zinc-200"
+        >
+          <Plus className="w-3 h-3 xl:w-3.5 xl:h-3.5" /> Adicionar Parada Esquecida
+        </button>
       </div>
+
+      {/* ── Parada Esquecida Modal ───────────────────────────────────────────── */}
+      <Dialog open={showForgotModal} onOpenChange={(o) => { if (!o) { setShowForgotModal(false); resetForgot(); } }}>
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-md rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 border-0 ring-1 ring-zinc-200/50 shadow-2xl top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-6 gap-0 max-h-[90dvh] overflow-y-auto">
+          <DialogHeader className="mb-5 space-y-1">
+            <DialogTitle className="text-xl font-black text-zinc-950">+ Parada Esquecida</DialogTitle>
+            <DialogDescription className="text-sm text-zinc-500 font-medium">OP {op.opNumber} — {op.produto}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block">Motivo da Parada</Label>
+              <div className="relative mb-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Buscar motivo..."
+                  value={forgotSearch}
+                  onChange={e => setForgotSearch(e.target.value)}
+                  className="w-full h-10 pl-9 pr-4 bg-zinc-50 border border-zinc-200/80 rounded-xl text-sm font-medium focus:outline-none focus:border-zinc-950 transition-colors"
+                />
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                {availableParadas
+                  .filter((p: any) => p.tipologia.toLowerCase().includes(forgotSearch.toLowerCase()) || p.seq.toString().includes(forgotSearch))
+                  .map((p: any) => (
+                    <button
+                      key={p.seq}
+                      type="button"
+                      onClick={() => setForgotMotivo(p.seq.toString())}
+                      className={cn(
+                        'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95',
+                        forgotMotivo === p.seq.toString()
+                          ? 'bg-zinc-950 text-white border-zinc-950 shadow-md'
+                          : 'bg-white text-zinc-700 border-zinc-200/80 hover:border-zinc-400'
+                      )}
+                    >
+                      <span className="text-[9px] font-black tabular-nums opacity-50">{p.seq}</span>
+                      {p.tipologia}
+                    </button>
+                  ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 block">Início</Label>
+                <CustomTimePicker
+                  value={forgotStart} onChange={setForgotStart} placeholder="00:00"
+                  clockIconClass="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none"
+                  wrapperClass="h-12 bg-white rounded-xl border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors shadow-sm"
+                  inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 bg-transparent focus:ring-0 w-full"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1.5 block">Término</Label>
+                <CustomTimePicker
+                  value={forgotEnd} onChange={setForgotEnd} placeholder="00:00"
+                  clockIconClass="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none"
+                  wrapperClass="h-12 bg-white rounded-xl border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors shadow-sm"
+                  inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 bg-transparent focus:ring-0 w-full"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 mt-6 pt-5 border-t border-zinc-100">
+            <Button
+              type="button"
+              onClick={handleAddForgot}
+              disabled={loadingForgot || !forgotMotivo || !forgotStart || !forgotEnd}
+              className="w-full h-14 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl font-black text-base disabled:opacity-50 transition-all"
+            >
+              {loadingForgot ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar Parada'}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => { setShowForgotModal(false); resetForgot(); }} className="w-full h-11 rounded-xl text-sm font-bold text-zinc-400 hover:bg-zinc-100 transition-colors">
+              Cancelar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Converter para OP Modal ─────────────────────────────────────────── */}
+      <Dialog open={showConvertModal} onOpenChange={(o) => { if (!o) { setShowConvertModal(false); resetConvert(); } }}>
+        <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-sm rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 border-0 ring-1 ring-zinc-200/50 shadow-2xl top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-6 gap-0">
+          <DialogHeader className="mb-5 space-y-1">
+            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center mb-2 border border-amber-200/60">
+              <ArrowRightLeft className="w-5 h-5 text-amber-600" />
+            </div>
+            <DialogTitle className="text-xl font-black text-zinc-950">Converter para OP</DialogTitle>
+            <DialogDescription className="text-sm text-zinc-500 font-medium">
+              Informe o período de produção da OP.
+            </DialogDescription>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-lg">OP {op.opNumber}</span>
+              <span className="text-[11px] font-semibold text-zinc-600 bg-zinc-100 border border-zinc-200/60 px-2 py-0.5 rounded-lg">{op.produto}</span>
+              <span className="text-[11px] font-semibold text-zinc-500 bg-zinc-100 border border-zinc-200/60 px-2 py-0.5 rounded-lg">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
+            </div>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Hora Início</Label>
+              <CustomTimePicker
+                value={convHoraInicial} onChange={setConvHoraInicial} placeholder="00:00"
+                clockIconClass="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none"
+                wrapperClass="h-14 bg-white rounded-xl border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors shadow-sm"
+                inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 bg-transparent focus:ring-0 w-full"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Hora Término</Label>
+              <CustomTimePicker
+                value={convHoraFinal} onChange={setConvHoraFinal} placeholder="00:00"
+                clockIconClass="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none"
+                wrapperClass="h-14 bg-white rounded-xl border-2 border-zinc-200/80 focus-within:border-zinc-950 transition-colors shadow-sm"
+                inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 bg-transparent focus:ring-0 w-full"
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 mt-6 pt-5 border-t border-zinc-100">
+            <Button
+              type="button"
+              onClick={handleConvert}
+              disabled={loadingConvert || !convHoraInicial || !convHoraFinal}
+              className="w-full h-14 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl font-black text-base disabled:opacity-50 transition-all"
+            >
+              {loadingConvert ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar Conversão'}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => { setShowConvertModal(false); resetConvert(); }} className="w-full h-11 rounded-xl text-sm font-bold text-zinc-400 hover:bg-zinc-100 transition-colors">
+              Cancelar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 });

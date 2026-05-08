@@ -1,8 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Profile names are readable without auth so the login screen can list them.
+    // Passwords are NO LONGER stored here — Firebase Auth handles credentials.
+    match /profiles/{profileId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Every other collection requires a valid Firebase Auth session.
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
   }
 }

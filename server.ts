@@ -20,6 +20,49 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// JWT Auth Middleware — verifies Firebase ID tokens on every /api/* request.
+//
+// TO ENABLE:
+//   1. npm install firebase-admin
+//   2. Set FIREBASE_PROJECT_ID in your .env / Vercel env vars.
+//   3. Uncomment the middleware registration line at the bottom of this block.
+//
+// The firebase-admin SDK automatically picks up credentials from:
+//   - GOOGLE_APPLICATION_CREDENTIALS env var (path to service-account JSON), OR
+//   - The default service account when deployed on Google Cloud / Firebase Hosting.
+// ─────────────────────────────────────────────────────────────────────────────
+/*
+import * as admin from 'firebase-admin';
+
+if (!admin.apps.length) {
+  admin.initializeApp();  // credentials via GOOGLE_APPLICATION_CREDENTIALS or default service account
+}
+
+const verifyFirebaseToken = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  const authHeader = req.headers['authorization'] || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or malformed Authorization header.' });
+  }
+  const idToken = authHeader.slice(7);
+  try {
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    (req as any).firebaseUid = decoded.uid;
+    next();
+  } catch (err: any) {
+    console.warn('[Auth] Token verification failed:', err.message);
+    return res.status(403).json({ error: 'Unauthorized: invalid or expired token.' });
+  }
+};
+
+// Register BEFORE all /api route handlers:
+// app.use('/api', verifyFirebaseToken);
+*/
+
 // Microsoft Graph API Setup
 const getGraphClient = () => {
   const tenantId = process.env.MICROSOFT_TENANT_ID;

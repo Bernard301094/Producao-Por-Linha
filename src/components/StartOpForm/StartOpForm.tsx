@@ -75,6 +75,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
   onParadaOnly
 }) => {
   const novaOpRef = useRef<HTMLDivElement>(null);
+  const [formMode, setFormMode] = useState<'producao' | 'parada'>('producao');
   const [showParadaModal, setShowParadaModal] = useState(false);
   const [openParadaSelect, setOpenParadaSelect] = useState(false);
   const [paradaSelectedCode, setParadaSelectedCode] = useState('');
@@ -126,9 +127,34 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
         })} className="flex flex-col flex-1 min-h-0 tour-nova-op-form">
           
           <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6 pb-28 lg:pb-7">
+
+            {/* ── Mode tab switcher ──────────────────────────────────────── */}
+            <div className="flex items-center gap-1 p-1 bg-zinc-100 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setFormMode('producao')}
+                className={cn(
+                  'flex-1 h-9 rounded-xl text-sm font-black transition-all',
+                  formMode === 'producao' ? 'bg-white text-zinc-950 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+                )}
+              >
+                Iniciar Produção
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormMode('parada')}
+                className={cn(
+                  'flex-1 h-9 rounded-xl text-sm font-black transition-all',
+                  formMode === 'parada' ? 'bg-white text-zinc-950 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'
+                )}
+              >
+                Parada Avulsa
+              </button>
+            </div>
+
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-               
-               <div className="space-y-2.5 relative">
+
+               <div className={cn("space-y-2.5 relative", formMode === 'parada' && "sm:col-span-2")}>
                 <Label htmlFor="opNumber" className="block text-sm font-black text-zinc-600 uppercase tracking-widest pl-2">Número da OP</Label>
                 <div className="relative">
                   <Input id="opNumber" {...register('opNumber', { onChange: (e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }} onPaste={(e: React.ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, ''); const el = e.currentTarget; const s = el.selectionStart ?? 0; const en = el.selectionEnd ?? 0; const newVal = el.value.slice(0, s) + pasted + el.value.slice(en); setValue('opNumber', newVal, { shouldValidate: true }); }} className="w-full h-16 px-5 bg-white border-2 border-zinc-200/80 rounded-2xl text-lg sm:text-xl font-mono font-black text-zinc-900 focus-visible:ring-0 focus-visible:border-zinc-950 transition-all shadow-sm placeholder:font-medium placeholder:text-zinc-300" />
@@ -137,7 +163,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 {errors.opNumber && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.opNumber.message as string}</p>}
               </div>
               
-              <div className="space-y-2.5">
+              {formMode === 'producao' && (<div className="space-y-2.5">
                 <Label htmlFor="horaInicial" className="block text-sm font-black text-zinc-600 uppercase tracking-widest pl-2">Hora de Início</Label>
                 <CustomTimePicker
                   id="horaInicial"
@@ -148,7 +174,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   inputClass="pl-12 pr-4 w-full text-lg sm:text-xl font-bold bg-transparent focus:ring-0 placeholder:font-medium placeholder:text-zinc-300"
                 />
                 {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.horaInicial.message as string}</p>}
-              </div>
+              </div>)}
 
               <div className="relative space-y-2.5 sm:col-span-2" ref={novaOpRef}>
                 <Label htmlFor="produto" className="block text-sm font-black text-zinc-600 uppercase tracking-widest pl-2">Produto Fabricado</Label>
@@ -264,6 +290,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 </div>
                 {errors.linha && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.linha.message as string}</p>}
               </div>
+
             </div>
 
             <div className="hidden">
@@ -280,29 +307,28 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
             <Dialog open={showConfirmStart} onOpenChange={setShowConfirmStart}>
               {/* ¡AQUÍ ESTABA EL FIX PRINCIPAL (w-full en vez de anchos calculados) para este contenedor sticky! */}
               <div className="mt-auto sm:mt-6 pt-4 sm:pt-6 bg-zinc-50/95 lg:bg-transparent backdrop-blur lg:backdrop-filter-none border-t border-zinc-200/80 lg:border-none sticky bottom-0 lg:static z-10 w-full flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))] lg:pb-0">
-                <motion.div whileTap={{ scale: 0.98 }}>
-                  <Button type="submit" disabled={loadingNewOp} className="w-full h-14 bg-zinc-950 hover:bg-zinc-900 text-white font-black text-xl tracking-tight rounded-2xl shadow-[0_8px_30px_rgb(24_24_27_/_12%)] transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20 focus-visible:outline-none disabled:bg-zinc-200 disabled:text-zinc-500 disabled:shadow-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjZmZmZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')]">
-                    {loadingNewOp ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Play className="w-6 h-6 mr-3 fill-current" /> Iniciar Ordem</>}
-                  </Button>
-                </motion.div>
-                <motion.div whileTap={{ scale: 0.98 }}>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    disabled={loadingNewOp} 
-                    onClick={() => {
-                      const data = watch();
-                      if (!data.opNumber || !data.produto || !data.linha) {
-                        toast.error('Preencha os dados da OP primeiro (Número, Produto, Linha).');
-                        return;
-                      }
-                      setShowParadaModal(true);
-                    }}
-                    className="w-full h-12 bg-white hover:bg-zinc-50 border-2 border-zinc-200/80 text-zinc-700 font-bold text-base rounded-xl transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20 disabled:opacity-50"
-                  >
-                    <History className="w-5 h-5 mr-2 opacity-60" /> Lançar Apenas Parada
-                  </Button>
-                </motion.div>
+                {formMode === 'producao' ? (
+                  <motion.div whileTap={{ scale: 0.98 }}>
+                    <Button type="submit" disabled={loadingNewOp} className="w-full h-14 bg-zinc-950 hover:bg-zinc-900 text-white font-black text-xl tracking-tight rounded-2xl shadow-[0_8px_30px_rgb(24_24_27_/_12%)] transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20 focus-visible:outline-none disabled:bg-zinc-200 disabled:text-zinc-500 disabled:shadow-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjZmZmZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')]">
+                      {loadingNewOp ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Play className="w-6 h-6 mr-3 fill-current" /> Iniciar Ordem</>}
+                    </Button>
+                  </motion.div>
+                ) : (
+                  <motion.div whileTap={{ scale: 0.98 }}>
+                    <Button
+                      type="button"
+                      disabled={loadingNewOp}
+                      onClick={() => {
+                        const { opNumber, produto, linha } = watch();
+                        if (!opNumber || !produto || !linha) { toast.error('Preencha Nº da OP, Produto e Linha.'); return; }
+                        setShowParadaModal(true);
+                      }}
+                      className="w-full h-14 bg-amber-500 hover:bg-amber-600 text-white font-black text-xl tracking-tight rounded-2xl shadow-[0_8px_30px_rgb(245_158_11_/_20%)] transition-all focus-visible:ring-4 focus-visible:ring-amber-500/30 disabled:opacity-50"
+                    >
+                      {loadingNewOp ? <Loader2 className="w-6 h-6 animate-spin" /> : <><History className="w-6 h-6 mr-3" /> Registrar Parada</>}
+                    </Button>
+                  </motion.div>
+                )}
               </div>
 
               <DialogContent className="w-[calc(100%-2rem)] max-w-[440px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
@@ -554,7 +580,11 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                     <Button
                       type="button"
                       disabled={loadingNewOp || addedParadas.length === 0}
-                      onClick={() => { onParadaOnly(watch(), addedParadas); setShowParadaModal(false); setAddedParadas([]); }}
+                      onClick={() => {
+                        onParadaOnly(watch(), addedParadas);
+                        setShowParadaModal(false);
+                        setAddedParadas([]);
+                      }}
                       className="w-full h-16 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl text-lg font-black shadow-xl shadow-zinc-950/20 disabled:opacity-50 transition-all"
                     >
                       {loadingNewOp ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" />Registrar Todas ({addedParadas.length})</>}

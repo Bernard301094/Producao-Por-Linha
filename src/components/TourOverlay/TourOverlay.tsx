@@ -62,13 +62,13 @@ function buildSteps(isDesktop: boolean): TourStep[] {
         id: 'nova-op',
         selector: '.tour-nova-op',
         title: 'Criar Nova OP',
-        body: 'Neste painel lateral você inicia uma nova Ordem de Produção. Selecione o Produto da lista cadastrada, informe a Linha de Produção e confirme o Turno.\n\nA hora de início é preenchida automaticamente com o horário atual. Ao confirmar, a OP aparece imediatamente no painel Pendentes.',
+        body: 'Neste painel você inicia OPs ou lança paradas avulsas diretamente.\n\n• Aba Iniciar Produção — preencha o número da OP, produto e linha. Ao confirmar, a OP aparece imediatamente no painel Pendentes.\n\n• Aba Parada Avulsa — registre uma interrupção sem criar uma OP: selecione apenas a linha e adicione os motivos de parada com horários.',
       },
       {
         id: 'concluidas',
         selector: '.tour-concluidas',
         title: 'OPs Concluídas',
-        body: 'Quando uma OP é finalizada, ela migra para este painel com todos os dados: quantidade produzida, reprocesso, duração total e histórico de paradas.\n\nVocê pode editar qualquer campo caso tenha inserido um dado errado, ou reverter a OP para Pendente se precisar corrigir alguma parada.',
+        body: 'Quando uma OP é finalizada, ela migra para este painel com todos os dados: quantidade produzida, reprocesso, duração total e histórico de paradas.\n\nVocê pode editar qualquer campo, ou reverter a OP para Pendente.\n\nEsqueceu uma parada? Use o botão + Adicionar Parada Esquecida no card do histórico para inserí-la retroativamente.',
       },
       {
         id: 'user-menu',
@@ -86,7 +86,7 @@ function buildSteps(isDesktop: boolean): TourStep[] {
       id: 'concluidas',
       selector: '.tour-concluidas',
       title: 'OPs Concluídas',
-      body: 'Quando uma OP é finalizada, ela migra para este painel com quantidade produzida, reprocesso, duração total e histórico de paradas.\n\nVocê pode editar qualquer campo ou reverter a OP de volta para Pendente caso precise fazer uma correção.',
+      body: 'Quando uma OP é finalizada, ela migra para este painel com quantidade produzida, reprocesso, duração total e histórico de paradas.\n\nVocê pode editar qualquer campo ou reverter a OP para Pendente.\n\nEsqueceu uma parada? Use o botão + Adicionar Parada Esquecida no card para inseri-la retroativamente.',
       mobileTab: 'concluidas',
     },
     {
