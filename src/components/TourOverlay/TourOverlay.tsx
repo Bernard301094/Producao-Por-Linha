@@ -331,6 +331,14 @@ export function TourOverlay({ isDesktop, setMobileTab, onFinish }: TourOverlayPr
     return () => window.removeEventListener('resize', fn);
   }, [measure]);
 
+  // Lock body scroll for the entire tour duration so the page never scrolls
+  // while the user reads or (accidentally) swipes inside the spotlight area.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   const handleNext = () => { if (isLast) onFinish(); else setStep(s => s + 1); };
 
   const { style, centered, placeAbove } = computeCardPos(sr);
@@ -360,6 +368,10 @@ export function TourOverlay({ isDesktop, setMobileTab, onFinish }: TourOverlayPr
               style={{ top: sr.top, left: 0, width: Math.max(0, sr.left), height: sr.height }} />
             <div className="absolute bg-black/65 backdrop-blur-[2px]"
               style={{ top: sr.top, left: sr.right, right: 0, height: sr.height }} />
+            {/* Transparent touch-blocker over the spotlight hole — prevents
+                accidental swipes from scrolling the underlying page */}
+            <div className="absolute"
+              style={{ top: sr.top, left: Math.max(0, sr.left), width: sr.width, height: sr.height }} />
             <div className="absolute rounded-2xl ring-2 ring-white/70 shadow-[0_0_0_5px_rgba(255,255,255,0.12)] pointer-events-none"
               style={{ top: sr.top, left: Math.max(0, sr.left), width: sr.width, height: sr.height }} />
           </motion.div>
