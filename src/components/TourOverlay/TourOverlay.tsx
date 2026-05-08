@@ -122,8 +122,9 @@ function computeCardPos(sr: SpotRect | null): CardPos {
   const W = typeof window !== 'undefined' ? window.innerWidth  : 400;
   const H = typeof window !== 'undefined' ? window.innerHeight : 800;
 
-  // Card width: fill screen minus two side margins, capped at 340 px
-  const cardWidth = Math.min(340, W - MARGIN * 2);
+  // Card width: fill screen minus two side margins, capped at 360 px
+  const cardWidth = Math.min(360, W - MARGIN * 2);
+  const maxWidth  = `calc(100vw - ${MARGIN * 2}px)`; // hard safety net
 
   if (!sr) {
     // Centered welcome card — use absolute inside the fixed wrapper
@@ -132,9 +133,10 @@ function computeCardPos(sr: SpotRect | null): CardPos {
       placeAbove: false,
       style: {
         position: 'absolute',
-        left:  Math.max(MARGIN, (W - cardWidth) / 2),
-        width: cardWidth,
-        top:   '50%',
+        left:    Math.max(MARGIN, (W - cardWidth) / 2),
+        width:   cardWidth,
+        maxWidth,
+        top:     '50%',
         // We translate via framer-motion's y instead of CSS transform
       },
     };
@@ -156,7 +158,7 @@ function computeCardPos(sr: SpotRect | null): CardPos {
     return {
       centered: false,
       placeAbove: true,
-      style: { position: 'fixed', bottom: Math.max(MARGIN, clampedBottom), left, width: cardWidth },
+      style: { position: 'fixed', bottom: Math.max(MARGIN, clampedBottom), left, width: cardWidth, maxWidth },
     };
   }
 
@@ -166,7 +168,7 @@ function computeCardPos(sr: SpotRect | null): CardPos {
   return {
     centered: false,
     placeAbove: false,
-    style: { position: 'fixed', top: Math.max(MARGIN, clampedTop), left, width: cardWidth },
+    style: { position: 'fixed', top: Math.max(MARGIN, clampedTop), left, width: cardWidth, maxWidth },
   };
 }
 
@@ -384,7 +386,7 @@ export function TourOverlay({ isDesktop, setMobileTab, onFinish }: TourOverlayPr
           <div key={`centered-${step}`}
             className="absolute inset-0 flex items-center justify-center px-4 pointer-events-none">
             <motion.div
-              className="w-full max-w-sm pointer-events-auto"
+              className="w-full max-w-[360px] pointer-events-auto"
               initial={{ opacity: 0, scale: 0.93 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.93 }}
