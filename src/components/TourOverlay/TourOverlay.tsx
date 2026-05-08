@@ -32,7 +32,7 @@ const MARGIN  = 16;   // min distance from any viewport edge (1rem)
 const CARD_H  = 220;  // estimated card height for clamping
 
 function buildSteps(isDesktop: boolean): TourStep[] {
-  return [
+  const common: TourStep[] = [
     {
       id: 'welcome',
       selector: null,
@@ -53,20 +53,35 @@ function buildSteps(isDesktop: boolean): TourStep[] {
       body: 'Toque em um card para expandir e ver as paradas, registrar uma nova parada ou finalizar a OP com quantidade produzida.',
       mobileTab: 'pendentes',
     },
-    ...(isDesktop
-      ? [{
-          id: 'nova-op',
-          selector: '.tour-nova-op',
-          title: 'Criar Nova OP',
-          body: 'Neste painel você inicia uma nova Ordem de Produção: escolha o produto, a linha e o turno — depois confirme para começar.',
-        }]
-      : [{
-          id: 'tab-bar',
-          selector: '.tour-tab-bar',
-          title: 'Barra de Ações',
-          body: 'O botão "Nova OP" abre o formulário para criar uma nova ordem. À esquerda aparece o turno ativo atual.',
-        }]
-    ),
+  ];
+
+  if (isDesktop) {
+    return [
+      ...common,
+      {
+        id: 'nova-op',
+        selector: '.tour-nova-op',
+        title: 'Criar Nova OP',
+        body: 'Neste painel você inicia uma nova Ordem de Produção: escolha o produto, a linha e o turno — depois confirme para começar.',
+      },
+      {
+        id: 'concluidas',
+        selector: '.tour-concluidas',
+        title: 'OPs Concluídas',
+        body: 'Quando uma OP é encerrada ela aparece aqui com quantidade produzida, reprocesso e paradas. Você pode editar ou reverter para pendente.',
+      },
+      {
+        id: 'user-menu',
+        selector: '.tour-user-menu',
+        title: 'Painel de Usuário',
+        body: 'No canto superior direito encontra a pílula de ações: altere sua senha ou faça logout com segurança. Pronto — agora você conhece tudo!',
+      },
+    ];
+  }
+
+  // Mobile flow: Welcome → Pendentes → Items → Concluídas → Barra inferior
+  return [
+    ...common,
     {
       id: 'concluidas',
       selector: '.tour-concluidas',
@@ -75,10 +90,10 @@ function buildSteps(isDesktop: boolean): TourStep[] {
       mobileTab: 'concluidas',
     },
     {
-      id: 'user-menu',
-      selector: '.tour-user-menu',
-      title: 'Menu do Usuário',
-      body: 'Aqui você altera sua senha e faz o logout com segurança. Pronto — agora você conhece tudo!',
+      id: 'tab-bar',
+      selector: '.tour-tab-bar',
+      title: 'Barra Inferior',
+      body: 'Esta barra concentra tudo: veja o turno ativo à esquerda, crie uma Nova OP no centro e, à direita, altere sua senha ou saia da conta com segurança.',
     },
   ];
 }

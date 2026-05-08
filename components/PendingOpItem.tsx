@@ -48,7 +48,6 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
     return () => clearInterval(id);
   }, [op.carimboInicial]);
 
-  // Build flattened history of all paradas from both finished and other pending ops of same linha
   const allHistoryParadas = useMemo(() => {
     const result: Array<{ opNumber: string; carimbo?: string; horaInicial: string; isFinished: boolean; parada: any }> = [];
     for (const item of linhaHistory) {
@@ -58,12 +57,11 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           opNumber: item.opNumber,
           carimbo: item.carimbo,
           horaInicial: item.horaInicial,
-          isFinished: 'quantidade' in item, // Finished ops have 'quantidade'
+          isFinished: 'quantidade' in item,
           parada: p,
         });
       }
     }
-    // Sort by carimbo or start time descending (most recent first)
     return result.sort((a, b) => {
       if (a.parada.horaInicio && b.parada.horaInicio) {
         return b.parada.horaInicio.localeCompare(a.parada.horaInicio);
@@ -150,35 +148,28 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   const handleDragEnd = async (_e: any, info: any) => {
     const threshold = 80;
     if (info.offset.x > threshold) {
-      // Swiped right -> Concluir OP (Apontar)
       controls.start({ x: 0 });
       setIsFinishing(true);
       setFinishQtd('');
       setFinishTime(format(new Date(), 'HH:mm'));
     } else if (info.offset.x < -threshold) {
-      // Swiped left -> Parada
       controls.start({ x: 0 });
       setShowParadas(true);
-      // scroll is nice but handled automatically usually or we can rely on user scrolling
     } else {
       controls.start({ x: 0 });
     }
   };
 
-  // Transform values for background opacity
   const bgOpacityRight = useTransform(x, [0, 80], [0, 1]);
   const bgOpacityLeft = useTransform(x, [0, -80], [0, 1]);
 
   return (
     <div className="relative mb-3 group rounded-[1.5rem] sm:rounded-[2rem]">
-      {/* Background Actions */}
       <div className="absolute inset-0 flex items-center justify-between rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden bg-zinc-100 pointer-events-none">
-         {/* Left background -> Swipe Right to Finish */}
          <motion.div style={{ opacity: bgOpacityRight }} className="absolute inset-y-0 left-0 w-1/2 bg-emerald-500 flex items-center pl-6 rounded-l-[1.5rem] sm:rounded-l-[2rem]">
             <CheckCircle2 className="w-8 h-8 text-white" />
             <span className="text-white font-black ml-3 text-lg hidden sm:block">Apontar OP</span>
          </motion.div>
-         {/* Right background -> Swipe Left to Parada */}
          <motion.div style={{ opacity: bgOpacityLeft }} className="absolute inset-y-0 right-0 w-1/2 bg-amber-500 flex items-center justify-end pr-6 rounded-r-[1.5rem] sm:rounded-r-[2rem]">
             <span className="text-white font-black mr-3 text-lg hidden sm:block">Registrar Parada</span>
             <History className="w-8 h-8 text-white" />
@@ -196,7 +187,6 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
       >
         <div className="absolute top-0 left-0 w-1 h-full bg-amber-400" />
 
-        {/* Header */}
         <div className="pl-3 flex items-start justify-between gap-3">
           <div className="flex flex-col flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
@@ -218,11 +208,8 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           )}
         </div>
 
-        {/* Paradas — only when expanded */}
         {showParadas && (
           <div className="border-t border-zinc-100 pt-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-
-            {/* Registered list */}
             {finishParadas.length > 0 && (
               <div className="space-y-1.5">
                 {finishParadas.map((parada, idx) => (
@@ -250,13 +237,11 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               </div>
             )}
 
-            {/* Add parada form */}
             <div className="bg-zinc-50/80 border border-zinc-200/60 rounded-2xl p-3 space-y-3">
               <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">
                 {finishParadaSelectedCode ? `Motivo selecionado — ${availableParadas.find((p: any) => p.seq.toString() === finishParadaSelectedCode)?.tipologia}` : 'Selecione o motivo'}
               </p>
 
-              {/* Search */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                 <input
@@ -268,7 +253,6 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                 />
               </div>
 
-              {/* Chips grid */}
               <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
                 {availableParadas
                   .filter((p: any) =>
@@ -299,7 +283,6 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                 )}
               </div>
 
-              {/* Times */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 pl-0.5">Início</label>
@@ -337,7 +320,6 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           </div>
         )}
 
-        {/* History — only when expanded */}
         {showHistory && (
           <div className="border-t border-zinc-100 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
             {allHistoryParadas.length === 0 ? (
@@ -364,7 +346,6 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           </div>
         )}
 
-        {/* Finishing form — inline */}
         {isFinishing && (
           <div className="border-t border-emerald-200/60 pt-4 space-y-4 bg-emerald-50/60 -mx-4 sm:-mx-5 px-4 sm:px-5 pb-1 mt-1">
             <div className="grid grid-cols-2 gap-3">
@@ -388,12 +369,10 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                 </Button>
               </motion.div>
               <DialogContent className="w-full max-w-full rounded-t-[2rem] p-0 border-0 gap-0 top-auto bottom-0 translate-y-0 max-h-[92dvh] overflow-hidden flex flex-col bg-white shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.25)]">
-                {/* Drag handle */}
                 <div className="flex justify-center pt-3 pb-1 shrink-0 cursor-pointer" onClick={() => setIsConfirmingFinish(false)}>
                   <div className="w-10 h-1 rounded-full bg-zinc-200" />
                 </div>
 
-                {/* Dark identity header */}
                 <div className="bg-zinc-950 mx-4 rounded-2xl p-4 shrink-0 relative overflow-hidden">
                   <div className="absolute inset-0 bg-[linear-gradient(135deg,#ffffff06_0%,transparent_60%)]" />
                   <div className="flex items-center justify-between gap-3 relative z-10">
@@ -411,26 +390,23 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                   </div>
                 </div>
 
-                {/* Scrollable content */}
                 <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
                   <DialogTitle className="sr-only">Confirmar OP {op.opNumber}</DialogTitle>
-                  <DialogDescription className="sr-only">Confirmar encerramento da produção</DialogDescription>
+                  <DialogDescription className="sr-only">Confirmar encerramento da producción</DialogDescription>
 
-                  {/* Quantities */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-emerald-50 border border-emerald-200/60 rounded-2xl p-4 text-center">
                       <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 block mb-1">Produzido</span>
-                      <span className="text-4xl font-black text-emerald-700 tabular-nums leading-none">{parseInt(finishQtd || '0').toLocaleString()}</span>
+                      <span className="text-2xl sm:text-4xl font-black text-emerald-700 tabular-nums leading-none">{parseInt(finishQtd || '0').toLocaleString()}</span>
                       <span className="text-[10px] font-bold text-emerald-500/70 block mt-1">UN</span>
                     </div>
                     <div className={cn("border rounded-2xl p-4 text-center", finishQtdReprocesso && parseInt(finishQtdReprocesso) > 0 ? "bg-amber-50 border-amber-200/60" : "bg-zinc-50 border-zinc-200/60")}>
                       <span className={cn("text-[9px] font-black uppercase tracking-widest block mb-1", finishQtdReprocesso && parseInt(finishQtdReprocesso) > 0 ? "text-amber-600" : "text-zinc-400")}>Reprocesso</span>
-                      <span className={cn("text-4xl font-black tabular-nums leading-none", finishQtdReprocesso && parseInt(finishQtdReprocesso) > 0 ? "text-amber-700" : "text-zinc-300")}>{parseInt(finishQtdReprocesso || '0').toLocaleString()}</span>
+                      <span className={cn("text-2xl sm:text-4xl font-black tabular-nums leading-none", finishQtdReprocesso && parseInt(finishQtdReprocesso) > 0 ? "text-amber-700" : "text-zinc-300")}>{parseInt(finishQtdReprocesso || '0').toLocaleString()}</span>
                       <span className={cn("text-[10px] font-bold block mt-1", finishQtdReprocesso && parseInt(finishQtdReprocesso) > 0 ? "text-amber-500/70" : "text-zinc-300")}>UN</span>
                     </div>
                   </div>
 
-                  {/* Time range */}
                   <div className="bg-zinc-50 border border-zinc-200/60 rounded-2xl px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-zinc-400" />
@@ -442,7 +418,6 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                     {elapsed && <span className="text-xs font-black text-zinc-500 bg-white border border-zinc-200/60 px-2.5 py-1 rounded-lg">{elapsed}</span>}
                   </div>
 
-                  {/* Paradas */}
                   {finishParadas && finishParadas.length > 0 && (
                     <div className="bg-zinc-50 border border-zinc-200/60 rounded-2xl p-3">
                       <p className="text-[9px] font-black tracking-widest text-zinc-400 uppercase mb-2.5 flex items-center gap-1.5">
@@ -462,7 +437,6 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                   )}
                 </div>
 
-                {/* Fixed CTA */}
                 <div className="px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 border-t border-zinc-100 shrink-0 space-y-2 bg-white">
                   <motion.div whileTap={{ scale: 0.98 }}>
                     <Button onClick={handleActualFinish} disabled={itemLoading} className="w-full h-16 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-black shadow-xl shadow-emerald-500/20 transition-all">
@@ -478,37 +452,37 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           </div>
         )}
 
-        {/* Action row — always visible */}
-        <div className="flex items-center justify-between pt-3 border-t border-zinc-100 mt-1">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-3 border-t border-zinc-100 mt-1">
           {isFinishing ? (
             <button
               onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishQtdReprocesso(''); }}
-              className="h-10 px-4 rounded-xl text-sm font-bold text-zinc-400 hover:bg-zinc-100 transition-colors"
+              className="w-full sm:w-auto h-10 px-4 rounded-xl text-sm font-bold text-zinc-400 hover:bg-zinc-100 transition-colors"
             >
               Cancelar
             </button>
           ) : (
             <>
-              <div className="flex items-center gap-0.5">
-                <motion.button whileTap={{ scale: 0.93 }} onClick={() => openEdit(op)} className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors">
+              <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar pb-1 sm:pb-0">
+                <motion.button whileTap={{ scale: 0.93 }} onClick={() => openEdit(op)} className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors">
                   <Pencil className="w-4 h-4" />
                 </motion.button>
-                <motion.button whileTap={{ scale: 0.93 }} onClick={() => setDeletingOp(op)} className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                <motion.button whileTap={{ scale: 0.93 }} onClick={() => setDeletingOp(op)} className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors">
                   <Trash2 className="w-4 h-4" />
                 </motion.button>
                 <button
                   onClick={() => { setShowParadas(p => !p); setShowHistory(false); }}
-                  className={cn("flex items-center gap-1.5 h-9 px-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors",
+                  className={cn("flex items-center gap-1.5 h-9 px-2 sm:px-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-colors shrink-0",
                     showParadas ? "bg-amber-100 text-amber-700" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
                   )}
                 >
                   <History className="w-3.5 h-3.5" />
-                  Paradas
+                  <span className="hidden sm:inline">Paradas</span>
+                  <span className="sm:hidden">Pausas</span>
                   {finishParadas.length > 0 && <span className="bg-amber-400 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] font-black">{finishParadas.length}</span>}
                 </button>
                 <button
                   onClick={() => { setShowHistory(h => !h); setShowParadas(false); }}
-                  className={cn("flex items-center gap-1.5 h-9 px-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors",
+                  className={cn("flex items-center gap-1.5 h-9 px-2 sm:px-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-colors shrink-0",
                     showHistory ? "bg-blue-100 text-blue-700" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
                   )}
                 >
@@ -516,10 +490,10 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                   Hist.
                 </button>
               </div>
-              <motion.div whileTap={{ scale: 0.96 }}>
+              <motion.div whileTap={{ scale: 0.96 }} className="ml-auto">
                 <button
                   onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }}
-                  className="h-12 px-5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-500/25 flex items-center gap-2"
+                  className="h-10 sm:h-12 px-3 sm:px-5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/25 flex items-center gap-1.5 sm:gap-2 shrink-0"
                 >
                   <CheckCircle2 className="w-4 h-4" /> Concluir
                 </button>

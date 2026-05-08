@@ -1214,98 +1214,122 @@ export default function App() {
     <>
       <Toaster position="top-center" />
 
-      <div className="min-h-screen bg-[#F9FAFB]">
-        {/* Header */}
-        <header className="bg-white/80 backdrop-blur-xl border-b border-zinc-200/80 shadow-sm sticky top-0 z-30 pt-[env(safe-area-inset-top)]">
-          <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-6 2xl:px-8 py-2.5 sm:py-0 min-h-[3.75rem] sm:h-20 flex items-center justify-between gap-2 sm:gap-4">
-            {/* Logo & App Name */}
-            <div className="flex items-center gap-2.5 sm:gap-4 flex-1 min-w-0">
-              <img src="/icon.svg" className="w-9 h-9 sm:w-12 sm:h-12 shrink-0 object-contain drop-shadow-md" alt="Vonixx" />
-              <div className="min-w-0 flex flex-col justify-center pt-1 md:pt-0">
-                <h1 className="text-base sm:text-lg font-black text-zinc-950 tracking-tight leading-none truncate mb-1.5">
+      <div className="min-h-screen bg-[#F9FAFB] overflow-x-hidden">
+        {/* Header - Distribución Profesional */}
+        <header className="bg-white/95 backdrop-blur-xl border-b border-zinc-200/80 shadow-sm sticky top-0 z-30 pt-[max(0px,env(safe-area-inset-top))]">
+          <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 2xl:px-8 py-3 sm:py-0 min-h-[4.25rem] sm:h-20 flex items-center justify-between gap-3">
+            
+            {/* SECCIÓN IZQUIERDA: Logo y Contexto */}
+            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+              {/* Contenedor del logo más estilizado */}
+              <div className="bg-white p-1.5 rounded-xl shadow-sm border border-zinc-200/60 shrink-0 flex items-center justify-center">
+                 <img src="/icon.svg" className="w-7 h-7 sm:w-10 sm:h-10 object-contain drop-shadow-sm" alt="Vonixx" />
+              </div>
+              
+              {/* Textos y Etiquetas */}
+              <div className="flex flex-col min-w-0 justify-center">
+                <h1 className="text-[15px] sm:text-lg font-black text-zinc-950 tracking-tight leading-none truncate mb-1.5">
                   Diário de Bordo
                 </h1>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
-                  <p className="text-[9px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-1.5 sm:px-2 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight shrink-0">
+                
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[9px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-1.5 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight shrink-0">
                     {today}
-                  </p>
+                  </span>
+                  
                   <button 
                     onClick={() => setShowProductManager(true)}
-                    className="flex w-fit items-center gap-1 text-[8px] sm:text-[9px] font-black text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-1.5 sm:px-2 py-0.5 rounded transition-colors uppercase tracking-widest shrink-0"
+                    className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-1.5 py-0.5 rounded transition-colors uppercase tracking-widest shrink-0"
                   >
-                    <Pencil className="w-2.5 h-2.5" /> Produtos
+                    <Pencil className="w-2.5 h-2.5" /> 
+                    <span>Produtos</span>
                   </button>
+                  
                   <button 
                     onClick={() => setTourActive(true)}
-                    className="flex w-fit items-center gap-1 text-[8px] sm:text-[9px] font-black text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-1.5 sm:px-2 py-0.5 rounded transition-colors uppercase tracking-widest shrink-0"
+                    className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded transition-colors uppercase tracking-widest shrink-0"
                   >
-                    <HelpCircle className="w-2.5 h-2.5" /> Tour
+                    <HelpCircle className="w-2.5 h-2.5" /> 
+                    <span>Tour</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Actions Block */}
-            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            {/* SECCIÓN DERECHA: Estado y Acciones de Usuario */}
+            <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0">
+              
+              {/* Contador siempre visible y alineado a la derecha en móviles */}
               <ToleranceCountdown profile={loginProfile} onExpire={handleLogout} />
               
-              {/* Profile Badge (Desktop only) */}
-              <div className="hidden lg:flex items-center bg-zinc-50 border-2 border-zinc-200/80 rounded-xl px-3 h-10 max-w-[160px] truncate shadow-sm">
-                <span className="text-xs font-black text-zinc-700 uppercase tracking-widest truncate">
+              {/* Menú de PC rediseñado como una píldora unificada */}
+              <div className="hidden lg:flex items-center bg-zinc-50 border border-zinc-200/80 rounded-[1rem] p-1 pl-4 shadow-sm">
+                <span className="text-xs font-black text-zinc-700 uppercase tracking-widest truncate max-w-[150px] mr-2">
                   {loginProfile}
                 </span>
-              </div>
+                
+                <div className="w-[2px] h-4 bg-zinc-200/80 rounded-full mx-1" />
 
-
-              <div className="flex items-center gap-1 sm:gap-1.5 bg-white border-2 border-zinc-200/80 rounded-xl sm:rounded-2xl p-1 shadow-sm tour-user-menu">
                 <button 
                   onClick={() => setChangePasswordOpen(true)} 
-                  className="group flex items-center justify-center gap-2 text-zinc-500 hover:text-zinc-950 px-3 h-10 sm:h-11 rounded-lg sm:rounded-xl hover:bg-zinc-100 transition-all focus-visible:ring-2 focus-visible:ring-zinc-950/20 focus-visible:outline-none" 
+                  className="w-9 h-9 flex items-center justify-center text-zinc-500 hover:text-zinc-950 rounded-xl hover:bg-white border border-transparent hover:border-zinc-200 transition-all focus-visible:outline-none" 
                   title="Alterar Senha"
                 >
-                  <KeyRound className="w-5 h-5 sm:w-4 sm:h-4 shrink-0 transition-transform group-hover:scale-110" />
-                  <span className="hidden sm:inline-block text-sm font-bold tracking-tight">Senha</span>
+                  <KeyRound className="w-4 h-4" />
                 </button>
-                
-                {/* Divider */}
-                <div className="w-[2px] h-5 bg-zinc-200/80 rounded-full" />
 
-                {/* Logout Button */}
                 <button 
                   onClick={handleLogout} 
-                  className="group flex items-center justify-center gap-2 text-zinc-500 hover:text-red-600 px-3 h-10 sm:h-11 rounded-lg sm:rounded-xl hover:bg-red-50 hover:border-red-100 border border-transparent transition-all focus-visible:ring-2 focus-visible:ring-red-500/20 focus-visible:outline-none" 
+                  className="w-9 h-9 flex items-center justify-center text-zinc-500 hover:text-red-600 rounded-xl hover:bg-red-50 border border-transparent hover:border-red-100 transition-all focus-visible:outline-none ml-0.5" 
                   title="Sair da Conta"
                 >
-                  <LogOut className="w-5 h-5 sm:w-4 sm:h-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
-                  <span className="hidden sm:inline-block text-sm font-bold tracking-tight">Sair</span>
+                  <LogOut className="w-4 h-4" />
                 </button>
               </div>
+
             </div>
           </div>
         </header>
 
         {/* Mobile Bottom Bar — Floating Pill */}
         <div className="lg:hidden fixed bottom-0 left-0 w-full z-50 px-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] pointer-events-none tour-tab-bar">
-          <div className="pointer-events-auto bg-zinc-950/95 backdrop-blur-xl rounded-full ring-1 ring-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.45)] flex items-center h-[60px] px-2">
-            {/* Turno */}
-            <div className="flex items-center gap-2 pl-2 flex-1 min-w-0">
-              <div className="w-9 h-9 rounded-full bg-white/10 ring-1 ring-white/15 flex items-center justify-center shrink-0">
-                <span className="text-sm font-black text-white">{currentTurnForView?.slice(-1)}</span>
-              </div>
-              <span className="text-sm font-black text-white leading-none truncate">Turno {currentTurnForView?.slice(-1)}</span>
+          <div className="pointer-events-auto bg-zinc-950/95 backdrop-blur-xl rounded-full ring-1 ring-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.45)] flex items-center justify-between h-[60px] px-1.5">
+            
+            {/* Izquierda: Solo texto de Turno */}
+            <div className="flex items-center pl-4 flex-1 min-w-0">
+              <span className="text-[13px] sm:text-sm font-black text-white leading-none truncate">Turno {currentTurnForView?.slice(-1)}</span>
             </div>
-            {/* Nova OP */}
+            
+            {/* Centro: Botón Nova OP */}
             <button
               onClick={() => setIsNovaSheetOpen(true)}
-              className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-zinc-950 font-black text-[13px] tracking-tight px-5 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
+              className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-zinc-950 font-black text-[13px] tracking-tight px-4 sm:px-5 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
             >
               <Plus className="w-4 h-4" />
               Nova OP
             </button>
-            {/* Company */}
-            <div className="flex-1 flex justify-end pr-3 min-w-0">
-              <span className="text-sm font-black text-white/70 leading-none truncate max-w-[90px]">Vonixx</span>
+            
+            {/* Derecha: Botones de Configuración y Salir */}
+            <div className="flex-1 flex items-center justify-end pr-1 gap-1 min-w-0">
+              <button 
+                onClick={() => setChangePasswordOpen(true)} 
+                className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+                title="Alterar Senha"
+              >
+                <KeyRound className="w-[18px] h-[18px]" />
+              </button>
+              
+              <div className="w-px h-4 bg-white/20 shrink-0" />
+              
+              <button 
+                onClick={handleLogout} 
+                className="w-10 h-10 rounded-full flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors shrink-0"
+                title="Sair da Conta"
+              >
+                <LogOut className="w-[18px] h-[18px]" />
+              </button>
             </div>
+
           </div>
         </div>
 
@@ -1368,7 +1392,7 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-4 lg:gap-5 2xl:gap-7 items-start">
 
             {/* Pendentes */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-5 xl:col-span-5 2xl:col-span-5 lg:order-2 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-pendentes', mobileTab !== 'pendentes' && 'hidden md:flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-5 xl:col-span-5 2xl:col-span-5 lg:order-2 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-pendentes w-full', mobileTab !== 'pendentes' ? 'hidden lg:flex' : 'flex')}>
               <div className="p-4 sm:p-5 border-b border-zinc-100 flex flex-col gap-3 bg-zinc-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:14px_14px] opacity-50" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">

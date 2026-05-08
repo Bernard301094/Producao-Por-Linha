@@ -84,7 +84,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
   const [addedParadas, setAddedParadas] = useState<any[]>([]);
   const [editingParadaIndex, setEditingParadaIndex] = useState<number | null>(null);
 
-  // Close suggestions if clicks outside
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent | TouchEvent) {
       if (novaOpRef.current && !novaOpRef.current.contains(event.target as Node)) {
@@ -279,8 +278,8 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
             </div>
             
             <Dialog open={showConfirmStart} onOpenChange={setShowConfirmStart}>
-              {/* Contenedor del boton sticky abajo en móvil, normal en PC */}
-              <div className="mt-6 pt-4 sm:pt-6 bg-zinc-50/95 backdrop-blur border-t border-zinc-200/80 sticky bottom-0 -mx-5 px-5 sm:-mx-7 sm:px-7 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-5 lg:pb-0 lg:border-t-0 lg:bg-transparent lg:static lg:mx-0 lg:px-0 z-10 w-[calc(100%+2.5rem)] sm:w-[calc(100%+3.5rem)] lg:w-full ml-[-1.25rem] sm:ml-[-1.75rem] lg:ml-0 flex flex-col gap-2">
+              {/* ¡AQUÍ ESTABA EL FIX PRINCIPAL (w-full en vez de anchos calculados) para este contenedor sticky! */}
+              <div className="mt-auto sm:mt-6 pt-4 sm:pt-6 bg-zinc-50/95 lg:bg-transparent backdrop-blur lg:backdrop-filter-none border-t border-zinc-200/80 lg:border-none sticky bottom-0 lg:static z-10 w-full flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))] lg:pb-0">
                 <motion.div whileTap={{ scale: 0.98 }}>
                   <Button type="submit" disabled={loadingNewOp} className="w-full h-14 bg-zinc-950 hover:bg-zinc-900 text-white font-black text-xl tracking-tight rounded-2xl shadow-[0_8px_30px_rgb(24_24_27_/_12%)] transition-all focus-visible:ring-4 focus-visible:ring-zinc-900/20 focus-visible:outline-none disabled:bg-zinc-200 disabled:text-zinc-500 disabled:shadow-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjZmZmZmZmIiBmaWxsLW9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')]">
                     {loadingNewOp ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Play className="w-6 h-6 mr-3 fill-current" /> Iniciar Ordem</>}
@@ -351,12 +350,10 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
               } 
             }}>
               <DialogContent className="w-full max-w-full rounded-t-[2rem] p-0 border-0 gap-0 top-auto bottom-0 translate-y-0 max-h-[94dvh] overflow-hidden flex flex-col bg-white shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.25)]">
-                {/* Drag handle */}
                 <div className="flex justify-center pt-3 pb-1 shrink-0 cursor-pointer" onClick={() => setShowParadaModal(false)}>
                   <div className="w-10 h-1 rounded-full bg-zinc-200" />
                 </div>
 
-                {/* Dark identity header */}
                 <div className="bg-zinc-950 mx-4 rounded-2xl p-4 shrink-0 relative overflow-hidden">
                   <div className="absolute inset-0 bg-[linear-gradient(135deg,#ffffff06_0%,transparent_60%)]" />
                   <div className="flex items-center justify-between gap-3 relative z-10">
@@ -373,12 +370,10 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   </div>
                 </div>
 
-                {/* Scrollable content */}
                 <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
                   <DialogTitle className="sr-only">Lançar Paradas Avulsas</DialogTitle>
                   <DialogDescription className="sr-only">Registrar paradas para a OP {watch('opNumber')}</DialogDescription>
 
-                  {/* Add/edit form */}
                   <div className="bg-zinc-50/80 border border-zinc-200/60 rounded-2xl p-3 space-y-3">
                     <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">
                       {editingParadaIndex !== null
@@ -388,7 +383,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                           : 'Selecione o motivo'}
                     </p>
 
-                    {/* Inline search */}
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
                       <input
@@ -400,7 +394,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                       />
                     </div>
 
-                    {/* Chips */}
                     <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
                       {availableParadas
                         .filter(p => p.tipologia.toLowerCase().includes(searchParadaText.toLowerCase()) || p.seq.toString().includes(searchParadaText))
@@ -443,7 +436,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                       )}
                     </div>
 
-                    {/* Time pickers */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
                         <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 pl-0.5">Início</label>
@@ -469,7 +461,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                       </div>
                     </div>
 
-                    {/* Add/update + cancel edit */}
                     <div className="flex gap-2">
                       <Button
                         type="button"
@@ -515,7 +506,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                     </div>
                   </div>
 
-                  {/* Added paradas list */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between px-0.5">
                       <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Paradas incluídas ({addedParadas.length})</span>
@@ -559,7 +549,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   </div>
                 </div>
 
-                {/* Fixed CTA */}
                 <div className="px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 border-t border-zinc-100 shrink-0 space-y-2 bg-white">
                   <motion.div whileTap={{ scale: 0.98 }}>
                     <Button
