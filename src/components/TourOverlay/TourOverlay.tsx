@@ -29,7 +29,7 @@ interface TourOverlayProps {
 
 const PAD     = 10;   // spotlight padding around the element
 const MARGIN  = 16;   // min distance from any viewport edge (1rem)
-const CARD_H  = 280;  // estimated card height for clamping
+const CARD_H  = 380;  // conservative height estimate used for placeAbove detection
 
 function buildSteps(isDesktop: boolean): TourStep[] {
   const common: TourStep[] = [
@@ -152,13 +152,11 @@ function computeCardPos(sr: SpotRect | null): CardPos {
   const placeAbove = spaceBelow < CARD_H && spaceAbove > spaceBelow;
 
   if (placeAbove) {
-    // Anchor to bottom of card = top of spotlight - gap; clamp so card stays on screen
-    const bottomAnchor = H - sr.top + 12;
-    const clampedBottom = Math.min(bottomAnchor, H - CARD_H - MARGIN);
+    // Pin to top of viewport — avoids status-bar clipping regardless of actual card height
     return {
       centered: false,
       placeAbove: true,
-      style: { position: 'fixed', bottom: Math.max(MARGIN, clampedBottom), left, width: cardWidth, maxWidth },
+      style: { position: 'fixed', top: MARGIN, left, width: cardWidth, maxWidth },
     };
   }
 
