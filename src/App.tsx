@@ -1250,7 +1250,7 @@ export default function App() {
               <ToleranceCountdown profile={loginProfile} onExpire={handleLogout} />
               
               {/* Profile Badge (Desktop only) */}
-              <div className="hidden sm:flex items-center bg-zinc-50 border-2 border-zinc-200/80 rounded-xl px-3 h-10 max-w-[160px] truncate shadow-sm">
+              <div className="hidden lg:flex items-center bg-zinc-50 border-2 border-zinc-200/80 rounded-xl px-3 h-10 max-w-[160px] truncate shadow-sm">
                 <span className="text-xs font-black text-zinc-700 uppercase tracking-widest truncate">
                   {loginProfile}
                 </span>
