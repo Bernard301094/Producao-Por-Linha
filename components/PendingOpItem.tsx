@@ -477,7 +477,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                 >
                   <History className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Paradas</span>
-                  <span className="sm:hidden">Pausas</span>
+                  <span className="sm:hidden">Paradas</span>
                   {finishParadas.length > 0 && <span className="bg-amber-400 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] font-black">{finishParadas.length}</span>}
                 </button>
                 <button
