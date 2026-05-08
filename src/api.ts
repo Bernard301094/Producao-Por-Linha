@@ -42,9 +42,9 @@ export interface FinishedOperation extends Operation {
 
 export const subscribeToOperations = (callback: (ops: Operation[]) => void) => {
   const q = query(
-    collection(db, 'operations'), 
+    collection(db, 'operations'),
     where('status', '==', 'pending'),
-    limit(500)
+    limit(50) // A factory rarely has >20 pending OPs at once; 50 is a safe ceiling
   );
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Operation)));
@@ -53,10 +53,10 @@ export const subscribeToOperations = (callback: (ops: Operation[]) => void) => {
 
 export const subscribeToFinishedOps = (callback: (ops: FinishedOperation[]) => void) => {
   const q = query(
-    collection(db, 'operations'), 
+    collection(db, 'operations'),
     where('status', '==', 'finished'),
     orderBy('carimboInicial', 'desc'),
-    limit(1000)
+    limit(75) // Ordered most-recent-first; a full 8-h shift rarely exceeds 30 OPs (was 1000)
   );
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as FinishedOperation)));
@@ -68,6 +68,18 @@ let cacheParadas: Parada[] | null = null;
 let cacheLinhas: string[] | null = null;
 let cacheProfiles: {name: string}[] | null = null;
 let cacheProdutos: {produto: string, litragem: string}[] | null = null;
+
+/**
+ * Call on logout so the next session always fetches fresh master data.
+ * Operational data (operations/finishedOps) is managed by onSnapshot listeners,
+ * not by these caches, so they don't need to be invalidated.
+ */
+export const invalidateCaches = () => {
+  cacheParadas  = null;
+  cacheLinhas   = null;
+  cacheProfiles = null;
+  cacheProdutos = null;
+};
 
 export const getOperations = async (): Promise<Operation[]> => {
   const q = query(collection(db, 'operations'), where('status', '==', 'pending'));

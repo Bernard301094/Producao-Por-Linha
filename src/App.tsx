@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, updateProduct, removeProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord, getLinhas, getProfiles, syncFinishedOperation } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, updateProduct, removeProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord, getLinhas, getProfiles, syncFinishedOperation, invalidateCaches } from './api';
 
 // Componentes UI e Ícones
 import { Button } from '../components/ui/button';
@@ -785,6 +785,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    invalidateCaches(); // clear master-data cache so next login fetches fresh data
     if (loginProfile) {
       try {
         const shiftCheck = isShiftAllowed(loginProfile);
