@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
-// ─── Tipos ───────────────────────────────────────────────────────────────────
+// ─── Tipos ────────────────────────────────────────────────────────────────────
 interface SenhasTurnos {
   turnoA: string;
   turnoB: string;
@@ -10,191 +10,181 @@ interface SenhasTurnos {
   turnoD: string;
 }
 
-interface EstadoEdicao {
-  turnoA: boolean;
-  turnoB: boolean;
-  turnoC: boolean;
-  turnoD: boolean;
-}
+type TurnoKey = keyof SenhasTurnos;
 
-// ─── Constantes ──────────────────────────────────────────────────────────────
-const COLECAO = "configuracoes";
-const DOCUMENTO = "senhas_turnos";
+const TURNOS: TurnoKey[] = ["turnoA", "turnoB", "turnoC", "turnoD"];
 
-const SENHAS_PADRAO: SenhasTurnos = {
-  turnoA: "102279",
-  turnoB: "TurnoB",
-  turnoC: "TurnoC",
-  turnoD: "TurnoD",
-};
-
-const LABELS: Record<keyof SenhasTurnos, string> = {
+const LABELS: Record<TurnoKey, string> = {
   turnoA: "Turno A",
   turnoB: "Turno B",
   turnoC: "Turno C",
   turnoD: "Turno D",
 };
 
-// ─── Componente principal ─────────────────────────────────────────────────────
-export default function GerenciarSenhasTurnos() {
-  const [senhas, setSenhas] = useState<SenhasTurnos>(SENHAS_PADRAO);
-  const [novasSenhas, setNovasSenhas] = useState<SenhasTurnos>(SENHAS_PADRAO);
-  const [editando, setEditando] = useState<EstadoEdicao>({
-    turnoA: false,
-    turnoB: false,
-    turnoC: false,
-    turnoD: false,
-  });
-  const [visivel, setVisivel] = useState<EstadoEdicao>({
-    turnoA: false,
-    turnoB: false,
-    turnoC: false,
-    turnoD: false,
-  });
-  const [carregando, setCarregando] = useState(true);
-  const [salvando, setSalvando] = useState<keyof SenhasTurnos | null>(null);
-  const [mensagem, setMensagem] = useState<{ tipo: "sucesso" | "erro"; texto: string } | null>(null);
+const FIRESTORE_COLECAO = "configuracoes";
+const FIRESTORE_DOCUMENTO = "senhas_turnos";
 
-  // ─── Cargar contraseñas desde Firestore al montar ─────────────────────────
+const VAZIO: SenhasTurnos = { turnoA: "", turnoB: "", turnoC: "", turnoD: "" };
+const BOOL_VAZIO = { turnoA: false, turnoB: false, turnoC: false, turnoD: false };
+
+// ─── Componente ───────────────────────────────────────────────────────────────
+export default function GerenciarSenhasTurnos() {
+  // Contraseñas actuales cargadas desde Firestore (nunca en código)
+  const [senhas, setSenhas] = useState<SenhasTurnos>(VAZIO);
+  // Valores de los inputs de edición
+  const [inputs, setInputs] = useState<SenhasTurnos>(VAZIO);
+
+  const [editando, setEditando] = useState({ ...BOOL_VAZIO });
+  const [visivel, setVisivel] = useState({ ...BOOL_VAZIO });
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState<TurnoKey | null>(null);
+  const [mensagem, setMensagem] = useState<{ tipo: "ok" | "erro"; texto: string } | null>(null);
+
+  // ─── Cargar desde Firestore al montar ───────────────────────────────────────
   useEffect(() => {
-    const carregarSenhas = async () => {
+    const carregar = async () => {
       try {
-        const ref = doc(db, COLECAO, DOCUMENTO);
-        const snap = await getDoc(ref);
+        const snap = await getDoc(doc(db, FIRESTORE_COLECAO, FIRESTORE_DOCUMENTO));
         if (snap.exists()) {
           const data = snap.data() as SenhasTurnos;
           setSenhas(data);
-          setNovasSenhas(data);
-        } else {
-          // Si no existe, crear con las contraseñas por defecto
-          await setDoc(ref, SENHAS_PADRAO);
-          setSenhas(SENHAS_PADRAO);
-          setNovasSenhas(SENHAS_PADRAO);
+          // Los inputs permanecen vacíos — el usuario debe escribir la nueva contraseña
         }
+        // Si no existe el documento aún, se crea al guardar la primera contraseña
       } catch (err) {
-        console.error("Erro ao carregar senhas:", err);
-        mostrarMensagem("erro", "Erro ao carregar senhas da nuvem.");
+        console.error("Erro ao carregar:", err);
+        aviso("erro", "Erro ao carregar dados da nuvem.");
       } finally {
         setCarregando(false);
       }
     };
-    carregarSenhas();
+    carregar();
   }, []);
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-  const mostrarMensagem = (tipo: "sucesso" | "erro", texto: string) => {
+  // ─── Helpers ────────────────────────────────────────────────────────────────
+  const aviso = (tipo: "ok" | "erro", texto: string) => {
     setMensagem({ tipo, texto });
     setTimeout(() => setMensagem(null), 3500);
   };
 
-  const toggleEditar = (turno: keyof SenhasTurnos) => {
-    setEditando((prev) => ({ ...prev, [turno]: !prev[turno] }));
-    // Resetear campo si se cancela
-    if (editando[turno]) {
-      setNovasSenhas((prev) => ({ ...prev, [turno]: senhas[turno] }));
-    }
+  const abrirEdicao = (turno: TurnoKey) => {
+    // Al abrir edición el input siempre empieza vacío — la contraseña actual NO se expone
+    setInputs((prev) => ({ ...prev, [turno]: "" }));
+    setEditando((prev) => ({ ...prev, [turno]: true }));
+    setVisivel((prev) => ({ ...prev, [turno]: false }));
   };
 
-  const toggleVisivel = (turno: keyof SenhasTurnos) => {
+  const cancelarEdicao = (turno: TurnoKey) => {
+    setInputs((prev) => ({ ...prev, [turno]: "" }));
+    setEditando((prev) => ({ ...prev, [turno]: false }));
+    setVisivel((prev) => ({ ...prev, [turno]: false }));
+  };
+
+  const toggleVisivel = (turno: TurnoKey) =>
     setVisivel((prev) => ({ ...prev, [turno]: !prev[turno] }));
-  };
 
-  // ─── Guardar contraseña individual en Firestore ───────────────────────────
-  const salvarSenha = async (turno: keyof SenhasTurnos) => {
-    const novaSenha = novasSenhas[turno].trim();
-    if (!novaSenha) {
-      mostrarMensagem("erro", "A senha não pode ser vazia.");
+  // ─── Guardar en Firestore ────────────────────────────────────────────────────
+  const salvar = async (turno: TurnoKey) => {
+    const nova = inputs[turno].trim();
+    if (!nova) {
+      aviso("erro", "Digite a nova senha antes de salvar.");
       return;
     }
-    if (novaSenha.length < 4) {
-      mostrarMensagem("erro", "A senha deve ter ao menos 4 caracteres.");
+    if (nova.length < 4) {
+      aviso("erro", "A senha deve ter pelo menos 4 caracteres.");
       return;
     }
 
     setSalvando(turno);
     try {
-      const ref = doc(db, COLECAO, DOCUMENTO);
-      const senhasAtualizadas = { ...senhas, [turno]: novaSenha };
-      await setDoc(ref, senhasAtualizadas, { merge: true });
-      setSenhas(senhasAtualizadas);
-      setEditando((prev) => ({ ...prev, [turno]: false }));
-      mostrarMensagem("sucesso", `Senha do ${LABELS[turno]} atualizada com sucesso!`);
+      await setDoc(
+        doc(db, FIRESTORE_COLECAO, FIRESTORE_DOCUMENTO),
+        { [turno]: nova },
+        { merge: true }
+      );
+      // Actualizar estado local sin exponer en código
+      setSenhas((prev) => ({ ...prev, [turno]: nova }));
+      cancelarEdicao(turno);
+      aviso("ok", `Senha do ${LABELS[turno]} atualizada com sucesso!`);
     } catch (err) {
-      console.error("Erro ao salvar senha:", err);
-      mostrarMensagem("erro", "Erro ao salvar senha. Tente novamente.");
+      console.error("Erro ao salvar:", err);
+      aviso("erro", "Erro ao salvar. Verifique a conexão e tente novamente.");
     } finally {
       setSalvando(null);
     }
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  // ─── Render ──────────────────────────────────────────────────────────────────
   if (carregando) {
     return (
       <div className="flex items-center justify-center p-10">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-        <span className="ml-3 text-gray-600">Carregando senhas...</span>
+        <span className="ml-3 text-gray-500 text-sm">Carregando...</span>
       </div>
     );
   }
 
   return (
-    <div className="max-w-lg mx-auto p-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-2">Gerenciar Senhas dos Turnos</h2>
-      <p className="text-sm text-gray-500 mb-6">
-        As senhas são salvas na nuvem (Firestore) e sincronizadas automaticamente.
+    <div className="max-w-md mx-auto p-6">
+      <h2 className="text-xl font-bold text-gray-800 mb-1">Senhas dos Turnos</h2>
+      <p className="text-xs text-gray-400 mb-5">
+        As senhas ficam armazenadas exclusivamente na nuvem.
+        Nenhuma senha aparece no código-fonte.
       </p>
 
-      {/* Mensagem de feedback */}
+      {/* Feedback */}
       {mensagem && (
         <div
-          className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-            mensagem.tipo === "sucesso"
-              ? "bg-green-100 text-green-800 border border-green-300"
-              : "bg-red-100 text-red-800 border border-red-300"
+          className={`mb-4 px-4 py-2 rounded-lg text-sm font-medium ${
+            mensagem.tipo === "ok"
+              ? "bg-green-50 text-green-700 border border-green-200"
+              : "bg-red-50 text-red-700 border border-red-200"
           }`}
         >
-          {mensagem.tipo === "sucesso" ? "✅" : "❌"} {mensagem.texto}
+          {mensagem.tipo === "ok" ? "✅" : "❌"} {mensagem.texto}
         </div>
       )}
 
-      {/* Cards de cada turno */}
-      <div className="space-y-4">
-        {(Object.keys(LABELS) as Array<keyof SenhasTurnos>).map((turno) => (
+      <div className="space-y-3">
+        {TURNOS.map((turno) => (
           <div
             key={turno}
             className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm"
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-semibold text-gray-700 text-base">{LABELS[turno]}</span>
-              {!editando[turno] && (
-                <button
-                  onClick={() => toggleEditar(turno)}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1 rounded-lg hover:bg-blue-50 transition"
-                >
-                  ✏️ Editar
-                </button>
-              )}
+            {/* Cabecera del turno */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-gray-700">{LABELS[turno]}</span>
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full ${
+                  senhas[turno]
+                    ? "bg-green-100 text-green-700"
+                    : "bg-yellow-100 text-yellow-700"
+                }`}
+              >
+                {senhas[turno] ? "● Definida" : "○ Não definida"}
+              </span>
             </div>
 
             {editando[turno] ? (
               /* ── Modo edición ── */
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="relative">
                   <input
                     type={visivel[turno] ? "text" : "password"}
-                    value={novasSenhas[turno]}
+                    value={inputs[turno]}
                     onChange={(e) =>
-                      setNovasSenhas((prev) => ({ ...prev, [turno]: e.target.value }))
+                      setInputs((prev) => ({ ...prev, [turno]: e.target.value }))
                     }
-                    onKeyDown={(e) => e.key === "Enter" && salvarSenha(turno)}
-                    placeholder="Nova senha..."
+                    onKeyDown={(e) => e.key === "Enter" && salvar(turno)}
+                    placeholder="Digite a nova senha..."
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                     autoFocus
+                    autoComplete="new-password"
                   />
                   <button
                     type="button"
                     onClick={() => toggleVisivel(turno)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-base"
                     title={visivel[turno] ? "Ocultar" : "Mostrar"}
                   >
                     {visivel[turno] ? "🙈" : "👁️"}
@@ -202,16 +192,16 @@ export default function GerenciarSenhasTurnos() {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => salvarSenha(turno)}
+                    onClick={() => salvar(turno)}
                     disabled={salvando === turno}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium py-2 rounded-lg transition"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition"
                   >
                     {salvando === turno ? "Salvando..." : "💾 Salvar"}
                   </button>
                   <button
-                    onClick={() => toggleEditar(turno)}
+                    onClick={() => cancelarEdicao(turno)}
                     disabled={salvando === turno}
-                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 rounded-lg transition"
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium py-2 rounded-lg transition"
                   >
                     Cancelar
                   </button>
@@ -219,28 +209,19 @@ export default function GerenciarSenhasTurnos() {
               </div>
             ) : (
               /* ── Modo visualización ── */
-              <div className="flex items-center gap-2">
-                <input
-                  type={visivel[turno] ? "text" : "password"}
-                  value={senhas[turno]}
-                  readOnly
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 cursor-default"
-                />
-                <button
-                  onClick={() => toggleVisivel(turno)}
-                  className="text-gray-400 hover:text-gray-700 px-2"
-                  title={visivel[turno] ? "Ocultar" : "Mostrar"}
-                >
-                  {visivel[turno] ? "🙈" : "👁️"}
-                </button>
-              </div>
+              <button
+                onClick={() => abrirEdicao(turno)}
+                className="w-full text-sm text-blue-600 hover:text-blue-800 font-medium py-1.5 rounded-lg hover:bg-blue-50 transition text-left px-1"
+              >
+                ✏️ Alterar senha
+              </button>
             )}
           </div>
         ))}
       </div>
 
-      <p className="mt-6 text-xs text-gray-400 text-center">
-        Documento Firestore: <code className="bg-gray-100 px-1 rounded">{COLECAO}/{DOCUMENTO}</code>
+      <p className="mt-5 text-xs text-gray-300 text-center">
+        Firestore: <code>{FIRESTORE_COLECAO}/{FIRESTORE_DOCUMENTO}</code>
       </p>
     </div>
   );
