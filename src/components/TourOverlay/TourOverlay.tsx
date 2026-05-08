@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ArrowRight, MoveHorizontal } from 'lucide-react';
+import { X, ArrowRight, ArrowLeft, MoveHorizontal } from 'lucide-react';
 
 interface TourStep {
   id: string;
@@ -50,7 +50,7 @@ function buildSteps(isDesktop: boolean): TourStep[] {
       id: 'pendentes-items',
       selector: '.tour-pendentes-items',
       title: 'Interaja com cada OP',
-      body: 'Toque em qualquer card para expandi-lo. Dentro do card expandido você pode:\n\n• Registrar uma Parada (tipo, horário e detalhe opcional)\n• Ver o histórico de paradas já registradas\n• Finalizar a OP informando quantidade produzida e reprocesso\n\nTodas as ações são sincronizadas com a nuvem em tempo real.',
+      body: 'Cada card de OP tem dois atalhos de deslize:\n\n← Esquerda — abre o formulário de Parada para registrar uma interrupção (tipo, horário e detalhe)\n\n→ Direita — abre diretamente a tela de Conclusão para informar a quantidade produzida e o reprocesso\n\nVocê também pode tocar no card para expandi-lo e acessar o histórico de paradas ou qualquer outra ação.',
       mobileTab: 'pendentes',
     },
   ];
@@ -319,12 +319,17 @@ export function TourOverlay({ isDesktop, setMobileTab, onFinish }: TourOverlayPr
             {/* centering wrapper — no transform, uses flexbox */}
             <div className="flex justify-center">
               <motion.div
-                className="flex items-center gap-2 bg-white/92 backdrop-blur-sm rounded-2xl px-4 py-2.5 shadow-xl ring-1 ring-zinc-200/60"
+                className="flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-2xl px-3 py-2.5 shadow-xl ring-1 ring-zinc-200/60"
                 animate={{ x: [-38, 38, -38] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
               >
-                <MoveHorizontal className="w-5 h-5 text-zinc-700 shrink-0" />
-                <span className="text-xs font-black text-zinc-700 whitespace-nowrap">Deslize o card</span>
+                <ArrowLeft  className="w-4 h-4 text-amber-500 shrink-0" />
+                <span className="text-[11px] font-black text-amber-600 whitespace-nowrap">Parada</span>
+                <div className="w-px h-4 bg-zinc-200 mx-0.5" />
+                <MoveHorizontal className="w-4 h-4 text-zinc-400 shrink-0" />
+                <div className="w-px h-4 bg-zinc-200 mx-0.5" />
+                <span className="text-[11px] font-black text-emerald-600 whitespace-nowrap">Concluir</span>
+                <ArrowRight className="w-4 h-4 text-emerald-500 shrink-0" />
               </motion.div>
             </div>
           </motion.div>
