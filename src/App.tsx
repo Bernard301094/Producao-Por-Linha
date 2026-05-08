@@ -22,10 +22,9 @@ import { LoginScreen } from './components/LoginScreen/LoginScreen';
 import { StartOpForm } from './components/StartOpForm/StartOpForm';
 import { cn, useAutoIncrement } from './lib/utils';
 
-// Lazy loading modals to improve initial load performance
-const EditOpModal = React.lazy(() => import('./components/EditOpModal/EditOpModal').then(module => ({ default: module.EditOpModal })));
-const ChangePasswordModal = React.lazy(() => import('./components/ChangePasswordModal/ChangePasswordModal').then(module => ({ default: module.ChangePasswordModal })));
-const ProductManagerModal = React.lazy(() => import('./components/ProductManagerModal/ProductManagerModal').then(module => ({ default: module.ProductManagerModal })));
+import { EditOpModal } from './components/EditOpModal/EditOpModal';
+import { ChangePasswordModal } from './components/ChangePasswordModal/ChangePasswordModal';
+import { ProductManagerModal } from './components/ProductManagerModal/ProductManagerModal';
 import { toast, Toaster } from 'sonner';
 import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp, HelpCircle, X } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -1806,72 +1805,69 @@ export default function App() {
       </Dialog>
 
       {/* Edit OP Dialog */}
-      <React.Suspense fallback={null}>
-        {editingOp && (
-          <EditOpModal
-            editingOp={editingOp}
-            setEditingOp={setEditingOp}
-            handleSubmitEdit={handleSubmitEdit}
-            onEditOp={onEditOp}
-            registerEdit={registerEdit}
-            watchEdit={watchEdit}
-            setValueEdit={setValueEdit}
-            isTypingEditProduct={isTypingEditProduct}
-            setIsTypingEditProduct={setIsTypingEditProduct}
-            showEditProductSuggestions={showEditProductSuggestions}
-            setShowEditProductSuggestions={setShowEditProductSuggestions}
-            filteredEditProducts={filteredEditProducts}
-            openEditLineSelect={openEditLineSelect}
-            setOpenEditLineSelect={setOpenEditLineSelect}
-            searchEditLine={searchEditLine}
-            setSearchEditLine={setSearchEditLine}
-            allLinhas={allLinhas}
-            setCustomLinhas={setCustomLinhas}
-            loginProfile={loginProfile}
-            editParadas={editParadas}
-            setEditParadas={setEditParadas}
-            addEditParada={addEditParada}
-            removeEditParada={removeEditParada}
-            loadingEdit={loadingEdit}
-            editParadaSelectedCode={editParadaSelectedCode}
-            setEditParadaSelectedCode={setEditParadaSelectedCode}
-            editParadaStart={editParadaStart}
-            setEditParadaStart={setEditParadaStart}
-            editParadaEnd={editParadaEnd}
-            setEditParadaEnd={setEditParadaEnd}
-            availableParadas={availableParadas}
-          />
-        )}
+      {editingOp && (
+        <EditOpModal
+          editingOp={editingOp}
+          setEditingOp={setEditingOp}
+          handleSubmitEdit={handleSubmitEdit}
+          onEditOp={onEditOp}
+          registerEdit={registerEdit}
+          watchEdit={watchEdit}
+          setValueEdit={setValueEdit}
+          isTypingEditProduct={isTypingEditProduct}
+          setIsTypingEditProduct={setIsTypingEditProduct}
+          showEditProductSuggestions={showEditProductSuggestions}
+          setShowEditProductSuggestions={setShowEditProductSuggestions}
+          filteredEditProducts={filteredEditProducts}
+          openEditLineSelect={openEditLineSelect}
+          setOpenEditLineSelect={setOpenEditLineSelect}
+          searchEditLine={searchEditLine}
+          setSearchEditLine={setSearchEditLine}
+          allLinhas={allLinhas}
+          setCustomLinhas={setCustomLinhas}
+          loginProfile={loginProfile}
+          editParadas={editParadas}
+          setEditParadas={setEditParadas}
+          addEditParada={addEditParada}
+          removeEditParada={removeEditParada}
+          loadingEdit={loadingEdit}
+          editParadaSelectedCode={editParadaSelectedCode}
+          setEditParadaSelectedCode={setEditParadaSelectedCode}
+          editParadaStart={editParadaStart}
+          setEditParadaStart={setEditParadaStart}
+          editParadaEnd={editParadaEnd}
+          setEditParadaEnd={setEditParadaEnd}
+          availableParadas={availableParadas}
+        />
+      )}
 
-        {/* Change Password Dialog */}
-        {changePasswordOpen && (
-          <ChangePasswordModal
-            changePasswordOpen={changePasswordOpen}
-            setChangePasswordOpen={setChangePasswordOpen}
-            loginProfile={loginProfile!}
-            showChangerPassword={showChangerPassword}
-            setShowChangerPassword={setShowChangerPassword}
-            changerOldPassword={changerOldPassword}
-            setChangerOldPassword={setChangerOldPassword}
-            newPassword={newPassword}
-            setNewPassword={setNewPassword}
-            confirmNewPassword={confirmNewPassword}
-            setConfirmNewPassword={setConfirmNewPassword}
-            handleChangePassword={handleChangePassword}
-            changingPasswordLoading={changingPasswordLoading}
-          />
-        )}
-      </React.Suspense>
-      <React.Suspense fallback={null}>
-        {showProductManager && (
-          <ProductManagerModal 
-            open={showProductManager}
-            onOpenChange={setShowProductManager}
-            products={availableProducts}
-            onRefresh={loadProducts}
-          />
-        )}
-      </React.Suspense>
+      {/* Change Password Dialog */}
+      {changePasswordOpen && (
+        <ChangePasswordModal
+          changePasswordOpen={changePasswordOpen}
+          setChangePasswordOpen={setChangePasswordOpen}
+          loginProfile={loginProfile!}
+          showChangerPassword={showChangerPassword}
+          setShowChangerPassword={setShowChangerPassword}
+          changerOldPassword={changerOldPassword}
+          setChangerOldPassword={setChangerOldPassword}
+          newPassword={newPassword}
+          setNewPassword={setNewPassword}
+          confirmNewPassword={confirmNewPassword}
+          setConfirmNewPassword={setConfirmNewPassword}
+          handleChangePassword={handleChangePassword}
+          changingPasswordLoading={changingPasswordLoading}
+        />
+      )}
+
+      {showProductManager && (
+        <ProductManagerModal 
+          open={showProductManager}
+          onOpenChange={setShowProductManager}
+          products={availableProducts}
+          onRefresh={loadProducts}
+        />
+      )}
 
       {tourActive && (
         <TourOverlay
