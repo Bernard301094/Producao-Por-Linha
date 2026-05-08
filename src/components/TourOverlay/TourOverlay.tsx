@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ArrowRight } from 'lucide-react';
+import { X, ArrowRight, MoveHorizontal } from 'lucide-react';
 
 interface TourStep {
   id: string;
@@ -182,10 +182,10 @@ function TourCard({
   handleNext: () => void;
 }) {
   return (
-    <div className="bg-white rounded-3xl shadow-2xl ring-1 ring-zinc-200/60 p-5 flex flex-col gap-4 overflow-hidden">
+    <div className="bg-white rounded-3xl shadow-2xl ring-1 ring-zinc-200/60 p-5 flex flex-col gap-4 overflow-hidden max-h-[85dvh]">
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2">
+      {/* Header — shrink-0 so it never collapses */}
+      <div className="flex items-start justify-between gap-2 shrink-0">
         <div className="flex-1 min-w-0">
           <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 whitespace-nowrap">
             Passo {step + 1} de {steps.length}
@@ -202,8 +202,8 @@ function TourCard({
         </button>
       </div>
 
-      {/* Progress bar */}
-      <div className="h-1 bg-zinc-100 rounded-full overflow-hidden">
+      {/* Progress bar — shrink-0 */}
+      <div className="h-1 bg-zinc-100 rounded-full overflow-hidden shrink-0">
         <motion.div
           className="h-full bg-zinc-950 rounded-full"
           initial={{ width: `${(step / steps.length) * 100}%` }}
@@ -212,13 +212,13 @@ function TourCard({
         />
       </div>
 
-      {/* Body text — scrollable when content is long */}
-      <p className="text-xs sm:text-sm text-zinc-600 font-medium leading-relaxed break-words whitespace-pre-line overflow-y-auto max-h-[35vh] pr-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-200">
+      {/* Body text — flex-1 + min-h-0 forces scroll BEFORE pushing buttons out */}
+      <p className="flex-1 min-h-0 overflow-y-auto text-xs sm:text-sm text-zinc-600 font-medium leading-relaxed break-words whitespace-pre-line pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-200">
         {current.body}
       </p>
 
-      {/* Actions */}
-      <div className="flex items-center justify-between gap-3 pt-1 border-t border-zinc-100">
+      {/* Actions — shrink-0 so buttons are always visible */}
+      <div className="flex items-center justify-between gap-3 pt-1 border-t border-zinc-100 shrink-0">
         <button
           onClick={onFinish}
           className="text-xs font-bold text-zinc-400 hover:text-zinc-600 transition-colors py-2 px-3 rounded-xl hover:bg-zinc-50 shrink-0"
@@ -295,6 +295,38 @@ export function TourOverlay({ isDesktop, setMobileTab, onFinish }: TourOverlayPr
               style={{ top: sr.top, left: sr.right, right: 0, height: sr.height }} />
             <div className="absolute rounded-2xl ring-2 ring-white/70 shadow-[0_0_0_5px_rgba(255,255,255,0.12)] pointer-events-none"
               style={{ top: sr.top, left: Math.max(0, sr.left), width: sr.width, height: sr.height }} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Swipe hint — pendentes-items step only ────────────────────── */}
+      <AnimatePresence>
+        {current.id === 'pendentes-items' && sr && (
+          <motion.div
+            key="swipe-hint"
+            className="fixed pointer-events-none"
+            style={{
+              top:   (sr.top + sr.bottom) / 2 - 22,
+              left:  sr.left,
+              width: sr.width,
+              zIndex: 10000,
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ delay: 0.55, duration: 0.3 }}
+          >
+            {/* centering wrapper — no transform, uses flexbox */}
+            <div className="flex justify-center">
+              <motion.div
+                className="flex items-center gap-2 bg-white/92 backdrop-blur-sm rounded-2xl px-4 py-2.5 shadow-xl ring-1 ring-zinc-200/60"
+                animate={{ x: [-38, 38, -38] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <MoveHorizontal className="w-5 h-5 text-zinc-700 shrink-0" />
+                <span className="text-xs font-black text-zinc-700 whitespace-nowrap">Deslize o card</span>
+              </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
