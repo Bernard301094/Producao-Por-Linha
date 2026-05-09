@@ -178,15 +178,11 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
 
               <div className="relative space-y-2.5 sm:col-span-2" ref={novaOpRef}>
                 <Label htmlFor="produto" className="block text-sm font-black text-zinc-600 uppercase tracking-widest pl-2">Produto Fabricado</Label>
-                <input id="produto" {...register('produto')} readOnly={!isTypingProduct} onClick={() => setShowProductSuggestions(true)} autoComplete="off" onFocus={() => setShowProductSuggestions(true)} placeholder="Digite para buscar..." className="flex h-16 w-full rounded-2xl border-2 border-zinc-200/80 bg-white px-5 py-3 text-lg font-bold text-zinc-900 transition-all placeholder:text-zinc-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-zinc-950 shadow-sm" />
+                <input id="produto" {...register('produto')} onClick={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} autoComplete="off" onFocus={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} placeholder="Digite para buscar..." className="flex h-16 w-full rounded-2xl border-2 border-zinc-200/80 bg-white px-5 py-3 text-lg font-bold text-zinc-900 transition-all placeholder:text-zinc-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-zinc-950 shadow-sm" />
                 {showProductSuggestions && (
                   <div className="absolute z-[60] w-full mt-2 bg-white border border-zinc-200 rounded-[1.5rem] shadow-2xl max-h-[min(18rem,50dvh)] overflow-y-auto p-2 ring-1 ring-zinc-900/5" onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
                     {!isTypingProduct && (
-                      <div onClick={(e) => { e.preventDefault(); setIsTypingProduct(true); setTimeout(() => document.getElementById('produto')?.focus(), 50); }} className="cursor-pointer px-4 py-3 text-sm text-zinc-600 font-bold hover:bg-zinc-100 hover:text-zinc-900 rounded-xl flex items-center gap-3 mb-2 border border-zinc-200/50 bg-zinc-50/50 transition-colors min-h-[64px]">
-                        <div className="w-10 h-10 rounded-lg bg-white border border-zinc-200/60 flex items-center justify-center shadow-sm">
-                          <Search className="w-5 h-5 text-zinc-400" />
-                        </div>
-                        Pesquisar produto pelo nome
+                      <div onClick={(e) => { e.preventDefault(); setIsTypingProduct(true); setTimeout(() => document.getElementById('produto')?.focus(), 50); }} className="hidden">
                       </div>
                     )}
                     {filteredProducts.length > 0 ? filteredProducts.map(p => (

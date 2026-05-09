@@ -126,12 +126,11 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
             </div>
             <div className="relative space-y-2" ref={editOpRef}>
               <Label className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Produto</Label>
-              <input id="edit-produto" {...registerEdit('produto')} readOnly={!isTypingEditProduct} onClick={() => setShowEditProductSuggestions(true)} autoComplete="off" onFocus={() => setShowEditProductSuggestions(true)} className="flex h-14 w-full rounded-2xl border-2 border-zinc-200/80 bg-[#F9FAFB] px-4 py-2 text-base text-zinc-900 transition-all placeholder:text-zinc-400 focus-visible:outline-none focus-visible:border-zinc-950 shadow-sm focus:bg-white" />
+              <input id="edit-produto" {...registerEdit('produto')} onClick={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} autoComplete="off" onFocus={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} className="flex h-14 w-full rounded-2xl border-2 border-zinc-200/80 bg-[#F9FAFB] px-4 py-2 text-base text-zinc-900 transition-all placeholder:text-zinc-400 focus-visible:outline-none focus-visible:border-zinc-950 shadow-sm focus:bg-white" />
               {showEditProductSuggestions && (
                 <div className="absolute z-50 w-full mt-2 bg-white border border-zinc-200 rounded-2xl shadow-xl max-h-60 overflow-y-auto p-2 ring-1 ring-zinc-900/5">
                   {!isTypingEditProduct && (
-                    <div onClick={(e) => { e.preventDefault(); setIsTypingEditProduct(true); setTimeout(() => document.getElementById('edit-produto')?.focus(), 50); }} className="cursor-pointer px-4 py-3 text-sm text-zinc-600 font-bold hover:bg-zinc-100 hover:text-zinc-900 rounded-xl flex items-center justify-center gap-2 mb-2 border border-zinc-200/50 bg-zinc-50/50 h-12 transition-colors">
-                      <Search className="w-4 h-4" /> Buscar Produto...
+                    <div onClick={(e) => { e.preventDefault(); setIsTypingEditProduct(true); setTimeout(() => document.getElementById('edit-produto')?.focus(), 50); }} className="hidden">
                     </div>
                   )}
                   {filteredEditProducts.length > 0 ? filteredEditProducts.map(p => (
