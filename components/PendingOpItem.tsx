@@ -34,8 +34,23 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
 
   useEffect(() => {
     if (!op.carimboInicial) return;
+    
+    let startTime = new Date(op.carimboInicial);
+    if (op.horaInicial) {
+      const [hours, minutes] = op.horaInicial.split(':').map(Number);
+      if (!isNaN(hours) && !isNaN(minutes)) {
+        startTime.setHours(hours, minutes, 0, 0);
+        // If the resulting time is in the future by more than a minute,
+        // it likely means the OP started before midnight of the current day.
+        if (startTime.getTime() > Date.now() + 60000) {
+          startTime.setDate(startTime.getDate() - 1);
+        }
+      }
+    }
+
     const update = () => {
-      const diff = Date.now() - new Date(op.carimboInicial).getTime();
+      // Prevent negative times if the clock is slightly off
+      const diff = Math.max(0, Date.now() - startTime.getTime());
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
@@ -43,10 +58,11 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
       else if (m > 0) setElapsed(`${m}m ${s}s`);
       else setElapsed(`${s}s`);
     };
+    
     update();
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
-  }, [op.carimboInicial]);
+  }, [op.carimboInicial, op.horaInicial]);
 
   const allHistoryParadas = useMemo(() => {
     const result: Array<{ opNumber: string; carimbo?: string; horaInicial: string; isFinished: boolean; parada: any }> = [];
