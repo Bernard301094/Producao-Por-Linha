@@ -42,10 +42,15 @@ export interface FinishedOperation extends Operation {
   isAvulsa?: boolean;
 }
 
-export const subscribeToOperations = (callback: (ops: Operation[]) => void) => {
+export const subscribeToOperations = (linha: string | null, callback: (ops: Operation[]) => void) => {
+  const conditions: any[] = [where('status', '==', 'pending')];
+  if (linha && linha !== 'Todas') {
+    conditions.push(where('linha', '==', linha));
+  }
+  
   const q = query(
     collection(db, 'operations'),
-    where('status', '==', 'pending'),
+    ...conditions,
     limit(50) // A factory rarely has >20 pending OPs at once; 50 is a safe ceiling
   );
   return onSnapshot(q, (snap) => {
@@ -53,10 +58,15 @@ export const subscribeToOperations = (callback: (ops: Operation[]) => void) => {
   });
 };
 
-export const subscribeToFinishedOps = (callback: (ops: FinishedOperation[]) => void) => {
+export const subscribeToFinishedOps = (linha: string | null, callback: (ops: FinishedOperation[]) => void) => {
+  const conditions: any[] = [where('status', '==', 'finished')];
+  if (linha && linha !== 'Todas') {
+    conditions.push(where('linha', '==', linha));
+  }
+
   const q = query(
     collection(db, 'operations'),
-    where('status', '==', 'finished'),
+    ...conditions,
     orderBy('carimboInicial', 'desc'),
     limit(75) // Ordered most-recent-first; a full 8-h shift rarely exceeds 30 OPs (was 1000)
   );

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, updateProduct, removeProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord, getLinhas, getProfiles, syncFinishedOperation, invalidateCaches, convertAvulsaToOp, signInToFirebase, signOutFromFirebase, reauthenticateCurrentUser, verifySupervisorPassword } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, updateProduct, removeProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord, getLinhas, getProfiles, syncFinishedOperation, invalidateCaches, convertAvulsaToOp, } from './api';
 
 // Componentes UI e Ícones
 import { Button } from '../components/ui/button';
@@ -18,15 +18,13 @@ import { CustomTimePicker } from '../components/CustomTimePicker';
 import { QuickCounter } from '../components/QuickCounter';
 import { PendingOpItem } from '../components/PendingOpItem';
 import { FinishedOpItem } from '../components/FinishedOpItem';
-import { LoginScreen } from './components/LoginScreen/LoginScreen';
 import { StartOpForm } from './components/StartOpForm/StartOpForm';
 import { cn, useAutoIncrement } from './lib/utils';
 
 import { EditOpModal } from './components/EditOpModal/EditOpModal';
-import { ChangePasswordModal } from './components/ChangePasswordModal/ChangePasswordModal';
 import { ProductManagerModal } from './components/ProductManagerModal/ProductManagerModal';
 import { toast, Toaster } from 'sonner';
-import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp, HelpCircle, X } from 'lucide-react';
+import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp, HelpCircle, X, Settings } from 'lucide-react';
 import { motion } from 'motion/react';
 import { TourOverlay } from './components/TourOverlay/TourOverlay';
 
@@ -62,6 +60,14 @@ function getLogicalDateStr(now: Date = getServerTime()): string {
 }
 
 function getSuggestedShift(now: Date, horaInicial: string): string {
+  if (horaInicial) {
+    const [h, m] = horaInicial.split(':').map(Number);
+    if (!isNaN(h) && !isNaN(m)) {
+      const simulatedTime = new Date(now);
+      simulatedTime.setHours(h, m, 0, 0);
+      return getActiveTurno(simulatedTime).replace('Turno ', '');
+    }
+  }
   return getActiveTurno(now).replace('Turno ', '');
 }
 
@@ -85,44 +91,7 @@ export type ShiftCheckResult = {
 export function isShiftAllowed(profile: string): ShiftCheckResult {
   const now = getServerTime();
   const activeTurno = getActiveTurno(now);
-  
-  if (profile === 'Supervisor' || profile === 'Turno Treinamento') {
-      return { allowed: true, activeTurno, shiftCycleId: getShiftCycleId(now) };
-  }
-
-  if (profile === activeTurno) {
-      return { allowed: true, activeTurno, shiftCycleId: getShiftCycleId(now) };
-  }
-  
-  // Check Tolerance
-  const pastToleranceTime = new Date(now.getTime() - SHIFT_TOLERANCE_MINUTES * 60000);
-  const futureToleranceTime = new Date(now.getTime() + SHIFT_TOLERANCE_MINUTES * 60000);
-  
-  const activeInPast = getActiveTurno(pastToleranceTime);
-  const activeInFuture = getActiveTurno(futureToleranceTime);
-  
-  if (profile === activeInPast) {
-      const h = now.getHours();
-      const expirationDate = new Date(now.getTime());
-      if (h >= 18 || h < 6) {
-          expirationDate.setHours(18, SHIFT_TOLERANCE_MINUTES, 0, 0);
-      } else {
-          expirationDate.setHours(6, SHIFT_TOLERANCE_MINUTES, 0, 0);
-      }
-      return { allowed: true, toleranceApplied: true, activeTurno, shiftCycleId: getShiftCycleId(pastToleranceTime), toleranceExpiresAt: expirationDate.getTime() };
-  }
-  
-  if (profile === activeInFuture) {
-      return { allowed: true, toleranceApplied: true, activeTurno, shiftCycleId: getShiftCycleId(futureToleranceTime) };
-  }
-
-  const outSince = format(now.getHours() >= 18 || now.getHours() < 6 ? new Date(now.setHours(18,0,0,0)) : new Date(now.setHours(6,0,0,0)), 'HH:mm');
-
-  return { 
-    allowed: false, 
-    activeTurno,
-    reason: `Fora do horário. O turno atual é o ${activeTurno}. Você está fora do horário do seu perfil desde ${outSince}. Se for uma emergência, contate o supervisor.`
-  };
+  return { allowed: true, activeTurno, shiftCycleId: getShiftCycleId(now) };
 }
 
 // Parsea un string compacto "opNumber|linha|produto|litragem|quantidade|horaInicial|horaFinal|qntReprocesso"
@@ -157,6 +126,7 @@ const startOpSchema = z.object({
   linha: z.string().min(1, 'Obrigatório'),
   turno: z.string().min(1, 'Obrigatório'),
   horaInicial: z.string().min(1, 'Obrigatório'),
+  operador: z.string().min(1, 'Obrigatório'),
 });
 
 type StartOpFormValues = z.infer<typeof startOpSchema>;
@@ -203,7 +173,7 @@ function ToleranceCountdown({ profile, onExpire }: { profile: string | null; onE
   if (!timeLeft) return null;
 
   return (
-    <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 px-2 sm:px-3 h-10 rounded-xl shadow-sm animate-pulse">
+    <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 px-2 sm:px-3 h-10 rounded-xl shadow-sm transition-colors duration-500">
       <Clock className="w-4 h-4" />
       <span className="text-xs font-black tracking-widest">{timeLeft}</span>
     </div>
@@ -281,20 +251,6 @@ export default function App() {
     return '';
   }
 
-  const [loginProfile, setLoginProfile] = useState<string | null>(null);
-  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loginLoading, setLoginLoading] = useState(false);
-
-  // Change Password States
-  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
-  const [changerOldPassword, setChangerOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [changingPasswordLoading, setChangingPasswordLoading] = useState(false);
-  const [showChangerPassword, setShowChangerPassword] = useState(false);
-
   const [mobileTab, setMobileTab] = useState<'pendentes' | 'concluidas'>('pendentes');
   const [tourActive, setTourActive] = useState(false);
   const [isNovaSheetOpen, setIsNovaSheetOpen] = useState(false);
@@ -306,10 +262,17 @@ export default function App() {
   const [openLineFilterFinished, setOpenLineFilterFinished] = useState(false);
   const [searchPending, setSearchPending] = useState('');
   const [searchFinished, setSearchFinished] = useState('');
-  const [selectedLinhaPending, setSelectedLinhaPending] = useState('Todas');
-  const [selectedLinhaFinished, setSelectedLinhaFinished] = useState('Todas');
+  const [selectedLinha, setSelectedLinha] = useState(() => localStorage.getItem('v-ops-default-linha') || 'Todas');
+  const [operatingMode, setOperatingMode] = useState<'global' | 'dedicated'>(() => {
+    return (localStorage.getItem('v-ops-operating-mode') as 'global' | 'dedicated') || 'global';
+  });
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+
+
   const [operations, setOperations] = useState<Operation[]>([]);
   const [finishedOps, setFinishedOps] = useState<FinishedOperation[]>([]);
+  const [visiblePendingCount, setVisiblePendingCount] = useState(20);
+  const [visibleFinishedCount, setVisibleFinishedCount] = useState(30);
   const [loadingNewOp, setLoadingNewOp] = useState(false);
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [loadingRevert, setLoadingRevert] = useState(false);
@@ -463,14 +426,14 @@ export default function App() {
         }
         
         logAudit({
-          userProfile: loginProfile || 'UNKNOWN',
+          userProfile: currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN',
           action: 'EDIT_OP',
-          expectedShift: loginProfile || 'UNKNOWN',
-          activeShift: isShiftAllowed(loginProfile || 'UNKNOWN').activeTurno,
+          expectedShift: currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN',
+          activeShift: isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').activeTurno,
           serverTimestamp: getServerTimeISO(),
-          result: isShiftAllowed(loginProfile || 'UNKNOWN').allowed ? (isShiftAllowed(loginProfile || 'UNKNOWN').toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
+          result: isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').allowed ? (isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
           opReference: data.opNumber,
-          reason: overrideReason || undefined
+          reason: undefined
         });
 
         setEditingOp(null);
@@ -482,9 +445,9 @@ export default function App() {
     };
 
     if (loginProfile) {
-      const shiftCheck = isShiftAllowed(loginProfile);
+      const shiftCheck = isShiftAllowed(`Turno ${currentTurnForView}`);
       if (!shiftCheck.allowed) {
-        requireSupervisorOverride(() => doEditOp());
+        doEditOp();
         return;
       }
     }
@@ -517,8 +480,31 @@ export default function App() {
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<StartOpFormValues>({
     resolver: zodResolver(startOpSchema),
-    defaultValues: { opNumber: '', produto: '', linha: '', turno: '', horaInicial: '' }
+    defaultValues: {
+      opNumber: '',
+      produto: '',
+      linha: localStorage.getItem('v-ops-default-linha') || '',
+      turno: '',
+      horaInicial: '',
+      operador: localStorage.getItem('v-ops-default-operador') || ''
+    }
   });
+
+  const watchLinha = watch('linha');
+  const watchOperador = watch('operador');
+
+  useEffect(() => {
+    if (watchLinha) {
+      localStorage.setItem('v-ops-default-linha', watchLinha);
+      updateSelectedLinha(watchLinha, false);
+    }
+  }, [watchLinha]);
+
+  useEffect(() => {
+    if (watchOperador) {
+      localStorage.setItem('v-ops-default-operador', watchOperador);
+    }
+  }, [watchOperador]);
 
   const loadProducts = async () => {
     const prods = await getProducts();
@@ -572,7 +558,7 @@ export default function App() {
     if (loginProfile) {
       checkAndClearProfileShift(loginProfile);
     }
-  }, [loginProfile]);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -581,7 +567,7 @@ export default function App() {
       }
     }, 60000);
     return () => clearInterval(interval);
-  }, [loginProfile]);
+  }, []);
 
   const watchHoraInicial = watch('horaInicial');
   const watchProduto = watch('produto');
@@ -600,17 +586,12 @@ export default function App() {
 
   useEffect(() => {
     if (watchHoraInicial) {
-      if (!loginProfile) {
-        setValue('turno', getSuggestedShift(new Date(), watchHoraInicial));
-      } else {
-        setValue('turno', loginProfile.replace('Turno ', ''));
-      }
+      setValue('turno', getSuggestedShift(new Date(), watchHoraInicial));
     }
-  }, [watchHoraInicial, setValue, loginProfile]);
+  }, [watchHoraInicial, setValue]);
 
-  const currentTurnForView = loginProfile
-    ? loginProfile.replace('Turno ', '')
-    : getSuggestedShift(new Date(), format(new Date(), 'HH:mm'));
+  const currentTurnForView = getSuggestedShift(new Date(), format(new Date(), 'HH:mm'));
+  const loginProfile = `Turno ${currentTurnForView}`;
 
   const refreshData = async () => {
     try {
@@ -634,11 +615,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    const unsubOps = subscribeToOperations((ops) => {
+    const subLinha = operatingMode === 'dedicated' ? selectedLinha : null;
+
+    const unsubOps = subscribeToOperations(subLinha, (ops) => {
       setOperations(ops);
     });
     
-    const unsubFinished = subscribeToFinishedOps((ops) => {
+    const unsubFinished = subscribeToFinishedOps(subLinha, (ops) => {
       setFinishedOps(ops);
     });
 
@@ -646,7 +629,7 @@ export default function App() {
       unsubOps();
       unsubFinished();
     };
-  }, []);
+  }, [operatingMode, selectedLinha]);
 
   // Background Auto-Retry for Failed Syncs
   useEffect(() => {
@@ -669,127 +652,11 @@ export default function App() {
     refreshData();
     setValue('horaInicial', format(new Date(), 'HH:mm'));
 
-    const storedProfile = localStorage.getItem('loginProfile');
-    if (storedProfile) {
-      setLoginProfile(storedProfile);
-      setValue('turno', storedProfile.replace('Turno ', ''));
-    }
+    
   }, [setValue]);
 
   // Login
-  const handleLogin = async () => {
-    if (!selectedProfile) return;
-    if (!passwordInput.trim()) {
-      toast.error('Digite sua senha.');
-      return;
-    }
-    
-    const shiftCheck = isShiftAllowed(selectedProfile);
-    
-    if (!shiftCheck.allowed) {
-      logAudit({
-        userProfile: selectedProfile,
-        action: 'LOGIN',
-        expectedShift: selectedProfile,
-        activeShift: shiftCheck.activeTurno,
-        serverTimestamp: getServerTimeISO(),
-        result: 'BLOCKED',
-        reason: shiftCheck.reason
-      });
-      toast.error(shiftCheck.reason);
-      return;
-    }
-
-    setLoginLoading(true);
-
-    try {
-      await signInToFirebase(selectedProfile, passwordInput.trim());
-      logAudit({
-        userProfile: selectedProfile,
-        action: 'LOGIN',
-        expectedShift: selectedProfile,
-        activeShift: shiftCheck.activeTurno,
-        serverTimestamp: getServerTimeISO(),
-        result: shiftCheck.toleranceApplied ? 'TOLERANCE' : 'ALLOWED'
-      });
-      localStorage.setItem('loginProfile', selectedProfile);
-      setLoginProfile(selectedProfile);
-      setValue('turno', selectedProfile.replace('Turno ', ''));
-      setPasswordInput('');
-      setSelectedProfile(null);
-    } catch (err: any) {
-      const code = err?.code || '';
-      if (['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found'].includes(code)) {
-        toast.error('Senha incorreta. Tente novamente.');
-      } else if (code === 'auth/too-many-requests') {
-        toast.error('Muitas tentativas inválidas. O acesso a esta conta foi temporariamente bloqueado. Tente novamente mais tarde.');
-      } else {
-        console.error('Login error:', err);
-        toast.error('Erro ao verificar senha.');
-      }
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  const handleChangePassword = async () => {
-    if (!loginProfile) return;
-    if (newPassword !== confirmNewPassword) {
-      toast.error('As novas senhas não coincidem.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      toast.error('A nova senha deve ter pelo menos 6 caracteres.');
-      return;
-    }
-
-    setChangingPasswordLoading(true);
-    try {
-      await reauthenticateCurrentUser(loginProfile, changerOldPassword);
-      await updateAuthProfile(loginProfile, newPassword);
-      toast.success('Senha alterada com sucesso!');
-      setChangePasswordOpen(false);
-      setChangerOldPassword('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-    } catch (err: any) {
-      const code = err?.code || '';
-      if (['auth/invalid-credential', 'auth/wrong-password'].includes(code)) {
-        toast.error('Senha atual incorreta.');
-      } else if (code === 'auth/too-many-requests') {
-        toast.error('Muitas tentativas inválidas. Tente novamente mais tarde.');
-      } else {
-        toast.error(err.message || 'Erro ao alterar a senha.');
-      }
-    } finally {
-      setChangingPasswordLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    invalidateCaches(); // clear master-data cache so next login fetches fresh data
-    if (loginProfile) {
-      try {
-        const shiftCheck = isShiftAllowed(loginProfile);
-        logAudit({
-          userProfile: loginProfile,
-          action: 'LOGOUT',
-          expectedShift: loginProfile,
-          activeShift: shiftCheck.activeTurno,
-          serverTimestamp: getServerTimeISO(),
-          result: 'ALLOWED'
-        });
-      } catch (e) {
-        console.error("Failed to log logout", e);
-      }
-    }
-    localStorage.removeItem('loginProfile');
-    setLoginProfile(null);
-    setSelectedProfile(null);
-    setPasswordInput('');
-    signOutFromFirebase().catch(console.error);
-  };
-
+  
   const handlePreStartOp = (data: StartOpFormValues) => {
     setStartFormData(data);
     setShowConfirmStart(true);
@@ -798,7 +665,7 @@ export default function App() {
   const onStartOp = async (data: StartOpFormValues) => {
 
     if (loginProfile) {
-      const shiftCheck = isShiftAllowed(loginProfile);
+      const shiftCheck = isShiftAllowed(`Turno ${currentTurnForView}`);
       
       if (!shiftCheck.allowed) {
         logAudit({
@@ -826,7 +693,7 @@ export default function App() {
       });
     }
 
-    const sameTurn = loginProfile ? loginProfile.replace('Turno ', '') : data.turno;
+    const sameTurn = data.turno;
     const logicalToday = getLogicalDateStr(getServerTime());
 
     if (operations.some(op => {
@@ -851,12 +718,22 @@ export default function App() {
         id: newOpId, carimboInicial: new Date().toISOString(), ...data,
         horaInicial: data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial,
         litragem: derivedLitragem,
-        turno: loginProfile ? loginProfile.replace('Turno ', '') : data.turno
+        turno: data.turno
       };
       await addOperation(newOp);
       addProduct(data.produto, derivedLitragem);
       toast.success('Operação iniciada!');
-      reset({ opNumber: '', produto: '', linha: '', turno: data.turno, horaInicial: format(new Date(), 'HH:mm') });
+      localStorage.setItem('v-ops-default-linha', data.linha);
+      localStorage.setItem('v-ops-default-operador', data.operador);
+      updateSelectedLinha(data.linha, false);
+      reset({
+        opNumber: '',
+        produto: '',
+        linha: data.linha,
+        turno: data.turno,
+        horaInicial: format(new Date(), 'HH:mm'),
+        operador: data.operador
+      });
       setShowConfirmStart(false);
     } catch (err: any) {
       toast.error('Erro: ' + err.message);
@@ -867,7 +744,7 @@ export default function App() {
 
   const handleParadaOnly = async (data: StartOpFormValues, paradas: ParadaRecord[]) => {
     if (loginProfile) {
-      const shiftCheck = isShiftAllowed(loginProfile);
+      const shiftCheck = isShiftAllowed(`Turno ${currentTurnForView}`);
       if (!shiftCheck.allowed) {
         logAudit({
           userProfile: loginProfile,
@@ -893,7 +770,7 @@ export default function App() {
     try {
       const matchedProduct = availableProducts.find(p => (p.produto || '').trim().toUpperCase() === (data.produto || '').trim().toUpperCase());
       const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto || '');
-      const sameTurn = loginProfile ? loginProfile.replace('Turno ', '') : data.turno;
+      const sameTurn = data.turno;
 
       // Sort paradas by time to find the latest end time
       const sortedParadas = [...paradas].sort((a, b) => a.horaFim.localeCompare(b.horaFim));
@@ -936,7 +813,7 @@ export default function App() {
 
   const handleFinish = useCallback(async (op: Operation, qtd: string, time: string, reprocesso: string, paradas: ParadaRecord[], onSuccess: () => void) => {
     if (loginProfile) {
-      const shiftCheck = isShiftAllowed(loginProfile);
+      const shiftCheck = isShiftAllowed(`Turno ${currentTurnForView}`);
       logAudit({
         userProfile: loginProfile,
         action: 'FINISH_OP',
@@ -995,14 +872,14 @@ export default function App() {
         await moveFinishedToPending(revertingOp.id, revertingOp.turno || currentTurnForView);
         
         logAudit({
-          userProfile: loginProfile || 'UNKNOWN',
+          userProfile: currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN',
           action: 'REVERT_OP',
-          expectedShift: loginProfile || 'UNKNOWN',
-          activeShift: isShiftAllowed(loginProfile || 'UNKNOWN').activeTurno,
+          expectedShift: currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN',
+          activeShift: isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').activeTurno,
           serverTimestamp: getServerTimeISO(),
-          result: isShiftAllowed(loginProfile || 'UNKNOWN').allowed ? (isShiftAllowed(loginProfile || 'UNKNOWN').toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
+          result: isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').allowed ? (isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
           opReference: revertingOp.opNumber,
-          reason: overrideReason || undefined
+          reason: undefined
         });
 
         toast.success('OP movida de volta para Pendentes.');
@@ -1015,9 +892,9 @@ export default function App() {
     };
 
     if (loginProfile) {
-      const shiftCheck = isShiftAllowed(loginProfile);
+      const shiftCheck = isShiftAllowed(`Turno ${currentTurnForView}`);
       if (!shiftCheck.allowed) {
-        requireSupervisorOverride(() => doRevert());
+        doRevert();
         return;
       }
     }
@@ -1025,46 +902,7 @@ export default function App() {
     doRevert();
   };
 
-  // Override Supervisor States
-  const [overrideModalOpen, setOverrideModalOpen] = useState(false);
-  const [overrideReason, setOverrideReason] = useState("");
-  const [overridePassword, setOverridePassword] = useState("");
-  const [pendingOverrideAction, setPendingOverrideAction] = useState<(() => void) | null>(null);
-
-  const requireSupervisorOverride = (action: () => void) => {
-    setPendingOverrideAction(() => action);
-    setOverrideModalOpen(true);
-  };
-
-  const handleOverrideSubmit = async () => {
-    if (!overrideReason.trim()) {
-      toast.error('O motivo é obrigatório.');
-      return;
-    }
-    if (!overridePassword.trim()) {
-      toast.error('Senha do supervisor é obrigatória.');
-      return;
-    }
-    
-    try {
-      const isValid = await verifySupervisorPassword(overridePassword.trim());
-      if (!isValid) {
-        toast.error('Senha de supervisor incorreta!');
-        return;
-      }
-      if (pendingOverrideAction) {
-        pendingOverrideAction();
-      }
-      setOverrideModalOpen(false);
-      setOverrideReason("");
-      setOverridePassword("");
-      setPendingOverrideAction(null);
-    } catch(e) {
-      console.error(e);
-      toast.error("Erro ao validar supervisor.");
-    }
-  };
-
+  // Override Supervisor States removed
   const logicalToday = getLogicalDateStr(getServerTime());
 
   const myFinishedOps = useMemo(() => {
@@ -1078,17 +916,41 @@ export default function App() {
   const myPendingOps = useMemo(() => {
     return operations.filter(op => {
       if (op.isAvulsa) return false;
-      const sameTurn = op.turno === currentTurnForView;
-      if (!op.carimboInicial) return sameTurn;
-      return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
+      if (!op.carimboInicial) return true;
+      return getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
     });
   }, [operations, currentTurnForView, logicalToday]);
 
-  // Normalize linha names: 'Linha 05' and '05' both become '05'
+  // Normalize linha names: 'Linha 05', '05', 'Linha 5', '5' all become '5'
   const normalizeLinha = (l: string) => {
     if (!l) return l;
     const match = l.trim().match(/\d+/);
-    return match ? match[0] : l.trim();
+    return match ? parseInt(match[0], 10).toString() : l.trim().toLowerCase();
+  };
+
+  const formatLinhaDisplay = (l: string) => {
+    if (!l || l.toLowerCase() === 'todas') return 'Todas as Linhas';
+    const num = parseInt(l, 10);
+    if (isNaN(num)) return l;
+    return `Linha ${num < 10 ? '0' + num : num}`;
+  };
+
+  const updateSelectedLinha = (line: string, toggle = false) => {
+    const normalized = line.trim().toLowerCase() === 'todas' ? 'Todas' : normalizeLinha(line);
+    setSelectedLinha(prev => {
+      if (toggle) {
+        const next = normalized === prev ? 'Todas' : normalized;
+        if (next !== 'Todas') {
+          localStorage.setItem('v-ops-default-linha', next);
+        }
+        return next;
+      } else {
+        if (normalized !== 'Todas') {
+          localStorage.setItem('v-ops-default-linha', normalized);
+        }
+        return normalized;
+      }
+    });
   };
 
   const pendingLinhas = useMemo(() => {
@@ -1112,24 +974,74 @@ export default function App() {
   }, [myFinishedOps]);
 
   const visiblePendingOps = useMemo(() => myPendingOps.filter(op => {
-    if (selectedLinhaPending !== 'Todas' && normalizeLinha(op.linha) !== selectedLinhaPending) return false;
+    if (selectedLinha !== 'Todas' && normalizeLinha(op.linha) !== selectedLinha) return false;
     return matchesSearch(op, searchPending);
-  }), [myPendingOps, searchPending, selectedLinhaPending]);
+  }), [myPendingOps, searchPending, selectedLinha]);
 
   const visibleFinishedOps = useMemo(() => myFinishedOps.filter(op => {
-    if (selectedLinhaFinished !== 'Todas' && normalizeLinha(op.linha) !== selectedLinhaFinished) return false;
+    if (selectedLinha !== 'Todas' && normalizeLinha(op.linha) !== selectedLinha) return false;
     return matchesSearch(op, searchFinished);
-  }), [myFinishedOps, searchFinished, selectedLinhaFinished]);
+  }), [myFinishedOps, searchFinished, selectedLinha]);
 
   const totalUnidades = myFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0);
   const visibleTotalUnidades = visibleFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0);
 
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
-  const displayPendingOps = tourActive ? TOUR_MOCK_OPS : visiblePendingOps;
-  const displayFinishedOps = tourActive ? TOUR_MOCK_FINISHED : visibleFinishedOps;
+  const rawDisplayPendingOps = tourActive ? TOUR_MOCK_OPS : visiblePendingOps;
+  const rawDisplayFinishedOps = tourActive ? TOUR_MOCK_FINISHED : visibleFinishedOps;
+  
+  const displayPendingOps = rawDisplayPendingOps.slice(0, visiblePendingCount);
+  const displayFinishedOps = rawDisplayFinishedOps.slice(0, visibleFinishedCount);
+
+  const handleScrollPending = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop <= clientHeight * 1.5) {
+      if (visiblePendingCount < rawDisplayPendingOps.length) {
+        setVisiblePendingCount(prev => prev + 20);
+      }
+    }
+  }, [visiblePendingCount, rawDisplayPendingOps.length]);
+
+  const handleScrollFinished = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop <= clientHeight * 1.5) {
+      if (visibleFinishedCount < rawDisplayFinishedOps.length) {
+        setVisibleFinishedCount(prev => prev + 20);
+      }
+    }
+  }, [visibleFinishedCount, rawDisplayFinishedOps.length]);
   const displayTotalUnidades = tourActive
     ? TOUR_MOCK_FINISHED.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0)
     : visibleTotalUnidades;
+
+  const linhaHistoryMap = useMemo(() => {
+    const map: Record<string, (FinishedOperation | Operation)[]> = {};
+    const getKey = (op: any) => {
+      if (op.isAvulsa) return null;
+      const linha = normalizeLinha(op.linha);
+      const date = op.carimboInicial ? op.carimboInicial.substring(0, 10) : '';
+      return `${linha}|${op.turno}|${date}`;
+    };
+
+    finishedOps.forEach(f => {
+      const key = getKey(f);
+      if (key) {
+        if (!map[key]) map[key] = [];
+        map[key].push(f);
+      }
+    });
+
+    operations.forEach(p => {
+      const key = getKey(p);
+      if (key) {
+        if (!map[key]) map[key] = [];
+        map[key].push(p);
+      }
+    });
+
+    return map;
+  }, [finishedOps, operations]);
+
 
   const confirmDelete = async () => {
     const doDelete = async () => {
@@ -1146,14 +1058,14 @@ export default function App() {
         }
         
         logAudit({
-          userProfile: loginProfile || 'UNKNOWN',
+          userProfile: currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN',
           action: 'DELETE_OP',
-          expectedShift: loginProfile || 'UNKNOWN',
-          activeShift: isShiftAllowed(loginProfile || 'UNKNOWN').activeTurno,
+          expectedShift: currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN',
+          activeShift: isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').activeTurno,
           serverTimestamp: getServerTimeISO(),
-          result: isShiftAllowed(loginProfile || 'UNKNOWN').allowed ? (isShiftAllowed(loginProfile || 'UNKNOWN').toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
+          result: isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').allowed ? (isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
           opReference: deletingOp.opNumber,
-          reason: overrideReason || undefined
+          reason: undefined
         });
 
       } catch (err: any) {
@@ -1165,9 +1077,9 @@ export default function App() {
     };
 
     if (loginProfile) {
-      const shiftCheck = isShiftAllowed(loginProfile);
+      const shiftCheck = isShiftAllowed(`Turno ${currentTurnForView}`);
       if (!shiftCheck.allowed) {
-        requireSupervisorOverride(() => doDelete());
+        doDelete();
         return;
       }
     }
@@ -1175,35 +1087,15 @@ export default function App() {
     doDelete();
   };
 
-  // ─── Tela de Login ────────────────────────────────────────────────────────
-  if (!loginProfile) {
-    return (
-      <>
-        <Toaster position="top-center" />
-        <LoginScreen 
-          profiles={profiles}
-          selectedProfile={selectedProfile}
-          setSelectedProfile={setSelectedProfile}
-          passwordInput={passwordInput}
-          setPasswordInput={setPasswordInput}
-          showPassword={showPassword}
-          setShowPassword={setShowPassword}
-          loginLoading={loginLoading}
-          handleLogin={handleLogin}
-        />
-      </>
-    );
-  }
-
-  const today = format(new Date(), 'dd/MM/yyyy');
+    const today = format(new Date(), 'dd/MM/yyyy');
 
   return (
     <>
       <Toaster position="top-center" />
 
-      <div className="min-h-screen bg-[#F9FAFB] overflow-x-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 overflow-x-hidden">
         {/* Header - Distribución Profesional */}
-        <header className="bg-white/95 backdrop-blur-xl border-b border-zinc-200/80 shadow-sm sticky top-0 z-30 pt-[max(0px,env(safe-area-inset-top))]">
+        <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm sticky top-0 z-30 pt-[max(0px,env(safe-area-inset-top))]">
           <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 2xl:px-8 py-3 sm:py-0 min-h-[4.25rem] sm:h-20 flex items-center justify-between gap-3">
             
             {/* SECCIÓN IZQUIERDA: Logo y Contexto */}
@@ -1218,59 +1110,44 @@ export default function App() {
                 <h1 className="text-[15px] sm:text-lg font-black text-zinc-950 tracking-tight leading-none truncate mb-1.5">
                   Diário de Bordo
                 </h1>
-                
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[9px] sm:text-xs font-black text-zinc-500 tracking-widest uppercase bg-zinc-100/80 px-1.5 py-0.5 rounded border border-zinc-200/80 shadow-sm leading-tight shrink-0">
-                    {today}
-                  </span>
-                  
-                  <button 
-                    onClick={() => setShowProductManager(true)}
-                    className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-1.5 py-0.5 rounded transition-colors uppercase tracking-widest shrink-0"
-                  >
-                    <Pencil className="w-2.5 h-2.5" /> 
-                    <span>Produtos</span>
-                  </button>
-                  
-                  <button 
-                    onClick={() => setTourActive(true)}
-                    className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-amber-600 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded transition-colors uppercase tracking-widest shrink-0"
-                  >
-                    <HelpCircle className="w-2.5 h-2.5" /> 
-                    <span>Tour</span>
-                  </button>
+                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">
+                  <span>{today}</span>
+                  <span className="w-1 h-1 rounded-full bg-zinc-300 shrink-0"></span>
+                  <span className="truncate">{loginProfile}</span>
                 </div>
               </div>
             </div>
 
-            {/* SECCIÓN DERECHA: Estado y Acciones de Usuario */}
-            <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0">
+            {/* SECCIÓN DERECHA: Botones (Desktop y Mobile) */}
+            <div className="flex items-center gap-2 shrink-0 tour-header-actions">
               
-              {/* Contador siempre visible y alineado a la derecha en móviles */}
-              <ToleranceCountdown profile={loginProfile} onExpire={handleLogout} />
+              <button 
+                onClick={() => setShowProductManager(true)}
+                className="flex items-center justify-center sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors shadow-sm"
+                title="Gerenciar Produtos"
+              >
+                <Pencil className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> 
+                <span className="hidden sm:inline">Produtos</span>
+              </button>
               
-              {/* Menú de PC rediseñado como una píldora unificada */}
-              <div className="hidden lg:flex items-center bg-zinc-50 border border-zinc-200/80 rounded-[1rem] p-1 pl-4 shadow-sm">
-                <span className="text-xs font-black text-zinc-700 uppercase tracking-widest truncate max-w-[150px] mr-2">
-                  {loginProfile}
-                </span>
-                
-                <div className="w-[2px] h-4 bg-zinc-200/80 rounded-full mx-1" />
+              <button 
+                onClick={() => setTourActive(true)}
+                className="flex items-center justify-center sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors shadow-sm"
+                title="Iniciar Tour"
+              >
+                <HelpCircle className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> 
+                <span className="hidden sm:inline">Tour</span>
+              </button>
 
+              {/* Settings (Solo visible en Desktop porque en mobile está abajo) */}
+              <div className="hidden lg:flex items-center gap-2 ml-1">
+                <div className="w-[1px] h-5 bg-zinc-200"></div>
                 <button 
-                  onClick={() => setChangePasswordOpen(true)} 
-                  className="w-9 h-9 flex items-center justify-center text-zinc-500 hover:text-zinc-950 rounded-xl hover:bg-white border border-transparent hover:border-zinc-200 transition-all focus-visible:outline-none" 
-                  title="Alterar Senha"
+                  onClick={() => setSettingsModalOpen(true)}
+                  className="flex items-center justify-center w-8 h-8 text-zinc-600 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-lg transition-colors shadow-sm"
+                  title="Configurações"
                 >
-                  <KeyRound className="w-4 h-4" />
-                </button>
-
-                <button 
-                  onClick={handleLogout} 
-                  className="w-9 h-9 flex items-center justify-center text-zinc-500 hover:text-red-600 rounded-xl hover:bg-red-50 border border-transparent hover:border-red-100 transition-all focus-visible:outline-none ml-0.5" 
-                  title="Sair da Conta"
-                >
-                  <LogOut className="w-4 h-4" />
+                  <Settings className="w-4 h-4" />
                 </button>
               </div>
 
@@ -1280,40 +1157,29 @@ export default function App() {
 
         {/* Mobile Bottom Bar — Floating Pill */}
         <div className="lg:hidden fixed bottom-0 left-0 w-full z-50 px-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] pointer-events-none tour-tab-bar">
-          <div className="pointer-events-auto bg-zinc-950/95 backdrop-blur-xl rounded-full ring-1 ring-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.45)] flex items-center justify-between h-[60px] px-1.5">
+          <div className="pointer-events-auto bg-zinc-950/95 backdrop-blur-xl rounded-full ring-1 ring-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.45)] flex items-center justify-between h-[60px] px-2">
             
             {/* Izquierda: Solo texto de Turno */}
-            <div className="flex items-center pl-4 flex-1 min-w-0">
-              <span className="text-[13px] sm:text-sm font-black text-white leading-none truncate">Turno {currentTurnForView?.slice(-1)}</span>
+            <div className="flex items-center pl-4">
+              <span className="text-[14px] font-black text-white leading-none">Turno {currentTurnForView?.slice(-1)}</span>
             </div>
             
             {/* Centro: Botón Nova OP */}
             <button
               onClick={() => setIsNovaSheetOpen(true)}
-              className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-zinc-950 font-black text-[13px] tracking-tight px-4 sm:px-5 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
+              className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-zinc-950 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-[18px] h-[18px] stroke-[3]" />
               Nova OP
             </button>
             
             {/* Derecha: Botones de Configuración y Salir */}
-            <div className="flex-1 flex items-center justify-end pr-1 gap-1 min-w-0">
+            <div className="flex items-center pr-1">
               <button 
-                onClick={() => setChangePasswordOpen(true)} 
-                className="w-10 h-10 rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
-                title="Alterar Senha"
+                onClick={() => setSettingsModalOpen(true)}
+                className="w-11 h-11 flex items-center justify-center rounded-full text-zinc-400 hover:bg-white/10 hover:text-white transition-colors"
               >
-                <KeyRound className="w-[18px] h-[18px]" />
-              </button>
-              
-              <div className="w-px h-4 bg-white/20 shrink-0" />
-              
-              <button 
-                onClick={handleLogout} 
-                className="w-10 h-10 rounded-full flex items-center justify-center text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors shrink-0"
-                title="Sair da Conta"
-              >
-                <LogOut className="w-[18px] h-[18px]" />
+                <Settings className="w-[22px] h-[22px]" />
               </button>
             </div>
 
@@ -1353,23 +1219,23 @@ export default function App() {
         </div>
 
         {/* Desktop stats strip */}
-        <div className="hidden lg:block bg-zinc-950 border-b border-zinc-800">
+        <div className="hidden lg:block bg-slate-900 border-b border-slate-800 shadow-inner">
           <div className="w-full max-w-[1920px] mx-auto px-6 2xl:px-8 h-10 flex items-center gap-5 2xl:gap-7">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-black text-white">{myPendingOps.length}</span>
-              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Em andamento</span>
+              <span className="text-sm font-bold text-white">{myPendingOps.length}</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Em andamento</span>
             </div>
-            <div className="h-3 w-px bg-zinc-700" />
+            <div className="h-4 w-px bg-slate-700/50" />
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-black text-emerald-400">{myFinishedOps.length}</span>
-              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Concluídas</span>
+              <span className="text-sm font-bold text-emerald-400">{myFinishedOps.length}</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Concluídas</span>
             </div>
-            <div className="h-3 w-px bg-zinc-700" />
+            <div className="h-4 w-px bg-slate-700/50" />
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-black text-emerald-400">{totalUnidades.toLocaleString()} UN</span>
-              <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Produzido</span>
+              <span className="text-sm font-bold text-emerald-400">{totalUnidades.toLocaleString()} UN</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Produzido</span>
             </div>
-            <div className="ml-auto text-[9px] font-bold text-zinc-600 uppercase tracking-widest">
+            <div className="ml-auto text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
               {new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
             </div>
           </div>
@@ -1379,7 +1245,7 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-4 lg:gap-5 2xl:gap-7 items-start">
 
             {/* Pendentes */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-5 xl:col-span-5 2xl:col-span-5 lg:order-2 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-pendentes w-full', mobileTab !== 'pendentes' ? 'hidden lg:flex' : 'flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-slate-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-5 2xl:col-span-5 lg:order-2 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-slate-200/80 sm:border-y-0 relative tour-pendentes w-full', mobileTab !== 'pendentes' ? 'hidden lg:flex' : 'flex')}>
               <div className="p-4 sm:p-5 border-b border-zinc-100 flex flex-col gap-3 bg-zinc-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:14px_14px] opacity-50" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
@@ -1401,7 +1267,7 @@ export default function App() {
                     <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Pesquisar produto, linha..." className="w-full h-10 pl-9 pr-3 bg-white border border-zinc-200/80 rounded-xl text-base sm:text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-sm transition-all" />
                   </div>
                   
-                  {pendingLinhas.length > 1 && (
+                  {pendingLinhas.length > 1 && operatingMode !== 'dedicated' && (
                     <div className="relative">
                       <Popover open={openLineFilterPending} onOpenChange={setOpenLineFilterPending}>
                         <PopoverTrigger asChild>
@@ -1410,14 +1276,14 @@ export default function App() {
                             role="combobox"
                             className={cn(
                               "w-full h-11 justify-between px-4 rounded-xl text-sm font-bold border-2 transition-all shadow-sm focus:ring-2 focus:ring-zinc-900/20",
-                              selectedLinhaPending !== 'Todas'
+                              selectedLinha !== 'Todas'
                                 ? "bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-800"
                                 : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300"
                             )}
                           >
                             <div className="flex items-center gap-2">
                               <span className="opacity-60">Linha:</span>
-                              <span>{selectedLinhaPending}</span>
+                              <span>{formatLinhaDisplay(selectedLinha)}</span>
                             </div>
                             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-40" />
                           </Button>
@@ -1435,16 +1301,16 @@ export default function App() {
                                     key={linha}
                                     value={linha}
                                     onSelect={(currentValue) => {
-                                      setSelectedLinhaPending(currentValue === selectedLinhaPending ? 'Todas' : currentValue);
+                                      updateSelectedLinha(currentValue, true);
                                       setOpenLineFilterPending(false);
                                     }}
                                     className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] aria-selected:text-zinc-950 transition-colors font-bold text-xs mb-0.5 last:mb-0"
                                   >
                                     <div className="flex items-center gap-2">
                                       <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300" : "bg-amber-400")} />
-                                      {linha === 'Todas' ? 'Todas as Linhas' : `Linha ${linha}`}
+                                      {formatLinhaDisplay(linha)}
                                     </div>
-                                    {selectedLinhaPending === linha && <Check className="h-3 w-3 text-zinc-900" />}
+                                    {selectedLinha === linha && <Check className="h-3 w-3 text-zinc-900" />}
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
@@ -1457,7 +1323,7 @@ export default function App() {
                 </div>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-3 pb-[5.5rem] sm:p-5 bg-zinc-50/50 tour-pendentes-items">
+              <div className="flex-1 overflow-y-auto p-3 pb-[5.5rem] sm:p-5 bg-zinc-50/50 tour-pendentes-items" onScroll={handleScrollPending}>
                 {displayPendingOps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full min-h-[250px] py-12 text-zinc-400 text-center animate-in fade-in duration-500">
                     <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-4">
@@ -1474,22 +1340,9 @@ export default function App() {
                     openEdit={openEdit} 
                     setDeletingOp={setDeletingOp} 
                     availableParadas={availableParadas}
-                    linhaHistory={[
-                      ...finishedOps.filter(f => {
-                        if (f.isAvulsa) return false;
-                        const isSameLinha = normalizeLinha(f.linha) === normalizeLinha(op.linha);
-                        const isSameTurno = f.turno === op.turno;
-                        const isSameDate = (!f.carimboInicial || !op.carimboInicial) ? true : (f.carimboInicial.substring(0, 10) === op.carimboInicial.substring(0, 10));
-                        return isSameLinha && isSameTurno && isSameDate;
-                      }),
-                      ...operations.filter(p => {
-                        if (p.isAvulsa) return false;
-                        const isSameLinha = normalizeLinha(p.linha) === normalizeLinha(op.linha);
-                        const isSameTurno = p.turno === op.turno;
-                        const isSameDate = (!p.carimboInicial || !op.carimboInicial) ? true : (p.carimboInicial.substring(0, 10) === op.carimboInicial.substring(0, 10));
-                        return isSameLinha && isSameTurno && isSameDate;
-                      })
-                    ]}
+                    linhaHistory={
+                      linhaHistoryMap[`${normalizeLinha(op.linha)}|${op.turno}|${op.carimboInicial ? op.carimboInicial.substring(0, 10) : ''}`] || []
+                    }
                   />
                 ))}
               </div>
@@ -1498,6 +1351,8 @@ export default function App() {
             {/* Nova OP */}
             <div className="hidden lg:flex flex-col lg:col-span-4 xl:col-span-3 2xl:col-span-3 lg:order-1 lg:h-[calc(100dvh-11rem)] tour-nova-op">
               <StartOpForm
+                operatingMode={operatingMode}
+                selectedLinha={selectedLinha}
                 currentTurnForView={currentTurnForView}
                 handleSubmit={handleSubmit}
                 handlePreStartOp={handlePreStartOp}
@@ -1517,19 +1372,17 @@ export default function App() {
                 setSearchLine={setSearchLine}
                 allLinhas={allLinhas}
                 setCustomLinhas={setCustomLinhas}
-                loginProfile={loginProfile}
                 showConfirmStart={showConfirmStart}
                 setShowConfirmStart={setShowConfirmStart}
                 startFormData={startFormData}
                 onStartOp={onStartOp}
                 availableParadas={availableParadas}
                 setAvailableParadas={setAvailableParadas}
-                onParadaOnly={handleParadaOnly}
               />
             </div>
 
             {/* Concluídas */}
-            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden lg:col-span-3 xl:col-span-4 2xl:col-span-4 lg:order-3 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-zinc-200/80 sm:border-y-0 relative tour-concluidas', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
+            <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-slate-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-4 2xl:col-span-4 lg:order-3 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-slate-200/80 sm:border-y-0 relative tour-concluidas', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
               <div className="p-4 sm:p-5 border-b border-zinc-100 flex flex-col gap-3 bg-emerald-950/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#05966910_1px,transparent_1px),linear-gradient(to_bottom,#05966910_1px,transparent_1px)] bg-[size:14px_14px] opacity-70" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
@@ -1555,7 +1408,7 @@ export default function App() {
                     <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Pesquisar OP ou produto..." className="w-full h-10 pl-9 pr-3 bg-white border border-zinc-200/80 rounded-xl text-base sm:text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-sm transition-all" />
                   </div>
                   
-                  {finishedLinhas.length > 1 && (
+                  {finishedLinhas.length > 1 && operatingMode !== 'dedicated' && (
                     <div className="relative">
                       <Popover open={openLineFilterFinished} onOpenChange={setOpenLineFilterFinished}>
                         <PopoverTrigger asChild>
@@ -1564,14 +1417,14 @@ export default function App() {
                             role="combobox"
                             className={cn(
                               "w-full h-11 justify-between px-4 rounded-xl text-sm font-bold border-2 transition-all shadow-sm focus:ring-2 focus:ring-emerald-900/20",
-                              selectedLinhaFinished !== 'Todas'
+                              selectedLinha !== 'Todas'
                                 ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700"
                                 : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300"
                             )}
                           >
                             <div className="flex items-center gap-2">
                               <span className="opacity-60">Linha:</span>
-                              <span>{selectedLinhaFinished}</span>
+                              <span>{formatLinhaDisplay(selectedLinha)}</span>
                             </div>
                             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-40" />
                           </Button>
@@ -1589,16 +1442,16 @@ export default function App() {
                                     key={linha}
                                     value={linha}
                                     onSelect={(currentValue) => {
-                                      setSelectedLinhaFinished(currentValue === selectedLinhaFinished ? 'Todas' : currentValue);
+                                      updateSelectedLinha(currentValue, true);
                                       setOpenLineFilterFinished(false);
                                     }}
                                     className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] aria-selected:text-zinc-950 transition-colors font-bold text-xs mb-0.5 last:mb-0"
                                   >
                                     <div className="flex items-center gap-2">
                                       <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300" : "bg-emerald-500")} />
-                                      {linha === 'Todas' ? 'Todas as Linhas' : `Linha ${linha}`}
+                                      {formatLinhaDisplay(linha)}
                                     </div>
-                                    {selectedLinhaFinished === linha && <Check className="h-3 w-3 text-zinc-900" />}
+                                    {selectedLinha === linha && <Check className="h-3 w-3 text-zinc-900" />}
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
@@ -1611,7 +1464,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-3 pb-[5.5rem] sm:p-5 bg-zinc-50/50">
+              <div className="flex-1 overflow-y-auto p-3 pb-[5.5rem] sm:p-5 bg-zinc-50/50" onScroll={handleScrollFinished}>
                 {displayFinishedOps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full min-h-[250px] py-12 text-zinc-400 text-center animate-in fade-in duration-500">
                     <div className="w-16 h-16 bg-zinc-100 rounded-2xl flex items-center justify-center mb-4">
@@ -1677,6 +1530,8 @@ export default function App() {
           <div className="flex-1 overflow-y-auto">
           <StartOpForm
             hideHeader
+            operatingMode={operatingMode}
+            selectedLinha={selectedLinha}
             currentTurnForView={currentTurnForView}
             handleSubmit={handleSubmit}
             handlePreStartOp={handlePreStartOp}
@@ -1696,7 +1551,6 @@ export default function App() {
             setSearchLine={setSearchLine}
             allLinhas={allLinhas}
             setCustomLinhas={setCustomLinhas}
-            loginProfile={loginProfile}
             showConfirmStart={showConfirmStart}
             setShowConfirmStart={setShowConfirmStart}
             startFormData={startFormData}
@@ -1707,11 +1561,6 @@ export default function App() {
             }}
             availableParadas={availableParadas}
             setAvailableParadas={setAvailableParadas}
-            onParadaOnly={async (data: any, paradas: any) => {
-              await handleParadaOnly(data, paradas);
-              setIsNovaSheetOpen(false);
-              setMobileTab('concluidas');
-            }}
           />
           </div>
         </DialogContent>
@@ -1761,48 +1610,7 @@ export default function App() {
         </DialogContent>
       </Dialog>
 
-      {/* Override Supervisor Dialog */}
-      <Dialog open={overrideModalOpen} onOpenChange={setOverrideModalOpen}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
-          <DialogHeader className="text-center space-y-2 mb-8">
-            <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200/50 shadow-sm">
-              <KeyRound className="w-8 h-8" />
-            </div>
-            <DialogTitle className="text-2xl font-black text-zinc-950 tracking-tight">Autorização Necessária</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mb-8">
-             <p className="text-sm text-zinc-500 font-medium text-center">Seu turno já foi encerrado. Esta ação requer autorização do supervisor.</p>
-             <div className="space-y-1.5 flex flex-col">
-               <Label className="text-sm font-bold text-zinc-800">Senha do Supervisor</Label>
-               <Input
-                 type="password"
-                 placeholder="Digite a senha"
-                 className="h-14 px-4 bg-zinc-50 border-0 ring-1 ring-zinc-200/50 focus-visible:ring-2 focus-visible:ring-zinc-900 rounded-xl text-base sm:text-sm"
-                 value={overridePassword}
-                 onChange={(e) => setOverridePassword(e.target.value)}
-               />
-             </div>
-             <div className="space-y-1.5 flex flex-col mt-4">
-               <Label className="text-sm font-bold text-zinc-800">Motivo da Exceção</Label>
-               <Input
-                 type="text"
-                 placeholder="Ex: Correção de OP atrasada"
-                 className="h-14 px-4 bg-zinc-50 border-0 ring-1 ring-zinc-200/50 focus-visible:ring-2 focus-visible:ring-zinc-900 rounded-xl text-base sm:text-sm"
-                 value={overrideReason}
-                 onChange={(e) => setOverrideReason(e.target.value)}
-               />
-             </div>
-          </div>
-          <DialogFooter className="flex-col sm:flex-col gap-3">
-            <Button onClick={handleOverrideSubmit} className="w-full h-14 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-base font-black shadow-xl shadow-red-500/20 focus-visible:ring-4 focus-visible:ring-red-500/20 transition-all">
-              Autorizar Ação
-            </Button>
-            <Button variant="ghost" onClick={() => { setOverrideModalOpen(false); setPendingOverrideAction(null); }} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
-               Cancelar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Override Supervisor Dialog removed */}
 
       {/* Edit OP Dialog */}
       {editingOp && (
@@ -1825,7 +1633,6 @@ export default function App() {
           setSearchEditLine={setSearchEditLine}
           allLinhas={allLinhas}
           setCustomLinhas={setCustomLinhas}
-          loginProfile={loginProfile}
           editParadas={editParadas}
           setEditParadas={setEditParadas}
           addEditParada={addEditParada}
@@ -1838,25 +1645,6 @@ export default function App() {
           editParadaEnd={editParadaEnd}
           setEditParadaEnd={setEditParadaEnd}
           availableParadas={availableParadas}
-        />
-      )}
-
-      {/* Change Password Dialog */}
-      {changePasswordOpen && (
-        <ChangePasswordModal
-          changePasswordOpen={changePasswordOpen}
-          setChangePasswordOpen={setChangePasswordOpen}
-          loginProfile={loginProfile!}
-          showChangerPassword={showChangerPassword}
-          setShowChangerPassword={setShowChangerPassword}
-          changerOldPassword={changerOldPassword}
-          setChangerOldPassword={setChangerOldPassword}
-          newPassword={newPassword}
-          setNewPassword={setNewPassword}
-          confirmNewPassword={confirmNewPassword}
-          setConfirmNewPassword={setConfirmNewPassword}
-          handleChangePassword={handleChangePassword}
-          changingPasswordLoading={changingPasswordLoading}
         />
       )}
 
@@ -1876,6 +1664,79 @@ export default function App() {
           onFinish={() => setTourActive(false)}
         />
       )}
+      {/* Settings Dialog */}
+      <Dialog open={settingsModalOpen} onOpenChange={setSettingsModalOpen}>
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl border-0 ring-1 ring-zinc-200/50">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-black text-zinc-950">Ajustes da Tablet</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <Label className="text-sm font-bold text-zinc-800">Modo de Operação</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOperatingMode('global');
+                    localStorage.setItem('v-ops-operating-mode', 'global');
+                  }}
+                  className={cn(
+                    "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all",
+                    operatingMode === 'global' ? "border-zinc-900 bg-zinc-50" : "border-zinc-200 hover:border-zinc-300"
+                  )}
+                >
+                  <span className="font-bold text-sm">Global</span>
+                  <span className="text-xs text-zinc-500 mt-1">Todas as linhas</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOperatingMode('dedicated');
+                    localStorage.setItem('v-ops-operating-mode', 'dedicated');
+                  }}
+                  className={cn(
+                    "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all",
+                    operatingMode === 'dedicated' ? "border-zinc-900 bg-zinc-50" : "border-zinc-200 hover:border-zinc-300"
+                  )}
+                >
+                  <span className="font-bold text-sm">Dedicado</span>
+                  <span className="text-xs text-zinc-500 mt-1">Apenas 1 linha</span>
+                </button>
+              </div>
+            </div>
+
+            {operatingMode === 'dedicated' && (
+              <div className="space-y-3 animate-in fade-in duration-200">
+                <Label className="text-sm font-bold text-zinc-800">Linha da Tablet</Label>
+                <div className="grid grid-cols-4 gap-1.5 max-h-[200px] overflow-y-auto p-1">
+                  {Array.from({ length: 16 }, (_, i) => `Linha ${String(i + 1).padStart(2, '0')}`).map(l => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => {
+                        const normalized = normalizeLinha(l);
+                        setSelectedLinha(normalized);
+                        localStorage.setItem('v-ops-default-linha', normalized);
+                      }}
+                      className={cn(
+                        "h-10 rounded-lg text-xs font-bold border transition-all",
+                        selectedLinha === normalizeLinha(l) ? "bg-zinc-900 text-white border-zinc-900" : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
+                      )}
+                    >
+                      {l.replace('Linha ', '')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="mt-6 sm:justify-center">
+            <Button onClick={() => setSettingsModalOpen(false)} className="w-full sm:w-auto h-12 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-bold px-8">
+              Concluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

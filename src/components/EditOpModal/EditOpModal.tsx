@@ -31,7 +31,6 @@ export interface EditOpModalProps {
   setSearchEditLine: React.Dispatch<React.SetStateAction<string>>;
   allLinhas: string[];
   setCustomLinhas: React.Dispatch<React.SetStateAction<string[]>>;
-  loginProfile: string | null;
   loadingEdit: boolean;
   editParadas: ParadaRecord[];
   setEditParadas: React.Dispatch<React.SetStateAction<ParadaRecord[]>>;
@@ -65,7 +64,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
   setSearchEditLine,
   allLinhas,
   setCustomLinhas,
-  loginProfile,
+  
   loadingEdit,
   editParadas,
   setEditParadas,
@@ -199,13 +198,18 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="hidden">
+            <div className="space-y-2">
+              <Label className="block text-xs font-black text-zinc-500 uppercase tracking-widest pl-1">Turno</Label>
               <input type="hidden" {...registerEdit('turno')} />
-              <Select onValueChange={(v) => setValueEdit('turno', v)} value={watchEdit('turno') || ''} disabled={!!loginProfile}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="A">A</SelectItem><SelectItem value="B">B</SelectItem>
-                  <SelectItem value="C">C</SelectItem><SelectItem value="D">D</SelectItem>
+              <Select onValueChange={(v) => setValueEdit('turno', v)} value={watchEdit('turno') || ''}>
+                <SelectTrigger className="w-full h-14 border-2 border-zinc-200/80 bg-[#F9FAFB] rounded-2xl px-4 text-base font-bold text-zinc-900 focus:ring-0 focus:border-zinc-950 transition-all shadow-sm">
+                  <SelectValue placeholder="Turno" />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-zinc-200/80 shadow-xl">
+                  <SelectItem value="A" className="text-base font-bold py-2">A</SelectItem>
+                  <SelectItem value="B" className="text-base font-bold py-2">B</SelectItem>
+                  <SelectItem value="C" className="text-base font-bold py-2">C</SelectItem>
+                  <SelectItem value="D" className="text-base font-bold py-2">D</SelectItem>
                 </SelectContent>
               </Select>
             </div>

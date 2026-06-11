@@ -199,18 +199,19 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
         onDragEnd={handleDragEnd}
         animate={controls}
         style={{ x }}
-        className="relative bg-white sm:rounded-[2rem] rounded-[1.5rem] p-4 sm:p-5 border border-zinc-200/80 hover:border-zinc-300 hover:shadow-md transition-all shadow-sm overflow-hidden text-left flex flex-col gap-3 sm:gap-4 touch-pan-y"
+        className="relative bg-white sm:rounded-[2rem] rounded-[1.5rem] p-4 sm:p-5 border border-slate-200 hover:border-slate-300 hover:shadow-lg transition-all shadow-md overflow-hidden text-left flex flex-col gap-3 sm:gap-4 touch-pan-y"
       >
         <div className="absolute top-0 left-0 w-1 h-full bg-amber-400" />
 
         <div className="pl-3 flex items-start justify-between gap-3">
           <div className="flex flex-col flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-              <span className="text-xs font-black tracking-widest text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60 shadow-sm">OP {op.opNumber}</span>
-              <span className="text-[10px] font-bold text-zinc-500 bg-zinc-100 px-2 py-1 rounded-lg border border-zinc-200/70">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
-              {op.litragem && <span className="text-[10px] font-semibold text-zinc-400">{op.litragem}</span>}
+              <span className="text-xs font-bold tracking-widest text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60 shadow-sm">OP {op.opNumber}</span>
+              <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
+              <span className="text-[10px] font-bold tracking-widest text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200/60 shadow-sm">{op.turno?.startsWith('Turno') ? op.turno : `Turno ${op.turno}`}</span>
+              {op.litragem && <span className="text-[10px] font-semibold text-slate-400">{op.litragem}</span>}
             </div>
-            <h3 className="text-lg font-black text-zinc-900 tracking-tight leading-tight line-clamp-1 mb-1">{op.produto}</h3>
+            <h3 className="text-lg font-bold text-slate-900 tracking-tight leading-tight line-clamp-1 mb-1">{op.produto}</h3>
             <div className="flex items-center gap-1.5">
               <Clock className="w-3 h-3 text-zinc-400" />
               <span className="text-[10px] font-semibold text-zinc-400">Início {op.horaInicial}</span>
@@ -218,8 +219,8 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           </div>
           {elapsed && (
             <div className="shrink-0 bg-amber-50 border border-amber-200/60 rounded-xl px-2.5 py-2 text-center min-w-[52px]">
-              <p className="text-[8px] font-black uppercase tracking-widest text-amber-500 mb-0.5 leading-none">em curso</p>
-              <p className="text-sm font-black text-amber-700 tabular-nums leading-none">{elapsed}</p>
+              <p className="text-[8px] font-bold uppercase tracking-widest text-amber-500 mb-0.5 leading-none">em curso</p>
+              <p className="text-sm font-bold text-amber-700 tabular-nums leading-none">{elapsed}</p>
             </div>
           )}
         </div>

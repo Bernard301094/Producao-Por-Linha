@@ -62,7 +62,7 @@ function buildSteps(isDesktop: boolean): TourStep[] {
         id: 'nova-op',
         selector: '.tour-nova-op',
         title: 'Criar Nova OP',
-        body: 'Neste painel você inicia OPs ou lança paradas avulsas diretamente.\n\n• Aba Iniciar Produção — preencha o número da OP, produto e linha. Ao confirmar, a OP aparece imediatamente no painel Pendentes.\n\n• Aba Parada Avulsa — registre uma interrupção sem criar uma OP: selecione apenas a linha e adicione os motivos de parada com horários.',
+        body: 'Neste painel você inicia OPs ou lança paradas avulsas.\n\nPreencha o número da OP, produto e linha. Ao confirmar, a OP aparece imediatamente no painel Pendentes.',
       },
       {
         id: 'concluidas',
@@ -71,10 +71,10 @@ function buildSteps(isDesktop: boolean): TourStep[] {
         body: 'Quando uma OP é finalizada, ela migra para este painel com todos os dados: quantidade produzida, reprocesso, duração total e histórico de paradas.\n\nVocê pode editar qualquer campo, ou reverter a OP para Pendente.\n\nEsqueceu uma parada? Use o botão + Adicionar Parada Esquecida no card do histórico para inserí-la retroativamente.',
       },
       {
-        id: 'user-menu',
-        selector: '.tour-user-menu',
-        title: 'Painel de Usuário',
-        body: 'Na pílula de ações no canto superior direito você encontra:\n\n• Botão de Chave — altera sua senha com segurança\n• Botão Sair — encerra a sessão atual\n\nPronto — agora você conhece todos os painéis do Diário de Bordo. Bom turno!',
+        id: 'header-actions',
+        selector: '.tour-header-actions',
+        title: 'Ações Rápidas & Configurações',
+        body: 'No canto superior direito você encontra atalhos importantes:\n\n• Produtos — gerencie e cadastre os produtos e litragens da fábrica.\n• Configurações (⚙️) — ajuste a linha da tablet, altere sua senha e faça logout.\n\nPronto — agora você conhece todos os painéis do Diário de Bordo. Bom turno!',
       },
     ];
   }
@@ -93,7 +93,7 @@ function buildSteps(isDesktop: boolean): TourStep[] {
       id: 'tab-bar',
       selector: '.tour-tab-bar',
       title: 'Barra Inferior',
-      body: 'Esta barra flutuante concentra tudo que você precisa:\n\n• Esquerda — exibe o seu Turno ativo\n• Centro — botão Nova OP para criar uma ordem\n• Direita — Alterar Senha e Sair da conta\n\nPronto — agora você conhece tudo! Bom turno!',
+      body: 'Esta barra flutuante concentra tudo que você precisa:\n\n• Esquerda — exibe o seu Turno ativo\n• Centro — botão Nova OP para criar uma ordem\n• Direita — Configurações (⚙️) para ajustar a linha ou sair da conta.\n\nPronto — agora você conhece tudo! Bom turno!',
     },
   ];
 }

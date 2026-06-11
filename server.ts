@@ -1,6 +1,5 @@
 import 'isomorphic-fetch';
 import express from 'express';
-// Removed top-level vite import
 import { Client } from '@microsoft/microsoft-graph-client';
 import { ClientSecretCredential } from '@azure/identity';
 import path from 'path';
@@ -19,49 +18,6 @@ app.use('/api', (req, res, next) => {
   console.log(`[API Request] ${req.method} ${req.url}`);
   next();
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// JWT Auth Middleware — verifies Firebase ID tokens on every /api/* request.
-//
-// TO ENABLE:
-//   1. npm install firebase-admin
-//   2. Set FIREBASE_PROJECT_ID in your .env / Vercel env vars.
-//   3. Uncomment the middleware registration line at the bottom of this block.
-//
-// The firebase-admin SDK automatically picks up credentials from:
-//   - GOOGLE_APPLICATION_CREDENTIALS env var (path to service-account JSON), OR
-//   - The default service account when deployed on Google Cloud / Firebase Hosting.
-// ─────────────────────────────────────────────────────────────────────────────
-/*
-import * as admin from 'firebase-admin';
-
-if (!admin.apps.length) {
-  admin.initializeApp();  // credentials via GOOGLE_APPLICATION_CREDENTIALS or default service account
-}
-
-const verifyFirebaseToken = async (
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction
-) => {
-  const authHeader = req.headers['authorization'] || '';
-  if (!authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing or malformed Authorization header.' });
-  }
-  const idToken = authHeader.slice(7);
-  try {
-    const decoded = await admin.auth().verifyIdToken(idToken);
-    (req as any).firebaseUid = decoded.uid;
-    next();
-  } catch (err: any) {
-    console.warn('[Auth] Token verification failed:', err.message);
-    return res.status(403).json({ error: 'Unauthorized: invalid or expired token.' });
-  }
-};
-
-// Register BEFORE all /api route handlers:
-// app.use('/api', verifyFirebaseToken);
-*/
 
 // Microsoft Graph API Setup
 const getGraphClient = () => {
@@ -83,23 +39,13 @@ const getGraphClient = () => {
   });
 };
 
-const MS_EXCEL_URL = process.env.MICROSOFT_EXCEL_URL;
-const MS_SHEET_NAME = process.env.MICROSOFT_SHEET_NAME || 'Sheet1';
+const SITE_HOSTNAME = 'vonixxevc-my.sharepoint.com';
+const SITE_PATH = '/personal/maurilio_nascimento_tractgroup_com_br';
+const PRODUCAO_LIST = 'DB_Producao_Envase';
+const PARADAS_LIST = 'Registro_Paradas_Geral';
 
-const getShareId = (url: string) => {
-  return 'u!' + Buffer.from(url).toString('base64').replace(/\//g, '_').replace(/\+/g, '-').replace(/=/g, '');
-};
-
-const resolveExcelFile = async (client: any) => {
-  if (process.env.MICROSOFT_DRIVE_ID && process.env.MICROSOFT_EXCEL_ITEM_ID) {
-    return { driveId: process.env.MICROSOFT_DRIVE_ID, itemId: process.env.MICROSOFT_EXCEL_ITEM_ID };
-  }
-  if (!MS_EXCEL_URL) {
-    throw new Error('Falta el enlace configurado en MICROSOFT_EXCEL_URL');
-  }
-  const shareId = getShareId(MS_EXCEL_URL);
-  const driveItem = await client.api(`/shares/${shareId}/driveItem`).get();
-  return { driveId: driveItem.parentReference.driveId, itemId: driveItem.id };
+const getSiteUrlPrefix = () => {
+  return `/sites/${SITE_HOSTNAME}:${SITE_PATH}:`;
 };
 
 const hasLocalCredentials = !!(
@@ -116,12 +62,11 @@ app.get('/api/config-check', async (req, res) => {
   let connectionStatus = 'Not Configured';
   let details = '';
 
-  if (tenantId && clientId && MS_EXCEL_URL) {
+  if (tenantId && clientId) {
     try {
       const client = getGraphClient();
-      const { driveId, itemId } = await resolveExcelFile(client);
-      await client.api(`/drives/${driveId}/items/${itemId}`).get();
-      connectionStatus = 'Connected to OneDrive';
+      await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}`).get();
+      connectionStatus = 'Connected to SharePoint Lists';
     } catch (err: any) {
       connectionStatus = `Error: ${err.message}`;
       details = JSON.stringify(err.body || err);
@@ -131,8 +76,7 @@ app.get('/api/config-check', async (req, res) => {
   res.json({
     env: {
       MICROSOFT_TENANT_ID: tenantId ? 'Set' : 'NOT SET',
-      MICROSOFT_CLIENT_ID: clientId ? 'Set' : 'NOT SET',
-      MICROSOFT_EXCEL_URL: MS_EXCEL_URL ? 'Set' : 'NOT SET',
+      MICROSOFT_CLIENT_ID: clientId ? 'Set' : 'NOT SET'
     },
     status: connectionStatus,
     details
@@ -155,114 +99,82 @@ const formatLitragemText = (val: string): string => {
 };
 
 app.post('/api/append', async (req, res) => {
-  console.log("POST /api/append received (OneDrive)", req.body);
+  console.log("POST /api/append received (SharePoint Lists)", req.body);
   if (!hasLocalCredentials) {
     console.log("[Mock] MOCKING SUCCESS for /api/append because local MS credentials are missing.");
-    return res.status(200).json({ success: true, message: 'MOCKED Row added via OneDrive' });
+    return res.status(200).json({ success: true, message: 'MOCKED Row added via SharePoint Lists' });
   }
   
   try {
     const {
-      carimbo, op, litragem, produto, linha, turno, quantidade, horaInicial, horaFinal, qntReprocesso, paradas, isAvulsa
+      carimbo, op, litragem, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, qntReprocesso, paradas, isAvulsa
     } = req.body;
 
-    // Col A: DATA (carimbo)
-    // Col B: OP
-    // Col C: INICIO DA OP (horaInicial)
-    // Col D: FIM DA OP (horaFinal)
-    // Col E: LITRAGEM
-    // Col F: PRODUTO
-    // Col G: LINHA
-    // Col H: TURNO
-    // Col I: QUANTIDADE APONTADA (Unidades)
-    // Col J: QNT REPROCESSO
-    const rowValues = [
-      carimbo || new Date().toLocaleDateString('pt-BR'), 
-      op || '', 
-      horaInicial || '', 
-      horaFinal || '', 
-      formatLitragemText(litragem || ''), 
-      produto || '', 
-      linha || '', 
-      turno || '', 
-      quantidade || '', 
-      qntReprocesso || ''
-    ];
+    const producaoFields = {
+      Title: op || '', 
+      Data: carimbo || new Date().toLocaleDateString('pt-BR'),
+      OP: op || '',
+      Linha: linha || '',
+      Turno: turno || '',
+      Operador: operador || '',
+      Hora_Inicio: horaInicial || '',
+      Hora_Fim: horaFinal || '',
+      Produto: produto || '',
+      Litragem: formatLitragemText(litragem || ''),
+      Quantidade_Produzida: quantidade || '',
+      Observacoes: qntReprocesso ? `Reprocesso: ${qntReprocesso}` : ''
+    };
 
     const client = getGraphClient();
-    const { driveId, itemId } = await resolveExcelFile(client);
     
     try {
-      const msSheetName = MS_SHEET_NAME;
       let updateRes = null;
 
       if (!isAvulsa) {
-        const tablesRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/tables`).get();
-        
-        if (tablesRes.value && tablesRes.value.length > 0) {
-          const tableName = tablesRes.value[0].name;
-          updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/tables('${tableName}')/rows`)
-            .post({ values: [rowValues] });
-        } else {
-          const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-          const rowCount = usedRange.rowCount;
-          let nextRow = usedRange.rowIndex + rowCount;
-          if (rowCount === 1 && usedRange.values[0][0] === '') nextRow = 0;
-          const appendRangeStr = `A${nextRow + 1}:J${nextRow + 1}`;
-          updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`)
-            .patch({ values: [rowValues] });
-        }
+        updateRes = await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items`).post({
+          fields: producaoFields
+        });
       }
       
       // Sync paradas if provided
       if (paradas && Array.isArray(paradas) && paradas.length > 0) {
         try {
-          const paradasSheetName = 'PARADAS';
-          const pRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
-          const pRowCount = pRange.rowCount;
-          let pNextRow = pRange.rowIndex + pRowCount;
-          if (pRowCount === 1 && pRange.values[0][0] === '') pNextRow = 0;
-
-          const baseDate = rowValues[0];
-          const baseOp = rowValues[1];
-          const baseLitragem = rowValues[4];
-          const baseProduto = rowValues[5];
-          const baseLinha = rowValues[6];
-          const baseTurno = rowValues[7];
-
-          const newValues = paradas.map(p => [
-            baseDate,
-            baseOp,
-            baseLitragem,
-            baseProduto,
-            baseLinha,
-            baseTurno,
-            p.seq || '',
-            p.tipologia || '',
-            p.horaInicio || '',
-            p.horaFim || ''
-          ]);
-
-          const startRow = pNextRow + 1;
-          const endRow = pNextRow + newValues.length;
-          const pAppendRangeStr = `A${startRow}:J${endRow}`;
-          
-          await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${pAppendRangeStr}')`)
-            .patch({ values: newValues });
-          console.log("OneDrive Append Paradas success inside /api/append");
+          for (const p of paradas) {
+            const paradaFields = {
+              Title: p.seq || '',
+              Data: producaoFields.Data,
+              Area: 'Envase',
+              Linha: producaoFields.Linha,
+              Turno: producaoFields.Turno,
+              Produto: producaoFields.Produto,
+              Operador: producaoFields.Operador,
+              OP: producaoFields.OP,
+              Cod_Parada: p.seq || '',
+              Tipologia: p.tipologia || '',
+              Hora_Inicio: p.horaInicio || '',
+              Hora_Fim: p.horaFim || ''
+            };
+            
+            await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
+              fields: paradaFields
+            });
+            // Delay to prevent throttling
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+          console.log("SharePoint Lists Append Paradas success");
         } catch (err: any) {
           console.warn("Could not handle PARADAS append.", err.message);
           throw new Error(`OP salva, mas falha ao sincronizar paradas: ${err.message}`);
         }
       }
 
-      console.log("OneDrive Append success");
-      return res.status(200).json({ success: true, message: 'Row added via OneDrive', data: updateRes });
+      console.log("SharePoint Append success");
+      return res.status(200).json({ success: true, message: 'Row added via SharePoint Lists', data: updateRes });
     } catch (e) {
        throw e;
     }
   } catch (error: any) {
-    console.error("Failed to append to OneDrive:", error?.message || error);
+    console.error("Failed to append to SharePoint:", error?.message || error);
     res.status(500).json({ 
       success: false, 
       error: error?.message || String(error),
@@ -275,12 +187,12 @@ app.post('/api/append-paradas', async (req, res) => {
   console.log("POST /api/append-paradas received", req.body);
   if (!hasLocalCredentials) {
     console.log("[Mock] MOCKING SUCCESS for /api/append-paradas because local MS credentials are missing.");
-    return res.status(200).json({ success: true, message: 'MOCKED Paradas added via OneDrive' });
+    return res.status(200).json({ success: true, message: 'MOCKED Paradas added via SharePoint' });
   }
   
   try {
     const {
-      carimbo, op, litragem, produto, linha, turno, paradas
+      carimbo, op, litragem, produto, linha, turno, operador, paradas
     } = req.body;
 
     if (!paradas || !Array.isArray(paradas) || paradas.length === 0) {
@@ -288,44 +200,37 @@ app.post('/api/append-paradas', async (req, res) => {
     }
 
     const client = getGraphClient();
-    const { driveId, itemId } = await resolveExcelFile(client);
-    
-    // According to screenshot, the worksheet name is "PARADAS"
-    const msSheetName = 'PARADAS';
     
     try {
-      const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-      const rowCount = usedRange.rowCount;
-      let nextRow = usedRange.rowIndex + rowCount;
-      if (rowCount === 1 && usedRange.values[0][0] === '') nextRow = 0;
-      
-      const newValues = paradas.map(p => [
-        carimbo || new Date().toLocaleDateString('pt-BR'),
-        op || '',
-        formatLitragemText(litragem || ''),
-        produto || '',
-        linha || '',
-        turno || '',
-        p.seq || '',
-        p.tipologia || '',
-        p.horaInicio || '',
-        p.horaFim || ''
-      ]);
+      for (const p of paradas) {
+        const paradaFields = {
+          Title: p.seq || '',
+          Data: carimbo || new Date().toLocaleDateString('pt-BR'),
+          Area: 'Envase',
+          Linha: linha || '',
+          Turno: turno || '',
+          Produto: produto || '',
+          Operador: operador || '',
+          OP: op || '',
+          Cod_Parada: p.seq || '',
+          Tipologia: p.tipologia || '',
+          Hora_Inicio: p.horaInicio || '',
+          Hora_Fim: p.horaFim || ''
+        };
+        
+        await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
+          fields: paradaFields
+        });
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
 
-      const startRow = nextRow + 1;
-      const endRow = nextRow + newValues.length;
-      const appendRangeStr = `A${startRow}:J${endRow}`;
-      
-      const updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`)
-        .patch({ values: newValues });
-      
-      console.log("OneDrive Append Paradas success");
-      return res.status(200).json({ success: true, message: 'Paradas added via OneDrive', data: updateRes });
+      console.log("SharePoint Append Paradas success");
+      return res.status(200).json({ success: true, message: 'Paradas added via SharePoint Lists' });
     } catch (e) {
        throw e;
     }
   } catch (error: any) {
-    console.error("Failed to append paradas to OneDrive:", error?.message || error);
+    console.error("Failed to append paradas to SharePoint:", error?.message || error);
     res.status(500).json({ 
       success: false, 
       error: error?.message || String(error),
@@ -344,120 +249,89 @@ app.post('/api/update', async (req, res) => {
     const { originalData, updates } = req.body;
     const isAvulsa = updates.isAvulsa || originalData.isAvulsa;
     const client = getGraphClient();
-    const { driveId, itemId } = await resolveExcelFile(client);
-    const msSheetName = MS_SHEET_NAME;
 
-    let rowIndexFound = -1;
-    let excelRowFound = -1;
+    let itemIdToUpdate = null;
 
     if (!isAvulsa) {
-      const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-      
-      // Search from bottom up to find the most recent matching operation
-      for (let i = usedRange.values.length - 1; i >= 0; i--) {
-        const row = usedRange.values[i];
-        const rowLinha = String(row[6] || '').trim().replace('Linha ', '');
-        const searchLinha = String(originalData.linha || '').trim().replace('Linha ', '');
-        if (
-          String(row[1] || '').trim() === String(originalData.op || '').trim() && 
-          rowLinha === searchLinha
-        ) {
-          rowIndexFound = i;
-          excelRowFound = usedRange.rowIndex + i + 1;
-          break;
+      // Find the item in Producao list
+      const query = `fields/OP eq '${originalData.op}' and fields/Linha eq '${originalData.linha}'`;
+      // Note: Filtering by fields in SharePoint might require specific indexes or $filter syntax. We may need to get items and filter in code if $filter fails.
+      try {
+        const listItems = await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields`).get();
+        const items = listItems.value;
+        const matchingItems = items.filter((i: any) => 
+          i.fields.OP === originalData.op && i.fields.Linha === originalData.linha
+        );
+        // Take the latest matching item
+        if (matchingItems.length > 0) {
+          itemIdToUpdate = matchingItems[matchingItems.length - 1].id;
         }
+      } catch (err) {
+        console.warn("Could not find item to update", err);
       }
     }
 
-    if (isAvulsa || (excelRowFound !== -1 && rowIndexFound !== -1)) {
-      let updatedRow: any[] = [];
-      if (!isAvulsa && excelRowFound !== -1) {
-        const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-        const existingRow = usedRange.values[rowIndexFound];
-        updatedRow = [
-          existingRow[0], // DATA
-          updates.opNumber !== undefined ? updates.opNumber : existingRow[1],
-          updates.horaInicial !== undefined ? updates.horaInicial : existingRow[2],
-          updates.horaFinal !== undefined ? updates.horaFinal : existingRow[3],
-          updates.litragem !== undefined ? formatLitragemText(updates.litragem) : existingRow[4],
-          updates.produto !== undefined ? updates.produto : existingRow[5],
-          updates.linha !== undefined ? updates.linha : existingRow[6],
-          updates.turno !== undefined ? updates.turno : existingRow[7],
-          updates.quantidade !== undefined ? updates.quantidade : existingRow[8],
-          updates.qntReprocesso !== undefined ? updates.qntReprocesso : existingRow[9]
-        ];
+    if (isAvulsa || itemIdToUpdate) {
+      if (!isAvulsa && itemIdToUpdate) {
+        const updateFields: any = {};
+        if (updates.opNumber !== undefined) updateFields.OP = updates.opNumber;
+        if (updates.horaInicial !== undefined) updateFields.Hora_Inicio = updates.horaInicial;
+        if (updates.horaFinal !== undefined) updateFields.Hora_Fim = updates.horaFinal;
+        if (updates.litragem !== undefined) updateFields.Litragem = formatLitragemText(updates.litragem);
+        if (updates.produto !== undefined) updateFields.Produto = updates.produto;
+        if (updates.linha !== undefined) updateFields.Linha = updates.linha;
+        if (updates.turno !== undefined) updateFields.Turno = updates.turno;
+        if (updates.operador !== undefined) updateFields.Operador = updates.operador;
+        if (updates.quantidade !== undefined) updateFields.Quantidade_Produzida = updates.quantidade;
+        if (updates.qntReprocesso !== undefined) updateFields.Observacoes = `Reprocesso: ${updates.qntReprocesso}`;
 
-        const appendRangeStr = `A${excelRowFound}:J${excelRowFound}`;
-        await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`)
-          .patch({ values: [updatedRow] });
+        await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).patch({
+          fields: updateFields
+        });
       }
       
       // Update Paradas if provided
       if (updates.paradas !== undefined) {
         try {
-          const paradasSheetName = 'PARADAS';
+          const pListItems = await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`).get();
+          const items = pListItems.value;
+          const matchingItems = items.filter((i: any) => 
+            i.fields.OP === originalData.op && i.fields.Linha === originalData.linha
+          );
           
-          // Add a small delay so the Excel workbook lock from the previous PATCH is released
-          await new Promise(resolve => setTimeout(resolve, 800));
-
-          const paradasRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
-          
-          // Delete old paradas
-          const rowsToDelete = [];
-          for (let i = paradasRange.values.length - 1; i >= 0; i--) {
-            const row = paradasRange.values[i];
-            const rowLinha = String(row[4] || '').trim().replace('Linha ', '');
-            const searchLinha = String(originalData.linha || '').trim().replace('Linha ', '');
-            if (
-              String(row[1] || '').trim() === String(originalData.op || '').trim() &&
-              rowLinha === searchLinha
-            ) {
-              rowsToDelete.push(paradasRange.rowIndex + i + 1);
-            }
-          }
-          for (const rowIdx of rowsToDelete) {
-            const rowToDelete = `${rowIdx}:${rowIdx}`;
-            await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${rowToDelete}')/delete`)
-              .post({ shift: 'Up' });
-            
-            // Add a small delay between row deletions to prevent throttling/locks
-            await new Promise(resolve => setTimeout(resolve, 300));
+          for (const m of matchingItems) {
+            await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete();
+            await new Promise(resolve => setTimeout(resolve, 200));
           }
 
-          // Append new paradas
           if (Array.isArray(updates.paradas) && updates.paradas.length > 0) {
-            // Need to get the usedRange again since we just deleted rows
-            const pRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
-            const pRowCount = pRange.rowCount;
-            let pNextRow = pRange.rowIndex + pRowCount;
-            if (pRowCount === 1 && pRange.values[0][0] === '') pNextRow = 0;
+            const baseDate = originalData.carimbo || new Date().toLocaleDateString('pt-BR');
+            const baseOp = updates.opNumber || originalData.op || '';
+            const baseLinha = updates.linha || originalData.linha || '';
+            const baseTurno = updates.turno || originalData.turno || '';
+            const baseOperador = updates.operador || originalData.operador || '';
+            const baseProduto = updates.produto || originalData.produto || '';
 
-            const baseDate = (!isAvulsa && updatedRow[0]) || originalData.carimbo || new Date().toLocaleDateString('pt-BR');
-            const baseOp = (!isAvulsa && updatedRow[1]) || originalData.op || '';
-            const baseLitragem = (!isAvulsa && updatedRow[4]) || originalData.litragem || '';
-            const baseProduto = (!isAvulsa && updatedRow[5]) || originalData.produto || '';
-            const baseLinha = (!isAvulsa && updatedRow[6]) || originalData.linha || '';
-            const baseTurno = (!isAvulsa && updatedRow[7]) || originalData.turno || '';
-
-            const newValues = updates.paradas.map((p: any) => [
-              baseDate,
-              baseOp,
-              baseLitragem,
-              baseProduto,
-              baseLinha,
-              baseTurno,
-              p.seq || '',
-              p.tipologia || '',
-              p.horaInicio || '',
-              p.horaFim || ''
-            ]);
-
-            const startRow = pNextRow + 1;
-            const endRow = pNextRow + newValues.length;
-            const pAppendRangeStr = `A${startRow}:J${endRow}`;
-            
-            await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${pAppendRangeStr}')`)
-              .patch({ values: newValues });
+            for (const p of updates.paradas) {
+              const paradaFields = {
+                Title: p.seq || '',
+                Data: baseDate,
+                Area: 'Envase',
+                Linha: baseLinha,
+                Turno: baseTurno,
+                Produto: baseProduto,
+                Operador: baseOperador,
+                OP: baseOp,
+                Cod_Parada: p.seq || '',
+                Tipologia: p.tipologia || '',
+                Hora_Inicio: p.horaInicio || '',
+                Hora_Fim: p.horaFim || ''
+              };
+              await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
+                fields: paradaFields
+              });
+              await new Promise(resolve => setTimeout(resolve, 200));
+            }
           }
         } catch (err: any) {
           console.warn("Could not update PARADAS sheet.", err.message);
@@ -484,68 +358,45 @@ app.post('/api/delete', async (req, res) => {
   try {
     const { op, linha, isAvulsa } = req.body;
     const client = getGraphClient();
-    const { driveId, itemId } = await resolveExcelFile(client);
-    const msSheetName = MS_SHEET_NAME;
 
-    let excelRowFound = -1;
+    let deletedAny = false;
 
-    // 1. Delete from Main Sheet (ONLY if not isAvulsa)
+    // 1. Delete from Producao List
     if (!isAvulsa) {
-      const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-      
-      let rowIndexFound = -1;
-
-      for (let i = usedRange.values.length - 1; i >= 0; i--) {
-        const row = usedRange.values[i];
-        const rowLinha = String(row[6] || '').trim().replace('Linha ', '');
-        const searchLinha = String(linha || '').trim().replace('Linha ', '');
-        if (
-          String(row[1] || '').trim() === String(op || '').trim() && 
-          rowLinha === searchLinha
-        ) {
-          rowIndexFound = i;
-          excelRowFound = usedRange.rowIndex + i + 1;
-          break; // Only delete the most recent matching one to avoid deleting duplicates by mistake
+      try {
+        const listItems = await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields`).get();
+        const items = listItems.value;
+        const matchingItems = items.filter((i: any) => 
+          i.fields.OP === op && i.fields.Linha === linha
+        );
+        if (matchingItems.length > 0) {
+          const itemIdToUpdate = matchingItems[matchingItems.length - 1].id;
+          await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).delete();
+          deletedAny = true;
         }
-      }
-
-      if (excelRowFound !== -1) {
-        const rowToDelete = `${excelRowFound}:${excelRowFound}`;
-        await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${rowToDelete}')/delete`)
-          .post({ shift: 'Up' });
+      } catch (err) {
+        console.warn("Could not delete from PRODUCAO", err);
       }
     }
 
-    // 2. Delete from PARADAS Sheet
+    // 2. Delete from Paradas List
     try {
-      const paradasSheetName = 'PARADAS';
-      const paradasRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
+      const pListItems = await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`).get();
+      const items = pListItems.value;
+      const matchingItems = items.filter((i: any) => 
+        i.fields.OP === op && i.fields.Linha === linha
+      );
       
-      const rowsToDelete = [];
-      for (let i = paradasRange.values.length - 1; i >= 0; i--) {
-        const row = paradasRange.values[i];
-        const rowLinha = String(row[4] || '').trim().replace('Linha ', '');
-        const searchLinha = String(linha || '').trim().replace('Linha ', '');
-        
-        if (
-          String(row[1] || '').trim() === String(op || '').trim() &&
-          rowLinha === searchLinha
-        ) {
-          rowsToDelete.push(paradasRange.rowIndex + i + 1);
-        }
-      }
-
-      // Delete from bottom to top to avoid shifting issues
-      for (const rowIdx of rowsToDelete) {
-        const rowToDelete = `${rowIdx}:${rowIdx}`;
-        await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${rowToDelete}')/delete`)
-          .post({ shift: 'Up' });
+      for (const m of matchingItems) {
+        await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete();
+        await new Promise(resolve => setTimeout(resolve, 200));
+        deletedAny = true;
       }
     } catch (err: any) {
-      console.warn("Could not delete from PARADAS sheet. Is it created?", err.message);
+      console.warn("Could not delete from PARADAS sheet.", err.message);
     }
 
-    if (excelRowFound !== -1) {
+    if (deletedAny) {
       return res.status(200).json({ success: true, message: 'Row and related paradas deleted' });
     } else {
       console.log('Row not found for delete:', req.body);
@@ -559,7 +410,6 @@ app.post('/api/delete', async (req, res) => {
 
 const getDistPath = () => path.join(process.cwd(), 'dist');
 
-// Serve frontend in production (only outside of Vercel)
 if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   const distPath = getDistPath();
   app.use(express.static(distPath));
