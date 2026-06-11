@@ -220,17 +220,17 @@ function SwipeHintCard({ rect }: { rect: SpotRect }) {
 
       {/* Skeleton card that physically drags */}
       <motion.div
-        className="absolute inset-0 rounded-2xl bg-white shadow-lg ring-1 ring-zinc-100 flex items-center px-4 gap-3"
+        className="absolute inset-0 rounded-2xl bg-white dark:bg-zinc-950 shadow-lg ring-1 ring-zinc-100 flex items-center px-4 gap-3"
         style={{ x }}
       >
         <div className="w-1.5 h-9 rounded-full bg-amber-400 shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="h-3 w-24 rounded-md bg-zinc-200 mb-2" />
-          <div className="h-2 w-14 rounded-md bg-zinc-100" />
+          <div className="h-2 w-14 rounded-md bg-zinc-100 dark:bg-zinc-800" />
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0">
           <div className="h-2.5 w-12 rounded-md bg-zinc-200" />
-          <div className="h-2 w-8  rounded-md bg-zinc-100" />
+          <div className="h-2 w-8  rounded-md bg-zinc-100 dark:bg-zinc-800" />
         </div>
       </motion.div>
     </div>
@@ -249,7 +249,7 @@ function TourCard({
   handleNext: () => void;
 }) {
   return (
-    <div className="bg-white rounded-3xl shadow-2xl ring-1 ring-zinc-200/60 p-5 flex flex-col gap-4 overflow-hidden max-h-[85dvh]">
+    <div className="bg-white dark:bg-zinc-950 rounded-3xl shadow-2xl ring-1 ring-zinc-200 dark:ring-zinc-800/60 p-5 flex flex-col gap-4 overflow-hidden max-h-[85dvh]">
 
       {/* Header — shrink-0 so it never collapses */}
       <div className="flex items-start justify-between gap-2 shrink-0">
@@ -263,14 +263,14 @@ function TourCard({
         </div>
         <button
           onClick={onFinish}
-          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:bg-zinc-800 transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Progress bar — shrink-0 */}
-      <div className="h-1 bg-zinc-100 rounded-full overflow-hidden shrink-0">
+      <div className="h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden shrink-0">
         <motion.div
           className="h-full bg-zinc-950 rounded-full"
           initial={{ width: `${(step / steps.length) * 100}%` }}
@@ -280,15 +280,15 @@ function TourCard({
       </div>
 
       {/* Body text — flex-1 + min-h-0 forces scroll BEFORE pushing buttons out */}
-      <p className="flex-1 min-h-0 overflow-y-auto text-xs sm:text-sm text-zinc-600 font-medium leading-relaxed break-words whitespace-pre-line pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-200">
+      <p className="flex-1 min-h-0 overflow-y-auto text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed break-words whitespace-pre-line pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-200">
         {current.body}
       </p>
 
       {/* Actions — shrink-0 so buttons are always visible */}
-      <div className="flex items-center justify-between gap-3 pt-1 border-t border-zinc-100 shrink-0">
+      <div className="flex items-center justify-between gap-3 pt-1 border-t border-zinc-100 dark:border-zinc-800 shrink-0">
         <button
           onClick={onFinish}
-          className="text-xs font-bold text-zinc-400 hover:text-zinc-600 transition-colors py-2 px-3 rounded-xl hover:bg-zinc-50 shrink-0"
+          className="text-xs font-bold text-zinc-400 hover:text-zinc-600 dark:text-zinc-400 transition-colors py-2 px-3 rounded-xl hover:bg-zinc-50 dark:bg-zinc-900/50 shrink-0"
         >
           Pular tour
         </button>

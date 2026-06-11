@@ -93,7 +93,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
   }, [setIsTypingProduct, setShowProductSuggestions]);
 
   return (
-    <Card className="bg-white sm:rounded-3xl shadow-lg sm:ring-1 ring-zinc-200/50 flex flex-col overflow-hidden border-none sm:border-y-0 w-full min-h-full lg:h-full relative">
+    <Card className="bg-white dark:bg-zinc-950 sm:rounded-3xl shadow-lg sm:ring-1 ring-zinc-200 dark:ring-zinc-800/50 flex flex-col overflow-hidden border-none sm:border-y-0 w-full min-h-full lg:h-full relative">
       {!hideHeader && (
         <CardHeader className="bg-slate-900 border-b border-slate-800 p-5 sm:p-7 space-y-0 shrink-0 relative overflow-hidden shadow-inner">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:16px_16px] opacity-20" />
@@ -105,8 +105,8 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
               </div>
             </div>
             <div className="flex flex-col items-end shrink-0">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Turno</span>
-              <span className="text-base font-black text-slate-100 uppercase tracking-tighter bg-white/10 px-3 py-1 rounded-xl border border-white/5 shadow-sm leading-none">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-widest mb-1">Turno</span>
+              <span className="text-base font-black text-slate-100 uppercase tracking-tighter bg-white dark:bg-zinc-950/10 px-3 py-1 rounded-xl border border-white/5 shadow-sm leading-none">
                 {watch('turno') || currentTurnForView.replace('Turno ', '')}
               </span>
             </div>
@@ -114,7 +114,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
         </CardHeader>
       )}
       
-      <CardContent className="p-0 flex flex-col flex-1 min-h-0 bg-zinc-50/30">
+      <CardContent className="p-0 flex flex-col flex-1 min-h-0 bg-zinc-50 dark:bg-zinc-900/50/30">
         <form onSubmit={handleSubmit(handlePreStartOp, (errors: any) => {
           const errorMsg = Object.values(errors).map((e: any) => e.message).join(', ');
           if (errorMsg) toast.error('Faltam dados: ' + Object.keys(errors).join(', '));
@@ -129,7 +129,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                <div className="space-y-2.5 relative">
                 <Label htmlFor="opNumber" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Número da OP</Label>
                 <div className="relative">
-                  <Input id="opNumber" {...register('opNumber', { onChange: (e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }} onPaste={(e: React.ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, ''); const el = e.currentTarget; const s = el.selectionStart ?? 0; const en = el.selectionEnd ?? 0; const newVal = el.value.slice(0, s) + pasted + el.value.slice(en); setValue('opNumber', newVal, { shouldValidate: true }); }} className="w-full h-16 px-5 bg-white border border-slate-200 rounded-2xl text-lg sm:text-xl font-mono font-bold text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
+                  <Input id="opNumber" {...register('opNumber', { onChange: (e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }} onPaste={(e: React.ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, ''); const el = e.currentTarget; const s = el.selectionStart ?? 0; const en = el.selectionEnd ?? 0; const newVal = el.value.slice(0, s) + pasted + el.value.slice(en); setValue('opNumber', newVal, { shouldValidate: true }); }} className="w-full h-16 px-5 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl text-lg sm:text-xl font-mono font-bold text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-300 font-black pointer-events-none text-2xl select-none">#</div>
                 </div>
                 {errors.opNumber && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.opNumber.message as string}</p>}
@@ -137,7 +137,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
 
               <div className="space-y-2.5 relative">
                 <Label htmlFor="operador" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Operador</Label>
-                <Input id="operador" {...register('operador')} type="text" placeholder="Nome do operador" className="w-full h-16 px-5 bg-white border border-slate-200 rounded-2xl text-lg sm:text-xl font-bold text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
+                <Input id="operador" {...register('operador')} type="text" placeholder="Nome do operador" className="w-full h-16 px-5 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl text-lg sm:text-xl font-bold text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
                 {errors.operador && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.operador.message as string}</p>}
               </div>
 
@@ -149,7 +149,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   value={watch('horaInicial')}
                   onChange={(v: string) => setValue('horaInicial', v, { shouldValidate: true })}
                   clockIconClass="absolute left-4 w-6 h-6 text-slate-400 pointer-events-none"
-                  wrapperClass="bg-white rounded-2xl h-16 border border-slate-200 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all shadow-sm"
+                  wrapperClass="bg-white dark:bg-zinc-950 rounded-2xl h-16 border border-slate-200 dark:border-zinc-800 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all shadow-sm"
                   inputClass="pl-12 pr-4 w-full text-lg sm:text-xl font-bold text-slate-900 bg-transparent focus:ring-0 placeholder:font-medium placeholder:text-slate-300"
                 />
                 {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.horaInicial.message as string}</p>}
@@ -157,17 +157,17 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
 
               <div className="relative space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2" ref={novaOpRef}>
                 <Label htmlFor="produto" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Produto Fabricado</Label>
-                <input id="produto" {...register('produto')} onClick={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} autoComplete="off" onFocus={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} placeholder="Digite para buscar..." className="flex h-16 w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-lg font-bold text-slate-900 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 shadow-sm" />
+                <input id="produto" {...register('produto')} onClick={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} autoComplete="off" onFocus={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} placeholder="Digite para buscar..." className="flex h-16 w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-5 py-3 text-lg font-bold text-slate-900 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 shadow-sm" />
                 {showProductSuggestions && (
-                  <div className="absolute z-[60] w-full mt-2 bg-white border border-zinc-200 rounded-[1.5rem] shadow-2xl max-h-[min(18rem,50dvh)] overflow-y-auto p-2 ring-1 ring-zinc-900/5" onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
+                  <div className="absolute z-[60] w-full mt-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[1.5rem] shadow-2xl max-h-[min(18rem,50dvh)] overflow-y-auto p-2 ring-1 ring-zinc-900/5" onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
                     {!isTypingProduct && (
                       <div onClick={(e) => { e.preventDefault(); setIsTypingProduct(true); setTimeout(() => document.getElementById('produto')?.focus(), 50); }} className="hidden">
                       </div>
                     )}
                     {filteredProducts.length > 0 ? filteredProducts.map(p => (
-                      <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); setIsTypingProduct(false); }} className="group/item cursor-pointer px-5 py-3 mb-1 last:mb-0 min-h-[64px] text-base text-zinc-700 hover:bg-[#F9FAFB] hover:text-zinc-950 rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200/60">
+                      <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); setIsTypingProduct(false); }} className="group/item cursor-pointer px-5 py-3 mb-1 last:mb-0 min-h-[64px] text-base text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] hover:text-zinc-950 rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200 dark:border-zinc-800/60">
                         <span className="truncate group-hover/item:text-black">{p.produto}</span>
-                        {p.litragem && <span className="text-[10px] sm:text-xs text-zinc-500 font-mono font-black tracking-widest shrink-0 uppercase bg-zinc-100 border border-zinc-200/60 px-2 py-1 rounded-md">{p.litragem}</span>}
+                        {p.litragem && <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-mono font-black tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800/60 px-2 py-1 rounded-md">{p.litragem}</span>}
                       </div>
                     )) : watch('produto') ? (
                        <div className="px-5 py-3 min-h-[64px] text-base text-blue-600 font-bold cursor-pointer hover:bg-blue-50 rounded-[1.25rem] transition-colors flex items-center border border-transparent hover:border-blue-100" onClick={() => { setShowProductSuggestions(false); setIsTypingProduct(false); }}>
@@ -192,7 +192,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                     {watch('linha') && watch('linha') !== 'Todas' ? (
                       <div className="flex items-center justify-between p-4 bg-slate-900 text-white rounded-2xl shadow-md border border-slate-800 animate-in fade-in duration-300">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center font-black text-base">
+                          <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-950/10 flex items-center justify-center font-black text-base">
                             {watch('linha').replace(/\D/g, '') || watch('linha')}
                           </div>
                           <div className="flex flex-col">
@@ -209,8 +209,8 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center p-4 bg-zinc-100 rounded-2xl border border-zinc-200">
-                        <span className="text-sm font-bold text-zinc-500">Configure a linha do tablet nas configurações (⚙️).</span>
+                      <div className="flex items-center p-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                        <span className="text-sm font-bold text-zinc-500 dark:text-zinc-400">Configure a linha do tablet nas configurações (⚙️).</span>
                       </div>
                     )}
                   </>
@@ -223,7 +223,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                          setValue('linha', val, { shouldValidate: true });
                       }
                     }}>
-                      <SelectTrigger className="w-full h-16 bg-white border border-slate-200 rounded-2xl text-lg sm:text-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm">
+                      <SelectTrigger className="w-full h-16 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl text-lg sm:text-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm">
                         <SelectValue placeholder="Selecione a linha..." />
                       </SelectTrigger>
                       <SelectContent alignItemWithTrigger={false} sideOffset={8} className="max-h-[300px] rounded-[1.25rem] z-[100] min-w-[var(--anchor-width,100%)] w-[var(--anchor-width)]">
@@ -244,12 +244,12 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
 
                     <Popover open={openLineSelect} onOpenChange={setOpenLineSelect}>
                        <PopoverTrigger className="hidden" />
-                       <PopoverContent className="w-[min(16rem,calc(100vw-1.5rem))] p-0.5 shadow-2xl border-zinc-200/80 rounded-[1.25rem] z-[105]" align="start">
+                       <PopoverContent className="w-[min(16rem,calc(100vw-1.5rem))] p-0.5 shadow-2xl border-zinc-200 dark:border-zinc-800/80 rounded-[1.25rem] z-[105]" align="start">
                          <div className="flex flex-col gap-1.5 p-2">
                            <input 
                              type="text"
                              placeholder="Nome da linha..."
-                             className="bg-[#F9FAFB] text-base sm:text-sm h-10 rounded-lg px-3 border border-zinc-200/80 font-medium w-full focus:outline-none focus:border-zinc-400"
+                             className="bg-[#F9FAFB] text-base sm:text-sm h-10 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800/80 font-medium w-full focus:outline-none focus:border-zinc-400"
                              value={searchLine}
                              onChange={(e) => setSearchLine(e.target.value)}
                              onKeyDown={(e) => {
@@ -298,31 +298,31 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
             
             <Dialog open={showConfirmStart} onOpenChange={setShowConfirmStart}>
               {/* ¡AQUÍ ESTABA EL FIX PRINCIPAL (w-full en vez de anchos calculados) para este contenedor sticky! */}
-              <div className="mt-auto sm:mt-6 pt-4 sm:pt-6 bg-slate-50/95 lg:bg-transparent backdrop-blur lg:backdrop-filter-none border-t border-slate-200/80 lg:border-none sticky bottom-0 lg:static z-10 w-full flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))] lg:pb-0">
+              <div className="mt-auto sm:mt-6 pt-4 sm:pt-6 bg-slate-50 dark:bg-zinc-900/95 lg:bg-transparent backdrop-blur lg:backdrop-filter-none border-t border-slate-200 dark:border-zinc-800/80 lg:border-none sticky bottom-0 lg:static z-10 w-full flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))] lg:pb-0">
                   <motion.div whileTap={{ scale: 0.98 }} whileHover={{ scale: 1.01 }}>
-                    <Button type="submit" disabled={loadingNewOp} className="w-full h-14 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white font-bold text-xl tracking-tight rounded-2xl shadow-[0_8px_30px_rgb(15_23_42_/_20%)] transition-all focus-visible:ring-4 focus-visible:ring-slate-900/20 focus-visible:outline-none disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-500 disabled:shadow-none">
+                    <Button type="submit" disabled={loadingNewOp} className="w-full h-14 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white font-bold text-xl tracking-tight rounded-2xl shadow-[0_8px_30px_rgb(15_23_42_/_20%)] transition-all focus-visible:ring-4 focus-visible:ring-slate-900/20 focus-visible:outline-none disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-500 dark:text-zinc-400 disabled:shadow-none">
                       {loadingNewOp ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Play className="w-6 h-6 mr-3 fill-current" /> Iniciar Ordem</>}
                     </Button>
                   </motion.div>
               </div>
 
-              <DialogContent className="w-[calc(100%-2rem)] max-w-[440px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
+              <DialogContent className="w-[calc(100%-2rem)] max-w-[440px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
                 <DialogHeader className="text-center space-y-3 mb-8">
-                  <div className="w-16 h-16 bg-zinc-100 text-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-zinc-200 shadow-sm">
+                  <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-zinc-200 dark:border-zinc-800 shadow-sm">
                     <Play className="w-8 h-8 fill-current ml-1" />
                   </div>
                   <DialogTitle className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">Iniciar OP?</DialogTitle>
-                  <DialogDescription className="text-zinc-500 font-medium text-base leading-relaxed mx-auto max-w-[300px]">
+                  <DialogDescription className="text-zinc-500 dark:text-zinc-400 font-medium text-base leading-relaxed mx-auto max-w-[300px]">
                     Confirme os dados antes de iniciar o registro de apontamentos.
                   </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div className="flex flex-col items-center justify-center min-w-0 h-28 sm:h-32 bg-[#F9FAFB] border-2 border-zinc-200/80 rounded-[1.5rem] shadow-inner p-3 sm:p-4 text-center">
+                  <div className="flex flex-col items-center justify-center min-w-0 h-28 sm:h-32 bg-[#F9FAFB] border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.5rem] shadow-inner p-3 sm:p-4 text-center">
                     <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">OP Selecionada</span>
                     <span className="text-3xl font-black text-zinc-950 tracking-tighter w-full truncate" title={startFormData?.opNumber}>{startFormData?.opNumber}</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center min-w-0 h-28 sm:h-32 bg-[#F9FAFB] border-2 border-zinc-200/80 rounded-[1.5rem] shadow-inner p-3 sm:p-4 text-center">
+                  <div className="flex flex-col items-center justify-center min-w-0 h-28 sm:h-32 bg-[#F9FAFB] border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.5rem] shadow-inner p-3 sm:p-4 text-center">
                     <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Linha Atribuída</span>
                     <span className="text-3xl font-black text-zinc-950 tracking-tighter w-full truncate" title={startFormData?.linha}>
                       {startFormData?.linha?.replace('Linha ', '')?.trim()}
@@ -330,7 +330,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   </div>
                 </div>
 
-                <div className="flex flex-col items-center justify-center min-w-0 h-20 bg-[#F9FAFB] border-2 border-zinc-200/80 rounded-[1.5rem] shadow-inner p-3 text-center mb-8">
+                <div className="flex flex-col items-center justify-center min-w-0 h-20 bg-[#F9FAFB] border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.5rem] shadow-inner p-3 text-center mb-8">
                   <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Turno</span>
                   <span className="text-xl font-black text-zinc-950 tracking-tighter">
                     {startFormData?.turno ? `Turno ${startFormData.turno.replace('Turno ', '')}` : ''}
@@ -341,7 +341,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   <Button type="button" onClick={() => startFormData && onStartOp(startFormData)} disabled={loadingNewOp} className="w-full h-[4.5rem] bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-[1.5rem] text-xl font-bold tracking-tight shadow-xl shadow-emerald-600/20 focus-visible:ring-4 focus-visible:ring-emerald-500/20 disabled:shadow-none transition-all">
                     {loadingNewOp ? <Loader2 className="w-7 h-7 animate-spin" /> : 'Confirmar Início'}
                   </Button>
-                  <Button type="button" variant="ghost" onClick={() => setShowConfirmStart(false)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
+                  <Button type="button" variant="ghost" onClick={() => setShowConfirmStart(false)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
                     Revisar Dados
                   </Button>
                 </div>
