@@ -186,7 +186,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                         {allLinhas.map((linhaFull) => {
                           const lineVal = linhaFull.replace('Linha ', '');
                           return (
-                            <CommandItem key={lineVal} value={linhaFull} onSelect={() => { setValueEdit('linha', lineVal, { shouldValidate: true }); setOpenEditLineSelect(false); }} className="flex items-center justify-between py-2 px-3 min-h-[44px] cursor-pointer rounded-xl aria-selected:bg-zinc-950 aria-selected:text-white transition-colors">
+                            <CommandItem key={lineVal} value={linhaFull} onSelect={() => { setValueEdit('linha', lineVal, { shouldValidate: true }); setOpenEditLineSelect(false); }} className="flex items-center justify-between py-2 px-3 min-h-[44px] cursor-pointer rounded-xl aria-selected:bg-zinc-950 dark:aria-selected:bg-zinc-800 aria-selected:text-white dark:aria-selected:text-white transition-colors">
                               <span className="font-bold tracking-tight text-sm">{linhaFull}</span>
                               <Check className={cn('h-4 w-4', watchEdit('linha')?.replace(/^Linha\s*/i, '') === lineVal ? 'opacity-100' : 'opacity-0')} />
                             </CommandItem>
