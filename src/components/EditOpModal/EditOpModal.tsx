@@ -103,7 +103,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
           <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center mb-2 shadow-sm border border-zinc-200 dark:border-zinc-800/60">
              <Pencil className="w-6 h-6 text-zinc-700 dark:text-zinc-300" />
           </div>
-          <DialogTitle className="text-2xl font-black text-zinc-950 tracking-tight">Editar Operação</DialogTitle>
+          <DialogTitle className="text-2xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight">Editar Operação</DialogTitle>
         </DialogHeader>
         {editingOp && (
           <form onSubmit={handleSubmitEdit(onEditOp)} className="space-y-6">
@@ -125,7 +125,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
             </div>
             <div className="relative space-y-2" ref={editOpRef}>
               <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Produto</Label>
-              <input id="edit-produto" {...registerEdit('produto')} onClick={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} autoComplete="off" onFocus={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} className="flex h-14 w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] px-4 py-2 text-base text-zinc-900 dark:text-zinc-100 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus-visible:outline-none focus-visible:border-zinc-950 shadow-sm focus:bg-white dark:bg-zinc-950" />
+              <input id="edit-produto" {...registerEdit('produto')} onClick={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} autoComplete="off" onFocus={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} className="flex h-14 w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] px-4 py-2 text-base text-zinc-900 dark:text-zinc-100 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-400 focus-visible:outline-none focus-visible:border-zinc-950 shadow-sm focus:bg-white dark:bg-zinc-950" />
               {showEditProductSuggestions && (
                 <div className="absolute z-50 w-full mt-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl max-h-60 overflow-y-auto p-2 ring-1 ring-zinc-900/5">
                   {!isTypingEditProduct && (
@@ -133,7 +133,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                     </div>
                   )}
                   {filteredEditProducts.length > 0 ? filteredEditProducts.map(p => (
-                    <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }} className="cursor-pointer px-4 py-3 min-h-[48px] text-sm text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] hover:text-zinc-950 rounded-xl flex items-center justify-between gap-3 font-medium transition-colors">
+                    <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }} className="cursor-pointer px-4 py-3 min-h-[48px] text-sm text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] hover:text-zinc-950 dark:text-zinc-50 rounded-xl flex items-center justify-between gap-3 font-medium transition-colors">
                        <span className="truncate">{p.produto}</span>
                        {p.litragem && <span className="text-[10px] text-zinc-400 font-mono tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md">{p.litragem}</span>}
                     </div>
@@ -153,7 +153,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
               <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Linha de Produção</Label>
               <input type="hidden" {...registerEdit('linha')} />
               <Popover open={openEditLineSelect} onOpenChange={setOpenEditLineSelect}>
-                <PopoverTrigger type="button" role="combobox" aria-expanded={openEditLineSelect} className={cn("flex items-center justify-between w-full h-14 px-4 border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] transition-all duration-200 text-base font-semibold rounded-2xl outline-none focus:border-zinc-950 shadow-sm disabled:cursor-not-allowed disabled:opacity-50", watchEdit('linha') ? 'border-zinc-300 bg-white dark:bg-zinc-950 text-zinc-950' : 'text-zinc-500 dark:text-zinc-400 hover:border-zinc-300')}>
+                <PopoverTrigger type="button" role="combobox" aria-expanded={openEditLineSelect} className={cn("flex items-center justify-between w-full h-14 px-4 border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] transition-all duration-200 text-base font-semibold rounded-2xl outline-none focus:border-zinc-950 shadow-sm disabled:cursor-not-allowed disabled:opacity-50", watchEdit('linha') ? 'border-zinc-300 bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400 hover:border-zinc-300')}>
                   {watchEdit('linha') ? `Linha ${watchEdit('linha').replace(/^Linha\s*/i, '')}` : 'Selecione a Linha'}
                   <ChevronsUpDown className="ml-3 h-5 w-5 shrink-0 text-zinc-400" />
                 </PopoverTrigger>
@@ -256,7 +256,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                             <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{parada.horaInicio} até {parada.horaFim}</span>
                           </div>
                         </div>
-                        <Button type="button" variant="outline" size="sm" onClick={() => removeEditParada(idx)} className="h-10 px-4 text-xs bg-red-50/50 hover:bg-red-50 text-red-600 font-bold border-red-100 rounded-xl shadow-sm self-start shrink-0 sm:self-auto w-full sm:w-auto pl-3 sm:pl-4">
+                        <Button type="button" variant="outline" size="sm" onClick={() => removeEditParada(idx)} className="h-10 px-4 text-xs bg-red-50 dark:bg-red-950/30/50 hover:bg-red-50 dark:bg-red-950/30 text-red-600 font-bold border-red-100 rounded-xl shadow-sm self-start shrink-0 sm:self-auto w-full sm:w-auto pl-3 sm:pl-4">
                           Remover
                         </Button>
                       </div>
@@ -280,7 +280,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                                   <span className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-black text-sm border border-zinc-200 dark:border-zinc-800/80 shadow-inner">
                                     {editParadaSelectedCode}
                                   </span>
-                                  <span className="font-bold text-sm sm:text-base text-zinc-950 break-words leading-tight flex-1">
+                                  <span className="font-bold text-sm sm:text-base text-zinc-950 dark:text-zinc-50 break-words leading-tight flex-1">
                                     {availableParadas.find((p: any) => p.seq.toString() === editParadaSelectedCode)?.tipologia || ''}
                                   </span>
                                 </div>
@@ -295,7 +295,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                               <input 
                                 type="text" 
                                 placeholder="Buscar parada..." 
-                                className="w-full h-10 pl-9 pr-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/60 rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+                                className="w-full h-10 pl-9 pr-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/60 rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-400"
                                 value={searchParadaText}
                                 onChange={(e) => setSearchParadaText(e.target.value)}
                                 onKeyDown={(e) => e.stopPropagation()}
@@ -305,12 +305,12 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                             </div>
                           </div>
                           {availableParadas.filter((p: any) => p.tipologia.toLowerCase().includes(searchParadaText.toLowerCase()) || p.seq.toString().includes(searchParadaText)).map((p: any) => (
-                            <SelectItem key={p.seq} value={p.seq.toString()} className="group outline-none py-3 px-3 rounded-2xl mb-1 last:mb-0 cursor-pointer focus:bg-[#F9FAFB] focus:text-zinc-950 transition-all border border-transparent focus:border-zinc-200 dark:border-zinc-800/80 data-[state=checked]:bg-zinc-950 data-[state=checked]:text-white data-[state=checked]:focus:bg-zinc-950 data-[state=checked]:focus:text-white items-start sm:items-center">
+                            <SelectItem key={p.seq} value={p.seq.toString()} className="group outline-none py-3 px-3 rounded-2xl mb-1 last:mb-0 cursor-pointer focus:bg-[#F9FAFB] focus:text-zinc-950 dark:text-zinc-50 transition-all border border-transparent focus:border-zinc-200 dark:border-zinc-800/80 data-[state=checked]:bg-zinc-950 data-[state=checked]:text-white data-[state=checked]:focus:bg-zinc-950 data-[state=checked]:focus:text-white items-start sm:items-center">
                               <div className="flex items-center sm:items-center gap-3.5 pr-2 w-full flex-1">
-                                <span className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-black text-xs group-focus:bg-white dark:bg-zinc-950 group-focus:text-zinc-950 group-data-[state=checked]:bg-white dark:bg-zinc-950/20 group-data-[state=checked]:text-white group-focus:shadow-sm border border-zinc-200 dark:border-zinc-800/60 group-data-[state=checked]:border-white/10 transition-all">
+                                <span className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-black text-xs group-focus:bg-white dark:bg-zinc-950 group-focus:text-zinc-950 dark:text-zinc-50 group-data-[state=checked]:bg-white dark:bg-zinc-950/20 group-data-[state=checked]:text-white group-focus:shadow-sm border border-zinc-200 dark:border-zinc-800/60 group-data-[state=checked]:border-white/10 transition-all">
                                   {p.seq}
                                 </span>
-                                <span className="font-bold text-sm sm:text-sm text-zinc-700 dark:text-zinc-300 group-focus:text-zinc-950 group-data-[state=checked]:text-white whitespace-normal break-words [&]:line-clamp-none text-left flex-1 leading-snug pt-0.5 sm:pt-0">
+                                <span className="font-bold text-sm sm:text-sm text-zinc-700 dark:text-zinc-300 group-focus:text-zinc-950 dark:text-zinc-50 group-data-[state=checked]:text-white whitespace-normal break-words [&]:line-clamp-none text-left flex-1 leading-snug pt-0.5 sm:pt-0">
                                   {p.tipologia}
                                 </span>
                               </div>
@@ -345,7 +345,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
               <Button type="submit" disabled={loadingEdit} className="w-full h-16 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl text-lg font-black shadow-xl shadow-zinc-900/20 focus-visible:ring-4 focus-visible:ring-zinc-900/20 transition-all">
                 {loadingEdit ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Salvar Alterações'}
               </Button>
-              <Button variant="ghost" type="button" onClick={() => setEditingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">Cancelar</Button>
+              <Button variant="ghost" type="button" onClick={() => setEditingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">Cancelar</Button>
             </DialogFooter>
           </form>
         )}

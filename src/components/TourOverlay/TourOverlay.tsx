@@ -225,11 +225,11 @@ function SwipeHintCard({ rect }: { rect: SpotRect }) {
       >
         <div className="w-1.5 h-9 rounded-full bg-amber-400 shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="h-3 w-24 rounded-md bg-zinc-200 mb-2" />
+          <div className="h-3 w-24 rounded-md bg-zinc-200 dark:bg-zinc-700 mb-2" />
           <div className="h-2 w-14 rounded-md bg-zinc-100 dark:bg-zinc-800" />
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <div className="h-2.5 w-12 rounded-md bg-zinc-200" />
+          <div className="h-2.5 w-12 rounded-md bg-zinc-200 dark:bg-zinc-700" />
           <div className="h-2 w-8  rounded-md bg-zinc-100 dark:bg-zinc-800" />
         </div>
       </motion.div>
@@ -257,13 +257,13 @@ function TourCard({
           <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 whitespace-nowrap">
             Passo {step + 1} de {steps.length}
           </p>
-          <h3 className="text-sm sm:text-base font-black text-zinc-950 leading-snug break-words">
+          <h3 className="text-sm sm:text-base font-black text-zinc-950 dark:text-zinc-50 leading-snug break-words">
             {current.title}
           </h3>
         </div>
         <button
           onClick={onFinish}
-          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:bg-zinc-800 transition-colors"
+          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -280,7 +280,7 @@ function TourCard({
       </div>
 
       {/* Body text — flex-1 + min-h-0 forces scroll BEFORE pushing buttons out */}
-      <p className="flex-1 min-h-0 overflow-y-auto text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed break-words whitespace-pre-line pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-200">
+      <p className="flex-1 min-h-0 overflow-y-auto text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed break-words whitespace-pre-line pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-200 dark:bg-zinc-700">
         {current.body}
       </p>
 

@@ -165,12 +165,12 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                       </div>
                     )}
                     {filteredProducts.length > 0 ? filteredProducts.map(p => (
-                      <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); setIsTypingProduct(false); }} className="group/item cursor-pointer px-5 py-3 mb-1 last:mb-0 min-h-[64px] text-base text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] hover:text-zinc-950 rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200 dark:border-zinc-800/60">
+                      <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); setIsTypingProduct(false); }} className="group/item cursor-pointer px-5 py-3 mb-1 last:mb-0 min-h-[64px] text-base text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] hover:text-zinc-950 dark:text-zinc-50 rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200 dark:border-zinc-800/60">
                         <span className="truncate group-hover/item:text-black">{p.produto}</span>
                         {p.litragem && <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-mono font-black tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800/60 px-2 py-1 rounded-md">{p.litragem}</span>}
                       </div>
                     )) : watch('produto') ? (
-                       <div className="px-5 py-3 min-h-[64px] text-base text-blue-600 font-bold cursor-pointer hover:bg-blue-50 rounded-[1.25rem] transition-colors flex items-center border border-transparent hover:border-blue-100" onClick={() => { setShowProductSuggestions(false); setIsTypingProduct(false); }}>
+                       <div className="px-5 py-3 min-h-[64px] text-base text-blue-600 font-bold cursor-pointer hover:bg-blue-50 dark:bg-blue-950/30 rounded-[1.25rem] transition-colors flex items-center border border-transparent hover:border-blue-100" onClick={() => { setShowProductSuggestions(false); setIsTypingProduct(false); }}>
                           <Plus className="w-5 h-5 mr-2" />
                           Cadastrar como novo: "{watch('produto')}"
                        </div>
@@ -236,7 +236,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                           );
                         })}
                         <div className="h-px bg-slate-200 my-1"></div>
-                        <SelectItem value="custom_new_line" className="font-bold text-base py-3 text-blue-600 focus:text-blue-700 focus:bg-blue-50">
+                        <SelectItem value="custom_new_line" className="font-bold text-base py-3 text-blue-600 focus:text-blue-700 dark:text-blue-400 focus:bg-blue-50 dark:bg-blue-950/30">
                           + Adicionar outra linha...
                         </SelectItem>
                       </SelectContent>
@@ -270,7 +270,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                              type="button"
                              variant="ghost"
                              disabled={!searchLine.trim()}
-                             className="w-full justify-start font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-10 rounded-lg disabled:opacity-50"
+                             className="w-full justify-start font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-950/30 h-10 rounded-lg disabled:opacity-50"
                              onClick={() => {
                                if (!searchLine.trim()) return;
                                const newLine = searchLine.trim().startsWith('Linha') ? searchLine.trim() : `Linha ${searchLine.trim()}`;
@@ -311,7 +311,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-zinc-200 dark:border-zinc-800 shadow-sm">
                     <Play className="w-8 h-8 fill-current ml-1" />
                   </div>
-                  <DialogTitle className="text-2xl sm:text-3xl font-black text-zinc-950 tracking-tight">Iniciar OP?</DialogTitle>
+                  <DialogTitle className="text-2xl sm:text-3xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight">Iniciar OP?</DialogTitle>
                   <DialogDescription className="text-zinc-500 dark:text-zinc-400 font-medium text-base leading-relaxed mx-auto max-w-[300px]">
                     Confirme os dados antes de iniciar o registro de apontamentos.
                   </DialogDescription>
@@ -320,11 +320,11 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <div className="flex flex-col items-center justify-center min-w-0 h-28 sm:h-32 bg-[#F9FAFB] border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.5rem] shadow-inner p-3 sm:p-4 text-center">
                     <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">OP Selecionada</span>
-                    <span className="text-3xl font-black text-zinc-950 tracking-tighter w-full truncate" title={startFormData?.opNumber}>{startFormData?.opNumber}</span>
+                    <span className="text-3xl font-black text-zinc-950 dark:text-zinc-50 tracking-tighter w-full truncate" title={startFormData?.opNumber}>{startFormData?.opNumber}</span>
                   </div>
                   <div className="flex flex-col items-center justify-center min-w-0 h-28 sm:h-32 bg-[#F9FAFB] border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.5rem] shadow-inner p-3 sm:p-4 text-center">
                     <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Linha Atribuída</span>
-                    <span className="text-3xl font-black text-zinc-950 tracking-tighter w-full truncate" title={startFormData?.linha}>
+                    <span className="text-3xl font-black text-zinc-950 dark:text-zinc-50 tracking-tighter w-full truncate" title={startFormData?.linha}>
                       {startFormData?.linha?.replace('Linha ', '')?.trim()}
                     </span>
                   </div>
@@ -332,7 +332,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
 
                 <div className="flex flex-col items-center justify-center min-w-0 h-20 bg-[#F9FAFB] border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.5rem] shadow-inner p-3 text-center mb-8">
                   <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Turno</span>
-                  <span className="text-xl font-black text-zinc-950 tracking-tighter">
+                  <span className="text-xl font-black text-zinc-950 dark:text-zinc-50 tracking-tighter">
                     {startFormData?.turno ? `Turno ${startFormData.turno.replace('Turno ', '')}` : ''}
                   </span>
                 </div>
@@ -341,7 +341,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   <Button type="button" onClick={() => startFormData && onStartOp(startFormData)} disabled={loadingNewOp} className="w-full h-[4.5rem] bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-[1.5rem] text-xl font-bold tracking-tight shadow-xl shadow-emerald-600/20 focus-visible:ring-4 focus-visible:ring-emerald-500/20 disabled:shadow-none transition-all">
                     {loadingNewOp ? <Loader2 className="w-7 h-7 animate-spin" /> : 'Confirmar Início'}
                   </Button>
-                  <Button type="button" variant="ghost" onClick={() => setShowConfirmStart(false)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
+                  <Button type="button" variant="ghost" onClick={() => setShowConfirmStart(false)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
                     Revisar Dados
                   </Button>
                 </div>

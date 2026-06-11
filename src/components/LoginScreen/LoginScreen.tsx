@@ -62,13 +62,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <div className="lg:hidden flex flex-col items-center gap-4 mb-8 pt-4 text-center">
               <img src="/icon.svg" className="w-16 h-16 object-contain drop-shadow-md flex-shrink-0" alt="Icon" />
               <div>
-                <h1 className="text-2xl font-black text-zinc-950 tracking-tight leading-none mb-1">Diário de Bordo</h1>
+                <h1 className="text-2xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight leading-none mb-1">Diário de Bordo</h1>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 font-mono uppercase tracking-widest font-bold">Vonixx</p>
               </div>
             </div>
 
             <div className="mb-10 text-center lg:text-left">
-              <h3 className="text-3xl font-black text-zinc-950 tracking-tight mb-2">Bem-vindo(a)</h3>
+              <h3 className="text-3xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight mb-2">Bem-vindo(a)</h3>
               <p className="text-base text-zinc-500 dark:text-zinc-400 font-medium">Acesse seu perfil para continuar.</p>
             </div>
             
@@ -108,7 +108,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   <div className="flex items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[#F9FAFB] rounded-[1.5rem] border border-zinc-200 dark:border-zinc-800/80 shadow-inner">
                     <div className="flex-1">
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-widest font-black mb-1">Perfil Selecionado</p>
-                      <p className="text-xl font-black text-zinc-950 truncate">{selectedProfile}</p>
+                      <p className="text-xl font-black text-zinc-950 dark:text-zinc-50 truncate">{selectedProfile}</p>
                     </div>
                   </div>
 
@@ -122,12 +122,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                          onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }}
                          placeholder="Digite a senha..."
                          autoFocus
-                         className="w-full h-16 bg-white dark:bg-zinc-950 border-2 border-zinc-200 dark:border-zinc-800/80 text-zinc-950 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 pr-14 pl-5 rounded-2xl focus-visible:ring-0 focus-visible:border-zinc-950 text-lg shadow-sm transition-colors"
+                         className="w-full h-16 bg-white dark:bg-zinc-950 border-2 border-zinc-200 dark:border-zinc-800/80 text-zinc-950 dark:text-zinc-50 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-400 pr-14 pl-5 rounded-2xl focus-visible:ring-0 focus-visible:border-zinc-950 text-lg shadow-sm transition-colors"
                        />
                        <button
                          type="button"
                          onClick={() => setShowPassword(v => !v)}
-                         className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:bg-zinc-800 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                         className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                        >
                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                        </button>

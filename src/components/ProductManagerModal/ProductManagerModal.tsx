@@ -111,7 +111,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
 
         {/* Drag handle (mobile) */}
         <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0 bg-white dark:bg-zinc-950/50">
-          <div className="w-10 h-1.5 rounded-full bg-zinc-300" />
+          <div className="w-10 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
         </div>
 
         {/* Premium Header */}
@@ -132,7 +132,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
             </div>
             <button
               onClick={() => onOpenChange(false)}
-              className="w-8 h-8 rounded-full bg-white dark:bg-zinc-950/5 hover:bg-white dark:bg-zinc-950/15 flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0"
+              className="w-8 h-8 rounded-full bg-white dark:bg-zinc-950/5 dark:bg-white/5 hover:bg-white dark:bg-zinc-950/15 flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -147,12 +147,12 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
               placeholder="Buscar produto..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-11 rounded-xl border border-zinc-200 dark:border-zinc-800/80 focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/10 bg-white dark:bg-zinc-950 shadow-sm text-sm font-semibold placeholder:font-medium placeholder:text-zinc-400 dark:placeholder:text-zinc-500 transition-all"
+              className="pl-10 h-11 rounded-xl border border-zinc-200 dark:border-zinc-800/80 focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/10 bg-white dark:bg-zinc-950 shadow-sm text-sm font-semibold placeholder:font-medium placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-400 transition-all"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 flex items-center justify-center transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center transition-colors"
               >
                 <X className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
               </button>
@@ -172,7 +172,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
                 editingProduct?.produto === p.produto
                   ? 'border-blue-500 ring-4 ring-blue-500/10 bg-white dark:bg-zinc-950 shadow-md z-10 relative'
                   : confirmDelete?.produto === p.produto
-                  ? 'border-red-300 ring-4 ring-red-500/10 bg-red-50 z-10 relative'
+                  ? 'border-red-300 ring-4 ring-red-500/10 bg-red-50 dark:bg-red-950/30 z-10 relative'
                   : 'border-zinc-200 dark:border-zinc-800/60 bg-white dark:bg-zinc-950 hover:border-zinc-300 hover:shadow-sm shadow-sm/50'
               )}>
                 {/* Product Row */}
@@ -198,13 +198,13 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
                     <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 sm:opacity-100 transition-opacity">
                       <button
                         onClick={() => handleEdit(p)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:bg-blue-950/30 transition-colors"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => { setEditingProduct(null); setConfirmDelete(p); }}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:bg-red-950/30 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -241,7 +241,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
                     <div className="flex justify-end gap-2 pt-1">
                       <button
                         onClick={() => setEditingProduct(null)}
-                        className="px-3 h-8 flex items-center justify-center bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors shadow-sm"
+                        className="px-3 h-8 flex items-center justify-center bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors shadow-sm"
                       >
                         Cancelar
                       </button>
@@ -258,14 +258,14 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
 
                 {/* Delete Confirmation */}
                 {confirmDelete?.produto === p.produto && (
-                  <div className="px-3 pb-3 border-t border-red-100 bg-red-50/50 pt-3">
+                  <div className="px-3 pb-3 border-t border-red-100 bg-red-50 dark:bg-red-950/30/50 pt-3">
                     <p className="text-xs font-bold text-red-800 mb-3">
                       Excluir este produto permanentemente?
                     </p>
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => setConfirmDelete(null)}
-                        className="px-3 h-8 flex items-center justify-center bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors shadow-sm"
+                        className="px-3 h-8 flex items-center justify-center bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors shadow-sm"
                       >
                         Cancelar
                       </button>

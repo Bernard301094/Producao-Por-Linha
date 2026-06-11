@@ -176,7 +176,7 @@ function ToleranceCountdown({ profile, onExpire }: { profile: string | null; onE
   if (!timeLeft) return null;
 
   return (
-    <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 px-2 sm:px-3 h-10 rounded-xl shadow-sm transition-colors duration-500">
+    <div className="flex items-center gap-1.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-400 px-2 sm:px-3 h-10 rounded-xl shadow-sm transition-colors duration-500">
       <Clock className="w-4 h-4" />
       <span className="text-xs font-black tracking-widest">{timeLeft}</span>
     </div>
@@ -1132,12 +1132,12 @@ export default function App() {
               
               {/* Textos y Etiquetas */}
               <div className="flex flex-col min-w-0 justify-center">
-                <h1 className="text-[15px] sm:text-lg font-black text-zinc-950 tracking-tight leading-none truncate mb-1.5">
+                <h1 className="text-[15px] sm:text-lg font-black text-zinc-950 dark:text-zinc-50 tracking-tight leading-none truncate mb-1.5">
                   Diário de Bordo
                 </h1>
                 <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mt-1">
                   <span>{today}</span>
-                  <span className="w-1 h-1 rounded-full bg-zinc-300 shrink-0"></span>
+                  <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-600 shrink-0"></span>
                   <span className="truncate">{loginProfile}</span>
                 </div>
               </div>
@@ -1148,7 +1148,7 @@ export default function App() {
               
               <button 
                 onClick={() => setShowProductManager(true)}
-                className="flex items-center justify-center sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors shadow-sm"
+                className="flex items-center justify-center sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800/50 rounded-lg transition-colors shadow-sm"
                 title="Gerenciar Produtos"
               >
                 <Pencil className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> 
@@ -1157,7 +1157,7 @@ export default function App() {
               
               <button 
                 onClick={() => setTourActive(true)}
-                className="flex items-center justify-center sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors shadow-sm"
+                className="flex items-center justify-center sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800/50 rounded-lg transition-colors shadow-sm"
                 title="Iniciar Tour"
               >
                 <HelpCircle className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> 
@@ -1170,7 +1170,7 @@ export default function App() {
                   onClick={() => setShowDashboard(!showDashboard)}
                   className={cn(
                     "flex items-center justify-center sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold rounded-lg transition-colors shadow-sm ml-1",
-                    showDashboard ? "text-emerald-700 bg-emerald-50 border border-emerald-200" : "text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:bg-zinc-800"
+                    showDashboard ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50" : "text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800"
                   )}
                   title="Dashboard"
                 >
@@ -1181,10 +1181,10 @@ export default function App() {
 
               {/* Settings (Solo visible en Desktop porque en mobile está abajo) */}
               <div className="hidden lg:flex items-center gap-2 ml-1">
-                <div className="w-[1px] h-5 bg-zinc-200"></div>
+                <div className="w-[1px] h-5 bg-zinc-200 dark:bg-zinc-700"></div>
                 <button 
                   onClick={() => setSettingsModalOpen(true)}
-                  className="flex items-center justify-center w-8 h-8 text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg transition-colors shadow-sm"
+                  className="flex items-center justify-center w-8 h-8 text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg transition-colors shadow-sm"
                   title="Configurações"
                 >
                   <Settings className="w-4 h-4" />
@@ -1207,7 +1207,7 @@ export default function App() {
             {/* Centro: Botón Nova OP */}
             <button
               onClick={() => setIsNovaSheetOpen(true)}
-              className="flex items-center gap-2 bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:bg-zinc-800 text-zinc-950 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
+              className="flex items-center gap-2 bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-950 dark:text-zinc-50 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
             >
               <Plus className="w-[18px] h-[18px] stroke-[3]" />
               Nova OP
@@ -1253,7 +1253,7 @@ export default function App() {
             >
               <p className={cn("text-[9px] font-black uppercase tracking-widest mb-2 leading-none", mobileTab === 'concluidas' ? "text-emerald-100/70" : "text-zinc-400")}>Concluídas</p>
               <p className={cn("text-4xl font-black leading-none", mobileTab === 'concluidas' ? "text-white" : "text-zinc-900 dark:text-zinc-100")}>{myFinishedOps.length}</p>
-              <p className={cn("text-[11px] font-bold mt-1.5 leading-none", mobileTab === 'concluidas' ? "text-emerald-100" : "text-emerald-600")}>{totalUnidades.toLocaleString()} UN</p>
+              <p className={cn("text-[11px] font-bold mt-1.5 leading-none", mobileTab === 'concluidas' ? "text-emerald-100" : "text-emerald-600 dark:text-emerald-500")}>{totalUnidades.toLocaleString()} UN</p>
             </button>
           </div>
         </div>
@@ -1289,7 +1289,7 @@ export default function App() {
 
             {/* Pendentes */}
             <div className={cn('bg-white dark:bg-zinc-950 sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-slate-200 dark:ring-zinc-800/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-5 2xl:col-span-5 lg:order-2 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-slate-200 dark:border-zinc-800/80 sm:border-y-0 relative tour-pendentes w-full', mobileTab !== 'pendentes' ? 'hidden lg:flex' : 'flex')}>
-              <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col gap-3 bg-zinc-950/5 relative overflow-hidden shrink-0">
+              <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col gap-3 bg-zinc-950/5 dark:bg-white/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:14px_14px] opacity-50" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
                   <div className="flex items-center gap-3">
@@ -1307,7 +1307,7 @@ export default function App() {
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
                       <Search className="w-4 h-4" />
                     </div>
-                    <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Pesquisar produto, linha..." className="w-full h-10 pl-9 pr-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/80 rounded-xl text-base sm:text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-sm transition-all" />
+                    <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Pesquisar produto, linha..." className="w-full h-10 pl-9 pr-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/80 rounded-xl text-base sm:text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-sm transition-all" />
                   </div>
                   
                   {pendingLinhas.length > 1 && operatingMode !== 'dedicated' && (
@@ -1347,10 +1347,10 @@ export default function App() {
                                       updateSelectedLinha(currentValue, true);
                                       setOpenLineFilterPending(false);
                                     }}
-                                    className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] aria-selected:text-zinc-950 transition-colors font-bold text-xs mb-0.5 last:mb-0"
+                                    className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] aria-selected:text-zinc-950 dark:text-zinc-50 transition-colors font-bold text-xs mb-0.5 last:mb-0"
                                   >
                                     <div className="flex items-center gap-2">
-                                      <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300" : "bg-amber-400")} />
+                                      <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300 dark:bg-zinc-600" : "bg-amber-400")} />
                                       {formatLinhaDisplay(linha)}
                                     </div>
                                     {selectedLinha === linha && <Check className="h-3 w-3 text-zinc-900 dark:text-zinc-100" />}
@@ -1426,12 +1426,12 @@ export default function App() {
 
             {/* Concluídas */}
             <div className={cn('bg-white dark:bg-zinc-950 sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-slate-200 dark:ring-zinc-800/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-4 2xl:col-span-4 lg:order-3 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-slate-200 dark:border-zinc-800/80 sm:border-y-0 relative tour-concluidas', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
-              <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col gap-3 bg-emerald-950/5 relative overflow-hidden shrink-0">
+              <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col gap-3 bg-emerald-950/5 dark:bg-emerald-400/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#05966910_1px,transparent_1px),linear-gradient(to_bottom,#05966910_1px,transparent_1px)] bg-[size:14px_14px] opacity-70" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white dark:bg-zinc-950 shadow-sm ring-1 ring-emerald-200/80 rounded-xl flex items-center justify-center">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    <div className="w-10 h-10 bg-white dark:bg-zinc-950 shadow-sm ring-1 ring-emerald-200 dark:ring-emerald-800/50/80 rounded-xl flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-base font-black text-zinc-900 dark:text-zinc-100 tracking-tight leading-none mb-1">Concluídas</span>
@@ -1439,8 +1439,8 @@ export default function App() {
                     </div>
                   </div>
                   <div className="text-right bg-white dark:bg-zinc-950 px-2 py-1.5 rounded-lg border border-emerald-100 shadow-sm shrink-0">
-                    <p className="text-[9px] text-emerald-600/70 uppercase tracking-widest font-black mb-0.5">Total</p>
-                    <p className="text-sm font-black text-emerald-700 tracking-tighter leading-none">{displayTotalUnidades.toLocaleString()} UN</p>
+                    <p className="text-[9px] text-emerald-600 dark:text-emerald-500/70 uppercase tracking-widest font-black mb-0.5">Total</p>
+                    <p className="text-sm font-black text-emerald-700 dark:text-emerald-400 tracking-tighter leading-none">{displayTotalUnidades.toLocaleString()} UN</p>
                   </div>
                 </div>
                 <div className="relative z-10 flex flex-col gap-3">
@@ -1448,7 +1448,7 @@ export default function App() {
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
                       <Search className="w-4 h-4" />
                     </div>
-                    <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Pesquisar OP ou produto..." className="w-full h-10 pl-9 pr-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/80 rounded-xl text-base sm:text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-sm transition-all" />
+                    <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Pesquisar OP ou produto..." className="w-full h-10 pl-9 pr-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/80 rounded-xl text-base sm:text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-sm transition-all" />
                   </div>
                   
                   {finishedLinhas.length > 1 && operatingMode !== 'dedicated' && (
@@ -1488,10 +1488,10 @@ export default function App() {
                                       updateSelectedLinha(currentValue, true);
                                       setOpenLineFilterFinished(false);
                                     }}
-                                    className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] aria-selected:text-zinc-950 transition-colors font-bold text-xs mb-0.5 last:mb-0"
+                                    className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] aria-selected:text-zinc-950 dark:text-zinc-50 transition-colors font-bold text-xs mb-0.5 last:mb-0"
                                   >
                                     <div className="flex items-center gap-2">
-                                      <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300" : "bg-emerald-500")} />
+                                      <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300 dark:bg-zinc-600" : "bg-emerald-500")} />
                                       {formatLinhaDisplay(linha)}
                                     </div>
                                     {selectedLinha === linha && <Check className="h-3 w-3 text-zinc-900 dark:text-zinc-100" />}
@@ -1548,7 +1548,7 @@ export default function App() {
         <DialogContent showCloseButton={false} className="w-full max-w-full rounded-t-[2rem] p-0 border-0 gap-0 top-auto bottom-0 translate-y-0 max-h-[94dvh] overflow-hidden flex flex-col bg-white dark:bg-zinc-950 shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.25)]">
           {/* Drag handle */}
           <div className="flex-shrink-0 flex flex-col items-center pt-3 pb-1 cursor-pointer" onClick={() => setIsNovaSheetOpen(false)}>
-            <div className="w-10 h-1 rounded-full bg-zinc-200" />
+            <div className="w-10 h-1 rounded-full bg-zinc-200 dark:bg-zinc-700" />
           </div>
           {/* Sheet header */}
           <div className="flex items-center justify-between px-5 pb-3 flex-shrink-0">
@@ -1557,13 +1557,13 @@ export default function App() {
                 <Plus className="w-4 h-4 text-white" />
               </div>
               <div>
-                <p className="text-base font-black text-zinc-950 leading-none">Nova Ordem de Produção</p>
+                <p className="text-base font-black text-zinc-950 dark:text-zinc-50 leading-none">Nova Ordem de Produção</p>
                 <p className="text-[11px] font-semibold text-zinc-400 mt-0.5">Turno {currentTurnForView}</p>
               </div>
             </div>
             <button
               onClick={() => setIsNovaSheetOpen(false)}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 text-zinc-500 dark:text-zinc-400 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1613,17 +1613,17 @@ export default function App() {
       <Dialog open={!!deletingOp} onOpenChange={(o: boolean) => { if (!o) setDeletingOp(null); }}>
         <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
           <DialogHeader className="text-center space-y-2 mb-8">
-            <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200/50 shadow-sm">
+            <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-800/50/50 shadow-sm">
               <Trash2 className="w-8 h-8" />
             </div>
-            <DialogTitle className="text-2xl font-black text-zinc-950 tracking-tight">Confirmar Exclusão</DialogTitle>
+            <DialogTitle className="text-2xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight">Confirmar Exclusão</DialogTitle>
           </DialogHeader>
           <p className="text-base text-zinc-500 dark:text-zinc-400 font-medium text-center mb-8 px-4">Tem certeza que deseja remover esta operação? <strong className="text-zinc-900 dark:text-zinc-100">Esta ação não pode ser desfeita.</strong></p>
           <DialogFooter className="flex-col sm:flex-col gap-3">
             <Button onClick={confirmDelete} disabled={loadingDelete} className="w-full h-14 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-base font-black shadow-xl shadow-red-500/20 focus-visible:ring-4 focus-visible:ring-red-500/20 transition-all">
               {loadingDelete ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Sim, Remover Operação'}
             </Button>
-            <Button variant="ghost" onClick={() => setDeletingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
+            <Button variant="ghost" onClick={() => setDeletingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
                Cancelar
             </Button>
           </DialogFooter>
@@ -1634,10 +1634,10 @@ export default function App() {
       <Dialog open={!!revertingOp} onOpenChange={(o: boolean) => { if (!o) setRevertingOp(null); }}>
         <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
           <DialogHeader className="text-center space-y-2 mb-8">
-            <div className="w-16 h-16 bg-amber-100/50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200/50 shadow-sm">
+            <div className="w-16 h-16 bg-amber-100/50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200 dark:border-amber-800/50/50 shadow-sm">
               <RotateCcw className="w-8 h-8" />
             </div>
-            <DialogTitle className="text-2xl font-black text-zinc-950 tracking-tight">Reverter OP</DialogTitle>
+            <DialogTitle className="text-2xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight">Reverter OP</DialogTitle>
           </DialogHeader>
           <p className="text-base text-zinc-500 dark:text-zinc-400 font-medium text-center mb-8">
             A OP <span className="font-bold text-zinc-900 dark:text-zinc-100">{revertingOp?.opNumber}</span> será removida de Concluídas e voltará para a lista de Pendentes. O registro na planilha será removido.
@@ -1646,7 +1646,7 @@ export default function App() {
             <Button onClick={confirmRevert} disabled={loadingRevert} className="w-full h-14 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl text-base font-black shadow-xl shadow-zinc-900/20 focus-visible:ring-4 focus-visible:ring-zinc-900/20 transition-all">
               {loadingRevert ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Confirmar Reversão'}
             </Button>
-            <Button variant="ghost" onClick={() => setRevertingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
+            <Button variant="ghost" onClick={() => setRevertingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
                Cancelar
             </Button>
           </DialogFooter>
@@ -1711,7 +1711,7 @@ export default function App() {
       <Dialog open={settingsModalOpen} onOpenChange={setSettingsModalOpen}>
         <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50">
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-xl font-black text-zinc-950">Ajustes da Tablet</DialogTitle>
+            <DialogTitle className="text-xl font-black text-zinc-950 dark:text-zinc-50">Ajustes da Tablet</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
             <div className="space-y-3">
