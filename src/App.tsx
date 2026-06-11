@@ -1709,7 +1709,7 @@ export default function App() {
       )}
       {/* Settings Dialog */}
       <Dialog open={settingsModalOpen} onOpenChange={setSettingsModalOpen}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50 bg-white dark:bg-zinc-950">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl font-black text-zinc-950 dark:text-zinc-50">Ajustes da Tablet</DialogTitle>
           </DialogHeader>
@@ -1725,10 +1725,10 @@ export default function App() {
                   }}
                   className={cn(
                     "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all",
-                    operatingMode === 'global' ? "border-zinc-900 bg-zinc-50 dark:bg-zinc-900/50" : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300"
+                    operatingMode === 'global' ? "border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-900" : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
                   )}
                 >
-                  <span className="font-bold text-sm">Global</span>
+                  <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">Global</span>
                   <span className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Todas as linhas</span>
                 </button>
                 <button
@@ -1739,10 +1739,10 @@ export default function App() {
                   }}
                   className={cn(
                     "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all",
-                    operatingMode === 'dedicated' ? "border-zinc-900 bg-zinc-50 dark:bg-zinc-900/50" : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300"
+                    operatingMode === 'dedicated' ? "border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-900" : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
                   )}
                 >
-                  <span className="font-bold text-sm">Dedicado</span>
+                  <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">Dedicado</span>
                   <span className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Apenas 1 linha</span>
                 </button>
               </div>
@@ -1768,7 +1768,7 @@ export default function App() {
                       }}
                       className={cn(
                         "h-10 rounded-lg text-xs font-bold border transition-all",
-                        selectedLinha === normalizeLinha(l) ? "bg-zinc-900 text-white border-zinc-900" : "bg-white dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:bg-zinc-900/50"
+                        selectedLinha === normalizeLinha(l) ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100" : "bg-white dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                       )}
                     >
                       {l.replace('Linha ', '')}
@@ -1779,7 +1779,7 @@ export default function App() {
             )}
           </div>
           <DialogFooter className="mt-6 sm:justify-center">
-            <Button onClick={() => setSettingsModalOpen(false)} className="w-full sm:w-auto h-12 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-bold px-8">
+            <Button onClick={() => setSettingsModalOpen(false)} className="w-full sm:w-auto h-12 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 rounded-xl font-bold px-8">
               Concluir
             </Button>
           </DialogFooter>
