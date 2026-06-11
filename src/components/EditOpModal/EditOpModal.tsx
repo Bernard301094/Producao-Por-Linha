@@ -198,21 +198,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="space-y-2">
-              <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Turno</Label>
-              <input type="hidden" {...registerEdit('turno')} />
-              <Select onValueChange={(v) => setValueEdit('turno', v)} value={watchEdit('turno') || ''}>
-                <SelectTrigger className="w-full h-14 border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] dark:bg-zinc-900 rounded-2xl px-4 text-base font-bold text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-950 transition-all shadow-sm">
-                  <SelectValue placeholder="Turno" />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-zinc-200 dark:border-zinc-800/80 shadow-xl">
-                  <SelectItem value="A" className="text-base font-bold py-2">A</SelectItem>
-                  <SelectItem value="B" className="text-base font-bold py-2">B</SelectItem>
-                  <SelectItem value="C" className="text-base font-bold py-2">C</SelectItem>
-                  <SelectItem value="D" className="text-base font-bold py-2">D</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <input type="hidden" {...registerEdit('turno')} />
             {'quantidade' in editingOp && (
               <div className="space-y-6 pt-2">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-5 items-start">
