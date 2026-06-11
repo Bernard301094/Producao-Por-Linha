@@ -1197,7 +1197,7 @@ export default function App() {
 
         {/* Mobile Bottom Bar — Floating Pill */}
         <div className="lg:hidden fixed bottom-0 left-0 w-full z-50 px-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] pointer-events-none tour-tab-bar">
-          <div className="pointer-events-auto bg-zinc-950/95 backdrop-blur-xl rounded-full ring-1 ring-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.45)] flex items-center justify-between h-[60px] px-2">
+          <div className="pointer-events-auto bg-zinc-950/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-full ring-1 ring-white/10 dark:ring-white/5 shadow-[0_8px_40px_rgba(0,0,0,0.45)] flex items-center justify-between h-[60px] px-2">
             
             {/* Izquierda: Solo texto de Turno */}
             <div className="flex items-center pl-4">
@@ -1207,7 +1207,7 @@ export default function App() {
             {/* Centro: Botón Nova OP */}
             <button
               onClick={() => setIsNovaSheetOpen(true)}
-              className="flex items-center gap-2 bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-950 dark:text-zinc-50 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
+              className="flex items-center gap-2 bg-white dark:bg-zinc-100 hover:bg-zinc-100 dark:hover:bg-white text-zinc-950 dark:text-zinc-900 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
             >
               <Plus className="w-[18px] h-[18px] stroke-[3]" />
               Nova OP
@@ -1217,7 +1217,7 @@ export default function App() {
             <div className="flex items-center pr-1">
               <button 
                 onClick={() => setSettingsModalOpen(true)}
-                className="w-11 h-11 flex items-center justify-center rounded-full text-zinc-400 hover:bg-white dark:bg-zinc-950/10 hover:text-white transition-colors"
+                className="w-11 h-11 flex items-center justify-center rounded-full text-zinc-400 dark:text-zinc-300 hover:bg-zinc-800 dark:hover:bg-zinc-800 hover:text-white dark:hover:text-white transition-colors"
               >
                 <Settings className="w-[22px] h-[22px]" />
               </button>
@@ -1227,7 +1227,7 @@ export default function App() {
         </div>
 
         {/* Mobile Nav Cards */}
-        <div className="lg:hidden px-3 py-2.5 bg-[#F9FAFB] sticky top-[calc(3.75rem+env(safe-area-inset-top))] z-20 border-b border-zinc-200 dark:border-zinc-800/60">
+        <div className="lg:hidden px-3 py-2.5 bg-[#F9FAFB] dark:bg-zinc-950 sticky top-[calc(3.75rem+env(safe-area-inset-top))] z-20 border-b border-zinc-200 dark:border-zinc-800/60">
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setMobileTab('pendentes')}
