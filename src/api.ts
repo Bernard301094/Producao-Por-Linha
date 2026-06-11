@@ -13,6 +13,8 @@ export interface Parada {
 export interface ParadaRecord extends Parada {
   horaInicio: string;
   horaFim: string;
+  numeroOS?: string;
+  observacao?: string;
 }
 
 export interface Operation {

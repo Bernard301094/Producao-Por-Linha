@@ -42,6 +42,10 @@ export interface EditOpModalProps {
   setEditParadaStart: React.Dispatch<React.SetStateAction<string>>;
   editParadaEnd: string;
   setEditParadaEnd: React.Dispatch<React.SetStateAction<string>>;
+  editParadaOS: string;
+  setEditParadaOS: React.Dispatch<React.SetStateAction<string>>;
+  editParadaObs: string;
+  setEditParadaObs: React.Dispatch<React.SetStateAction<string>>;
   addEditParada: () => void;
 }
 
@@ -76,6 +80,10 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
   setEditParadaStart,
   editParadaEnd,
   setEditParadaEnd,
+  editParadaOS,
+  setEditParadaOS,
+  editParadaObs,
+  setEditParadaObs,
   addEditParada
 }) => {
   const editOpRef = useRef<HTMLDivElement>(null);
@@ -313,6 +321,22 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10"><Clock className="w-4 h-4" /></div>
                            <CustomTimePicker value={editParadaEnd} onChange={setEditParadaEnd} placeholder="Fim" wrapperClass="h-14 bg-[#F9FAFB] dark:bg-zinc-900 rounded-xl shadow-sm border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors focus-within:bg-white dark:focus-within:bg-zinc-950" inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0 w-full" />
                          </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          placeholder="Número O.S."
+                          value={editParadaOS}
+                          onChange={(e) => setEditParadaOS(e.target.value)}
+                          className="h-14 px-4 bg-[#F9FAFB] dark:bg-zinc-900 rounded-xl shadow-sm border-2 border-zinc-200 dark:border-zinc-800/80 focus:border-zinc-950 focus:bg-white dark:focus:bg-zinc-950 transition-colors text-sm font-bold text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Observação"
+                          value={editParadaObs}
+                          onChange={(e) => setEditParadaObs(e.target.value)}
+                          className="h-14 px-4 bg-[#F9FAFB] dark:bg-zinc-900 rounded-xl shadow-sm border-2 border-zinc-200 dark:border-zinc-800/80 focus:border-zinc-950 focus:bg-white dark:focus:bg-zinc-950 transition-colors text-sm font-bold text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none"
+                        />
                       </div>
                       <Button type="button" variant="outline" size="sm" onClick={addEditParada} className="w-full mt-2 h-14 text-sm font-bold border-dashed border-2 border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-zinc-900/20">
                         <Plus className="w-5 h-5 mr-2" /> Adicionar Parada

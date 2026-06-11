@@ -350,6 +350,8 @@ export default function App() {
   const [editParadaSelectedCode, setEditParadaSelectedCode] = useState('');
   const [editParadaStart, setEditParadaStart] = useState('');
   const [editParadaEnd, setEditParadaEnd] = useState('');
+  const [editParadaOS, setEditParadaOS] = useState('');
+  const [editParadaObs, setEditParadaObs] = useState('');
   const [deletingOp, setDeletingOp] = useState<Operation | FinishedOperation | null>(null);
   const [revertingOp, setRevertingOp] = React.useState<FinishedOperation | null>(null);
   const [showConfirmStart, setShowConfirmStart] = useState(false);
@@ -385,6 +387,8 @@ export default function App() {
     setEditParadaSelectedCode('');
     setEditParadaStart('');
     setEditParadaEnd('');
+    setEditParadaOS('');
+    setEditParadaObs('');
     resetEdit({
       opNumber: op.opNumber,
       produto: op.produto,
@@ -486,15 +490,18 @@ export default function App() {
     const selected = availableParadas.find((p: any) => p.seq.toString() === editParadaSelectedCode);
     if (!selected) return;
     const newParada: ParadaRecord = {
-      seq: selected.seq,
-      tipologia: selected.tipologia,
+      ...selected,
       horaInicio: editParadaStart,
       horaFim: editParadaEnd,
+      numeroOS: editParadaOS,
+      observacao: editParadaObs,
     };
     setEditParadas([...editParadas, newParada]);
     setEditParadaSelectedCode('');
     setEditParadaStart('');
     setEditParadaEnd('');
+    setEditParadaOS('');
+    setEditParadaObs('');
   };
 
   const removeEditParada = (index: number) => {
@@ -1687,6 +1694,10 @@ export default function App() {
           setEditParadaStart={setEditParadaStart}
           editParadaEnd={editParadaEnd}
           setEditParadaEnd={setEditParadaEnd}
+          editParadaOS={editParadaOS}
+          setEditParadaOS={setEditParadaOS}
+          editParadaObs={editParadaObs}
+          setEditParadaObs={setEditParadaObs}
           availableParadas={availableParadas}
         />
       )}

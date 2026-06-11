@@ -24,6 +24,8 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   const [finishParadaSelectedCode, setFinishParadaSelectedCode] = useState('');
   const [finishParadaStart, setFinishParadaStart] = useState('');
   const [finishParadaEnd, setFinishParadaEnd] = useState('');
+  const [finishParadaOS, setFinishParadaOS] = useState('');
+  const [finishParadaObs, setFinishParadaObs] = useState('');
   const [searchParadaText, setSearchParadaText] = useState('');
   
   const [itemLoading, setItemLoading] = useState(false);
@@ -101,6 +103,8 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
       ...paradaBase,
       horaInicio: finishParadaStart,
       horaFim: finishParadaEnd,
+      numeroOS: finishParadaOS,
+      observacao: finishParadaObs,
     };
     
     const newParadas = [...finishParadas, newParada];
@@ -109,6 +113,8 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
     setFinishParadaSelectedCode('');
     setFinishParadaStart('');
     setFinishParadaEnd('');
+    setFinishParadaOS('');
+    setFinishParadaObs('');
   };
 
   const removeParada = (index: number) => {
@@ -320,6 +326,29 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                     clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
                     wrapperClass="h-12 bg-white dark:bg-zinc-950 rounded-xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors shadow-sm"
                     inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 pl-0.5">Número O.S.</label>
+                  <input
+                    type="text"
+                    placeholder="Opcional"
+                    value={finishParadaOS}
+                    onChange={e => setFinishParadaOS(e.target.value)}
+                    className="w-full h-12 px-3 bg-white dark:bg-zinc-950 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-zinc-950 transition-colors shadow-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 pl-0.5">Observação</label>
+                  <input
+                    type="text"
+                    placeholder="Opcional"
+                    value={finishParadaObs}
+                    onChange={e => setFinishParadaObs(e.target.value)}
+                    className="w-full h-12 px-3 bg-white dark:bg-zinc-950 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-zinc-950 transition-colors shadow-sm"
                   />
                 </div>
               </div>

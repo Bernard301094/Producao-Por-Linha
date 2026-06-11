@@ -14,6 +14,8 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
   const [forgotMotivo,    setForgotMotivo]       = useState('');
   const [forgotStart,     setForgotStart]        = useState('');
   const [forgotEnd,       setForgotEnd]          = useState('');
+  const [forgotOS,        setForgotOS]           = useState('');
+  const [forgotObs,       setForgotObs]          = useState('');
   const [forgotSearch,    setForgotSearch]       = useState('');
   const [loadingForgot,   setLoadingForgot]      = useState(false);
 
@@ -23,7 +25,7 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
   const [convHoraFinal,    setConvHoraFinal]     = useState('');
   const [loadingConvert,   setLoadingConvert]    = useState(false);
 
-  const resetForgot  = () => { setForgotMotivo(''); setForgotStart(''); setForgotEnd(''); setForgotSearch(''); };
+  const resetForgot  = () => { setForgotMotivo(''); setForgotStart(''); setForgotEnd(''); setForgotSearch(''); setForgotOS(''); setForgotObs(''); };
   const resetConvert = () => { setConvHoraInicial(''); setConvHoraFinal(''); };
 
   const handleAddForgot = async () => {
@@ -32,7 +34,7 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
     if (!base) { toast.error('Selecione um motivo válido.'); return; }
     setLoadingForgot(true);
     try {
-      await onAddForgottenParada?.(op, { ...base, horaInicio: forgotStart, horaFim: forgotEnd });
+      await onAddForgottenParada?.(op, { ...base, horaInicio: forgotStart, horaFim: forgotEnd, numeroOS: forgotOS, observacao: forgotObs });
       toast.success('Parada adicionada ao histórico!');
       setShowForgotModal(false); resetForgot();
     } catch (e: any) { toast.error(`Erro: ${e.message}`); }
@@ -225,6 +227,28 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
                   clockIconClass="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none"
                   wrapperClass="h-12 bg-white dark:bg-zinc-950 rounded-xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors shadow-sm"
                   inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0 w-full"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1.5 block">Número O.S.</Label>
+                <input
+                  type="text"
+                  placeholder="Opcional"
+                  value={forgotOS}
+                  onChange={e => setForgotOS(e.target.value)}
+                  className="w-full h-12 px-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/80 rounded-xl text-sm font-medium focus:outline-none focus:border-zinc-950 transition-colors"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-1.5 block">Observação</Label>
+                <input
+                  type="text"
+                  placeholder="Opcional"
+                  value={forgotObs}
+                  onChange={e => setForgotObs(e.target.value)}
+                  className="w-full h-12 px-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/80 rounded-xl text-sm font-medium focus:outline-none focus:border-zinc-950 transition-colors"
                 />
               </div>
             </div>

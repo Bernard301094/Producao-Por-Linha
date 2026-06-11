@@ -152,7 +152,9 @@ app.post('/api/append', async (req, res) => {
               Cod_Parada: p.seq || '',
               Tipologia: p.tipologia || '',
               Hora_Inicio: p.horaInicio || '',
-              Hora_Fim: p.horaFim || ''
+              Hora_Fim: p.horaFim || '',
+              Numero_OS: p.numeroOS || '',
+              Observacao: p.observacao || ''
             };
             
             await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
@@ -215,7 +217,9 @@ app.post('/api/append-paradas', async (req, res) => {
           Cod_Parada: p.seq || '',
           Tipologia: p.tipologia || '',
           Hora_Inicio: p.horaInicio || '',
-          Hora_Fim: p.horaFim || ''
+          Hora_Fim: p.horaFim || '',
+          Numero_OS: p.numeroOS || '',
+          Observacao: p.observacao || ''
         };
         
         await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
@@ -325,7 +329,9 @@ app.post('/api/update', async (req, res) => {
                 Cod_Parada: p.seq || '',
                 Tipologia: p.tipologia || '',
                 Hora_Inicio: p.horaInicio || '',
-                Hora_Fim: p.horaFim || ''
+                Hora_Fim: p.horaFim || '',
+                Numero_OS: p.numeroOS || '',
+                Observacao: p.observacao || ''
               };
               await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
                 fields: paradaFields
