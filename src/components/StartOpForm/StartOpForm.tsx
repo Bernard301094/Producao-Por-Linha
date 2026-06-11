@@ -298,7 +298,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
             
             <Dialog open={showConfirmStart} onOpenChange={setShowConfirmStart}>
               {/* ¡AQUÍ ESTABA EL FIX PRINCIPAL (w-full en vez de anchos calculados) para este contenedor sticky! */}
-              <div className="mt-auto sm:mt-6 pt-4 sm:pt-6 bg-slate-50 dark:bg-zinc-950/95 lg:bg-transparent backdrop-blur lg:backdrop-filter-none border-t border-slate-200 dark:border-zinc-800/80 lg:border-none sticky bottom-0 lg:static z-10 w-full flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))] lg:pb-0">
+              <div className="mt-auto sm:mt-6 pt-4 sm:pt-6 bg-slate-50 dark:bg-transparent lg:bg-transparent backdrop-blur dark:backdrop-filter-none lg:backdrop-filter-none border-t border-slate-200 dark:border-transparent lg:border-none sticky bottom-0 lg:static z-10 w-full flex flex-col gap-2 pb-[max(1rem,env(safe-area-inset-bottom))] lg:pb-0">
                   <motion.div whileTap={{ scale: 0.98 }} whileHover={{ scale: 1.01 }}>
                     <Button type="submit" disabled={loadingNewOp} className="w-full h-14 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white font-bold text-xl tracking-tight rounded-2xl shadow-[0_8px_30px_rgb(15_23_42_/_20%)] transition-all focus-visible:ring-4 focus-visible:ring-slate-900/20 focus-visible:outline-none disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-500 dark:text-zinc-400 disabled:shadow-none">
                       {loadingNewOp ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Play className="w-6 h-6 mr-3 fill-current" /> Iniciar Ordem</>}
