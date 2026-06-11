@@ -90,17 +90,10 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
         {/* Stats */}
         {op.quantidade && (
           <div className="flex items-stretch gap-2 xl:gap-3 mb-3 xl:mb-4">
-            <div className="flex-1 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 rounded-xl xl:rounded-2xl px-3 xl:px-4 py-2 xl:py-3 flex flex-col">
+            <div className="flex-1 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-800/50 rounded-xl xl:rounded-2xl px-3 xl:px-4 py-2 xl:py-3 flex flex-col">
               <span className="text-[8px] xl:text-[9px] font-bold text-emerald-600 dark:text-emerald-500/70 uppercase tracking-widest leading-none mb-1">Produzido</span>
               <span className="text-2xl xl:text-3xl 2xl:text-4xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums leading-none">{parseInt(op.quantidade).toLocaleString()}</span>
               <span className="text-[9px] xl:text-[10px] font-bold text-emerald-500/60 mt-1">UN</span>
-            </div>
-            <div className={`flex-1 border rounded-xl xl:rounded-2xl px-3 xl:px-4 py-2 xl:py-3 flex flex-col ${op.qntReprocesso && parseInt(op.qntReprocesso) > 0 ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-100' : 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800'}`}>
-              <span className={`text-[8px] xl:text-[9px] font-bold uppercase tracking-widest leading-none mb-1 ${op.qntReprocesso && parseInt(op.qntReprocesso) > 0 ? 'text-amber-600/70' : 'text-slate-400'}`}>Reprocesso</span>
-              <span className={`text-2xl xl:text-3xl 2xl:text-4xl font-bold tabular-nums leading-none ${op.qntReprocesso && parseInt(op.qntReprocesso) > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-400'}`}>
-                {op.qntReprocesso && parseInt(op.qntReprocesso) > 0 ? parseInt(op.qntReprocesso).toLocaleString() : '0'}
-              </span>
-              <span className={`text-[9px] xl:text-[10px] font-bold mt-1 ${op.qntReprocesso && parseInt(op.qntReprocesso) > 0 ? 'text-amber-500/60' : 'text-slate-300'}`}>UN</span>
             </div>
           </div>
         )}

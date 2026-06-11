@@ -53,20 +53,6 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
   // 2. Rework Rate
   const reworkStats = useMemo(() => {
     let good = 0;
-    let rework = 0;
-    finishedOps.forEach(op => {
-      good += parseInt(op.quantidade, 10) || 0;
-      rework += parseInt(op.qntReprocesso, 10) || 0;
-    });
-    return [
-      { name: 'Peças Boas', value: good },
-      { name: 'Reprocesso', value: rework }
-    ];
-  }, [finishedOps]);
-
-  const totalPcs = reworkStats[0].value + reworkStats[1].value;
-  const reworkPercent = totalPcs > 0 ? ((reworkStats[1].value / totalPcs) * 100).toFixed(1) : '0.0';
-
   // 3. Top Paradas por Tempo (Minutos)
   const paradasTime = useMemo(() => {
     const map: Record<string, number> = {};
@@ -127,11 +113,11 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
   return (
     <div className="flex flex-col gap-6 p-4 pb-24 lg:pb-4 max-w-7xl mx-auto">
       
-      {/* Row 1: KPI Donuts (Availability & Quality) */}
+      {/* Row 1: KPI Donuts (Availability) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Disponibilidade */}
-        <div className="bg-white dark:bg-zinc-900 p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex items-center">
+        <div className="bg-white dark:bg-zinc-900 p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex items-center col-span-2">
           <div className="flex-1">
             <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Disponibilidade (OEE)</h3>
             <p className="text-3xl font-black text-zinc-900 dark:text-zinc-50 mb-2">{uptimePercent}%</p>
@@ -158,33 +144,7 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
           </div>
         </div>
 
-        {/* Qualidade / Reprocesso */}
-        <div className="bg-white dark:bg-zinc-900 p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex items-center">
-          <div className="flex-1">
-            <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Índice de Falla (Scrap)</h3>
-            <p className="text-3xl font-black text-zinc-900 dark:text-zinc-50 mb-2">{reworkPercent}%</p>
-            <p className="text-xs font-semibold text-zinc-400">Taxa de peças no reprocesso</p>
-          </div>
-          <div className="w-32 h-32 shrink-0 relative">
-            {totalPcs > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={reworkStats}
-                    cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" stroke="none"
-                  >
-                    {reworkStats.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={REWORK_COLORS[index % REWORK_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip contentStyle={tooltipStyle} formatter={(value) => `${value} un`} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-zinc-400">Sem dados</div>
-            )}
-          </div>
-        </div>
+
 
       </div>
 

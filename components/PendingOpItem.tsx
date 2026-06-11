@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeletingOp, availableParadas, linhaHistory = [] }: any) => {
   const [isFinishing, setIsFinishing] = useState(false);
   const [finishQtd, setFinishQtd] = useState('');
-  const [finishQtdReprocesso, setFinishQtdReprocesso] = useState('');
+
   const [finishTime, setFinishTime] = useState('');
   const [finishParadas, setFinishParadas] = useState<ParadaRecord[]>(op.paradas || []);
   
@@ -136,10 +136,9 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   const handleActualFinish = async () => {
     setItemLoading(true);
     try {
-      await handleFinish(op, finishQtd, finishTime, finishQtdReprocesso, finishParadas, () => {
+      await handleFinish(op, finishQtd, finishTime, '0', finishParadas, () => {
         setIsFinishing(false);
         setFinishQtd('');
-        setFinishQtdReprocesso('');
         setFinishTime('');
         setFinishParadas([]);
         setIsConfirmingFinish(false);
@@ -365,9 +364,8 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
 
         {isFinishing && (
           <div className="border-t border-emerald-200 dark:border-emerald-800/50 pt-4 space-y-4 bg-emerald-50 dark:bg-emerald-950/30 -mx-4 sm:-mx-5 px-4 sm:px-5 pb-1 mt-1">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <QuickCounter label="Quantidade (UN)" value={finishQtd} onChange={setFinishQtd} className="w-full" />
-              <QuickCounter label="Reprocesso" value={finishQtdReprocesso} onChange={setFinishQtdReprocesso} className="w-full" />
             </div>
             <div className="space-y-1.5">
               <label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Final</label>
@@ -411,16 +409,11 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                   <DialogTitle className="sr-only">Confirmar OP {op.opNumber}</DialogTitle>
                   <DialogDescription className="sr-only">Confirmar encerramento da producción</DialogDescription>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3">
                     <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-4 text-center">
                       <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-500 block mb-1">Produzido</span>
                       <span className="text-2xl sm:text-4xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums leading-none">{parseInt(finishQtd || '0').toLocaleString()}</span>
                       <span className="text-[10px] font-bold text-emerald-500/70 block mt-1">UN</span>
-                    </div>
-                    <div className={cn("border rounded-2xl p-4 text-center", finishQtdReprocesso && parseInt(finishQtdReprocesso) > 0 ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50" : "bg-zinc-50 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800/60")}>
-                      <span className={cn("text-[9px] font-black uppercase tracking-widest block mb-1", finishQtdReprocesso && parseInt(finishQtdReprocesso) > 0 ? "text-amber-600" : "text-zinc-400")}>Reprocesso</span>
-                      <span className={cn("text-2xl sm:text-4xl font-black tabular-nums leading-none", finishQtdReprocesso && parseInt(finishQtdReprocesso) > 0 ? "text-amber-700 dark:text-amber-400" : "text-zinc-300")}>{parseInt(finishQtdReprocesso || '0').toLocaleString()}</span>
-                      <span className={cn("text-[10px] font-bold block mt-1", finishQtdReprocesso && parseInt(finishQtdReprocesso) > 0 ? "text-amber-500/70" : "text-zinc-300")}>UN</span>
                     </div>
                   </div>
 
@@ -472,7 +465,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
         <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-1">
           {isFinishing ? (
             <button
-              onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishQtdReprocesso(''); }}
+              onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); }}
               className="w-full sm:w-auto h-10 px-4 rounded-xl text-sm font-bold text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 transition-colors"
             >
               Cancelar

@@ -201,18 +201,13 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
             <input type="hidden" {...registerEdit('turno')} />
             {'quantidade' in editingOp && (
               <div className="space-y-6 pt-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-5 items-start">
-                   <QuickCounter 
-                     label="Quantidade (UN)"
-                     value={watchEdit('quantidade') || ''}
-                     onChange={(val: string) => setValueEdit('quantidade', val, { shouldValidate: true })}
-                   />
-                   <QuickCounter 
-                     label="Reprocesso"
-                     value={watchEdit('qntReprocesso') || ''}
-                     onChange={(val: string) => setValueEdit('qntReprocesso', val, { shouldValidate: true })}
-                   />
-                   <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-5 items-start">
+                    <QuickCounter 
+                      label="Quantidade (UN)"
+                      value={watchEdit('quantidade') || ''}
+                      onChange={(val: string) => setValueEdit('quantidade', val, { shouldValidate: true })}
+                    />
+                    <div className="space-y-2 sm:col-span-2 lg:col-span-1">
                      <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Final</Label>
                      <CustomTimePicker
                        value={watchEdit('horaFinal')}
