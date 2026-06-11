@@ -99,11 +99,11 @@ export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass
                     if (h > 23) h = 23;
                     setHour(h.toString().padStart(2, '0'));
                  }}
-                 className="w-24 h-24 text-5xl font-black text-center text-zinc-900 dark:text-zinc-100 bg-[#F9FAFB] border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.25rem] focus:border-zinc-950 focus:bg-white dark:bg-zinc-950 focus:ring-0 focus:outline-none transition-all shadow-sm selection:bg-zinc-200 dark:bg-zinc-700"
+                 className="w-24 h-24 text-5xl font-black text-center text-zinc-900 dark:text-zinc-100 bg-[#F9FAFB] dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.25rem] focus:border-zinc-950 dark:focus:border-zinc-700 focus:bg-white dark:focus:bg-zinc-800 focus:ring-0 focus:outline-none transition-all shadow-sm selection:bg-zinc-200 dark:selection:bg-zinc-700"
                />
                <span className="absolute -bottom-6 left-0 w-full text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest">Hora</span>
              </div>
-             <span className="text-4xl font-black text-zinc-300 self-start mt-4">:</span>
+             <span className="text-4xl font-black text-zinc-300 dark:text-zinc-700 self-start mt-4">:</span>
              <div className="relative">
                <input 
                  ref={minRef}
@@ -118,23 +118,23 @@ export const CustomTimePicker = ({ value, onChange, clockIconClass, wrapperClass
                     if (m > 59) m = 59;
                     setMinute(m.toString().padStart(2, '0'));
                  }}
-                 className="w-24 h-24 text-5xl font-black text-center text-zinc-900 dark:text-zinc-100 bg-[#F9FAFB] border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.25rem] focus:border-zinc-950 focus:bg-white dark:bg-zinc-950 focus:ring-0 focus:outline-none transition-all shadow-sm selection:bg-zinc-200 dark:bg-zinc-700"
+                 className="w-24 h-24 text-5xl font-black text-center text-zinc-900 dark:text-zinc-100 bg-[#F9FAFB] dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.25rem] focus:border-zinc-950 dark:focus:border-zinc-700 focus:bg-white dark:focus:bg-zinc-800 focus:ring-0 focus:outline-none transition-all shadow-sm selection:bg-zinc-200 dark:selection:bg-zinc-700"
                />
                <span className="absolute -bottom-6 left-0 w-full text-center text-[10px] font-black text-zinc-400 uppercase tracking-widest">Min.</span>
              </div>
           </div>
 
           <div className="flex gap-2 mb-6 justify-center">
-            <button onClick={() => applyQuickTime(0)} className="flex-1 h-10 bg-blue-50 dark:bg-blue-950/30 text-blue-600 rounded-xl font-bold text-xs border border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">Agora</button>
-            <button onClick={() => applyQuickTime(5)} className="flex-1 h-10 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl font-bold text-xs border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 transition-colors">-5 min</button>
-            <button onClick={() => applyQuickTime(15)} className="flex-1 h-10 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl font-bold text-xs border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 transition-colors">-15 min</button>
+            <button onClick={() => applyQuickTime(0)} className="flex-1 h-10 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-xl font-bold text-xs border border-blue-200 dark:border-blue-800/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">Agora</button>
+            <button onClick={() => applyQuickTime(5)} className="flex-1 h-10 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl font-bold text-xs border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">-5 min</button>
+            <button onClick={() => applyQuickTime(15)} className="flex-1 h-10 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl font-bold text-xs border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">-15 min</button>
           </div>
 
           <div className="flex flex-col gap-3 mt-2">
-            <button onClick={handleConfirm} className="w-full h-14 bg-zinc-950 text-white rounded-2xl font-black text-base hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-900/10 focus-visible:ring-4 focus-visible:ring-zinc-900/20">
+            <button onClick={handleConfirm} className="w-full h-14 bg-zinc-950 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-2xl font-black text-base hover:bg-zinc-800 dark:hover:bg-white transition-all shadow-xl shadow-zinc-900/10 focus-visible:ring-4 focus-visible:ring-zinc-900/20">
               Confirmar
             </button>
-            <button onClick={() => setOpen(false)} className="w-full h-14 bg-white dark:bg-zinc-950 text-zinc-500 dark:text-zinc-400 rounded-2xl font-bold text-base hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 transition-colors focus-visible:ring-2 focus-visible:ring-zinc-900/20">
+            <button onClick={() => setOpen(false)} className="w-full h-14 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 rounded-2xl font-bold text-base hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors focus-visible:ring-2 focus-visible:ring-zinc-900/20">
               Cancelar
             </button>
           </div>

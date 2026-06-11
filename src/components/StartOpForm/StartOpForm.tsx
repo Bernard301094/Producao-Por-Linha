@@ -129,7 +129,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                <div className="space-y-2.5 relative">
                 <Label htmlFor="opNumber" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Número da OP</Label>
                 <div className="relative">
-                  <Input id="opNumber" {...register('opNumber', { onChange: (e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }} onPaste={(e: React.ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, ''); const el = e.currentTarget; const s = el.selectionStart ?? 0; const en = el.selectionEnd ?? 0; const newVal = el.value.slice(0, s) + pasted + el.value.slice(en); setValue('opNumber', newVal, { shouldValidate: true }); }} className="w-full h-16 px-5 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl text-lg sm:text-xl font-mono font-bold text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
+                  <Input id="opNumber" {...register('opNumber', { onChange: (e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }} onPaste={(e: React.ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, ''); const el = e.currentTarget; const s = el.selectionStart ?? 0; const en = el.selectionEnd ?? 0; const newVal = el.value.slice(0, s) + pasted + el.value.slice(en); setValue('opNumber', newVal, { shouldValidate: true }); }} className="w-full h-16 px-5 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl text-lg sm:text-xl font-mono font-bold text-slate-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-300 font-black pointer-events-none text-2xl select-none">#</div>
                 </div>
                 {errors.opNumber && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.opNumber.message as string}</p>}
@@ -137,7 +137,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
 
               <div className="space-y-2.5 relative">
                 <Label htmlFor="operador" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Operador</Label>
-                <Input id="operador" {...register('operador')} type="text" placeholder="Nome do operador" className="w-full h-16 px-5 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl text-lg sm:text-xl font-bold text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
+                <Input id="operador" {...register('operador')} type="text" placeholder="Nome do operador" className="w-full h-16 px-5 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl text-lg sm:text-xl font-bold text-slate-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
                 {errors.operador && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.operador.message as string}</p>}
               </div>
 
@@ -150,14 +150,14 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   onChange={(v: string) => setValue('horaInicial', v, { shouldValidate: true })}
                   clockIconClass="absolute left-4 w-6 h-6 text-slate-400 pointer-events-none"
                   wrapperClass="bg-white dark:bg-zinc-950 rounded-2xl h-16 border border-slate-200 dark:border-zinc-800 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all shadow-sm"
-                  inputClass="pl-12 pr-4 w-full text-lg sm:text-xl font-bold text-slate-900 bg-transparent focus:ring-0 placeholder:font-medium placeholder:text-slate-300"
+                  inputClass="pl-12 pr-4 w-full text-lg sm:text-xl font-bold text-slate-900 dark:text-zinc-50 bg-transparent focus:ring-0 placeholder:font-medium placeholder:text-slate-300"
                 />
                 {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.horaInicial.message as string}</p>}
               </div>
 
               <div className="relative space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2" ref={novaOpRef}>
                 <Label htmlFor="produto" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Produto Fabricado</Label>
-                <input id="produto" {...register('produto')} onClick={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} autoComplete="off" onFocus={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} placeholder="Digite para buscar..." className="flex h-16 w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-5 py-3 text-lg font-bold text-slate-900 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 shadow-sm" />
+                <input id="produto" {...register('produto')} onClick={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} autoComplete="off" onFocus={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} placeholder="Digite para buscar..." className="flex h-16 w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-5 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 shadow-sm" />
                 {showProductSuggestions && (
                   <div className="absolute z-[60] w-full mt-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[1.5rem] shadow-2xl max-h-[min(18rem,50dvh)] overflow-y-auto p-2 ring-1 ring-zinc-900/5" onMouseDown={e => e.stopPropagation()} onTouchStart={e => e.stopPropagation()}>
                     {!isTypingProduct && (
@@ -223,7 +223,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                          setValue('linha', val, { shouldValidate: true });
                       }
                     }}>
-                      <SelectTrigger className="w-full h-16 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl text-lg sm:text-xl font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm">
+                      <SelectTrigger className="w-full h-16 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl text-lg sm:text-xl font-bold text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm">
                         <SelectValue placeholder="Selecione a linha..." />
                       </SelectTrigger>
                       <SelectContent alignItemWithTrigger={false} sideOffset={8} className="max-h-[300px] rounded-[1.25rem] z-[100] min-w-[var(--anchor-width,100%)] w-[var(--anchor-width)]">
