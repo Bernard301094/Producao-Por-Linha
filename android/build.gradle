@@ -28,6 +28,9 @@ allprojects {
             force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.24")
             force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24")
             force("org.jetbrains.kotlin:kotlin-reflect:1.9.24")
+            force("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+            force("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+            force("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.8.1")
         }
     }
 }
