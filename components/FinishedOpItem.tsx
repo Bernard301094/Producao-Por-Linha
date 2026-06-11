@@ -71,14 +71,14 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
               {op.litragem && (
                 <span className="text-[10px] xl:text-xs font-semibold text-slate-400">{op.litragem}</span>
               )}
-              <span className="text-[10px] xl:text-xs font-bold tracking-widest text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 xl:px-2.5 py-0.5 xl:py-1 rounded-lg shadow-sm">
+              <span className="text-[10px] xl:text-xs font-bold tracking-widest text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 px-2 xl:px-2.5 py-0.5 xl:py-1 rounded-lg shadow-sm">
                 {op.turno?.startsWith('Turno') ? op.turno : `Turno ${op.turno}`}
               </span>
               {op.isAvulsa && (
                 <span className="text-[10px] xl:text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-2 xl:px-2.5 py-0.5 xl:py-1 rounded-lg">PARADA AVULSA</span>
               )}
             </div>
-            <h3 className="text-base xl:text-lg 2xl:text-xl font-bold text-slate-900 tracking-tight leading-tight line-clamp-1">{op.produto}</h3>
+            <h3 className="text-base xl:text-lg 2xl:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-1">{op.produto}</h3>
           </div>
           {/* Time badge */}
           <div className="shrink-0 flex items-center gap-1 text-[10px] xl:text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 px-2.5 xl:px-3 py-1.5 xl:py-2 rounded-xl">

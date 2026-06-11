@@ -1768,7 +1768,7 @@ export default function App() {
                       }}
                       className={cn(
                         "h-10 rounded-lg text-xs font-bold border transition-all",
-                        selectedLinha === normalizeLinha(l) ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 border-zinc-900 dark:border-zinc-100" : "bg-white dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                        selectedLinha === normalizeLinha(l) ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:!text-zinc-900 border-zinc-900 dark:border-zinc-100" : "bg-white dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                       )}
                     >
                       {l.replace('Linha ', '')}

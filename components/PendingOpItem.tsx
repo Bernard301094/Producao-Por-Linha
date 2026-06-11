@@ -208,10 +208,10 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
             <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
               <span className="text-xs font-bold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800/50 shadow-sm">OP {op.opNumber}</span>
               <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-zinc-950 px-2 py-1 rounded-lg border border-slate-200 dark:border-zinc-800">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
-              <span className="text-[10px] font-bold tracking-widest text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200/60 shadow-sm">{op.turno?.startsWith('Turno') ? op.turno : `Turno ${op.turno}`}</span>
+              <span className="text-[10px] font-bold tracking-widest text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-lg border border-indigo-200/60 dark:border-indigo-800/60 shadow-sm">{op.turno?.startsWith('Turno') ? op.turno : `Turno ${op.turno}`}</span>
               {op.litragem && <span className="text-[10px] font-semibold text-slate-400">{op.litragem}</span>}
             </div>
-            <h3 className="text-lg font-bold text-slate-900 tracking-tight leading-tight line-clamp-1 mb-1">{op.produto}</h3>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-1 mb-1">{op.produto}</h3>
             <div className="flex items-center gap-1.5">
               <Clock className="w-3 h-3 text-zinc-400" />
               <span className="text-[10px] font-semibold text-zinc-400">Início {op.horaInicial}</span>
