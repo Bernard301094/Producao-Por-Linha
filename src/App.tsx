@@ -1348,6 +1348,7 @@ export default function App() {
                                       setOpenLineFilterPending(false);
                                     }}
                                     className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] dark:aria-selected:bg-zinc-800/50 aria-selected:text-zinc-950 dark:text-zinc-50 dark:aria-selected:text-white transition-colors font-bold text-xs mb-0.5 last:mb-0"
+                                  >
                                     <div className="flex items-center gap-2">
                                       <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300 dark:bg-zinc-600" : "bg-amber-400")} />
                                       {formatLinhaDisplay(linha)}
@@ -1488,6 +1489,7 @@ export default function App() {
                                       setOpenLineFilterFinished(false);
                                     }}
                                     className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] dark:aria-selected:bg-zinc-800/50 aria-selected:text-zinc-950 dark:text-zinc-50 dark:aria-selected:text-white transition-colors font-bold text-xs mb-0.5 last:mb-0"
+                                  >
                                     <div className="flex items-center gap-2">
                                       <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300 dark:bg-zinc-600" : "bg-emerald-500")} />
                                       {formatLinhaDisplay(linha)}
