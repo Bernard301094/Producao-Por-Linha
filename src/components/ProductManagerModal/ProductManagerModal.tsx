@@ -105,6 +105,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        showCloseButton={false}
         className="w-full max-w-[500px] rounded-[1.5rem] p-0 border-0 overflow-hidden bg-zinc-50 dark:bg-zinc-900/50 backdrop-blur-xl shadow-2xl flex flex-col sm:top-1/2 sm:-translate-y-1/2 bottom-0 top-auto translate-y-0 max-h-[92dvh]"
       >
         <button type="button" autoFocus aria-hidden="true" className="sr-only" />
