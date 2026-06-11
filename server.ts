@@ -107,7 +107,7 @@ app.post('/api/append', async (req, res) => {
   
   try {
     const {
-      carimbo, op, litragem, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, qntReprocesso, paradas, isAvulsa
+      carimbo, op, litragem, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, observacoes, paradas, isAvulsa
     } = req.body;
 
     const producaoFields = {
@@ -122,7 +122,7 @@ app.post('/api/append', async (req, res) => {
       Produto: produto || '',
       Litragem: formatLitragemText(litragem || ''),
       Quantidade_Produzida: quantidade || '',
-      Observacoes: qntReprocesso ? `Reprocesso: ${qntReprocesso}` : ''
+      Observacoes: observacoes || ''
     };
 
     const client = getGraphClient();
@@ -287,7 +287,7 @@ app.post('/api/update', async (req, res) => {
         if (updates.turno !== undefined) updateFields.Turno = updates.turno;
         if (updates.operador !== undefined) updateFields.Operador = updates.operador;
         if (updates.quantidade !== undefined) updateFields.Quantidade_Produzida = updates.quantidade;
-        if (updates.qntReprocesso !== undefined) updateFields.Observacoes = `Reprocesso: ${updates.qntReprocesso}`;
+        if (updates.observacoes !== undefined) updateFields.Observacoes = updates.observacoes;
 
         await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).patch({
           fields: updateFields

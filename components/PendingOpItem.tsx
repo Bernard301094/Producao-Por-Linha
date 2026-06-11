@@ -15,6 +15,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   const [finishQtd, setFinishQtd] = useState('');
 
   const [finishTime, setFinishTime] = useState('');
+  const [finishObs, setFinishObs] = useState('');
   const [finishParadas, setFinishParadas] = useState<ParadaRecord[]>(op.paradas || []);
   
   useEffect(() => {
@@ -142,10 +143,11 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   const handleActualFinish = async () => {
     setItemLoading(true);
     try {
-      await handleFinish(op, finishQtd, finishTime, '0', finishParadas, () => {
+      await handleFinish(op, finishQtd, finishTime, finishObs, finishParadas, () => {
         setIsFinishing(false);
         setFinishQtd('');
         setFinishTime('');
+        setFinishObs('');
         setFinishParadas([]);
         setIsConfirmingFinish(false);
       });
@@ -406,6 +408,16 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                 />
               </div>
             </div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Observação da OP (Opcional)</label>
+              <input
+                type="text"
+                placeholder="Ex: Produto correto cherry wax..."
+                value={finishObs}
+                onChange={e => setFinishObs(e.target.value)}
+                className="w-full h-10 px-4 bg-white dark:bg-zinc-950 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-950 transition-colors shadow-sm"
+              />
+            </div>
             <Dialog open={isConfirmingFinish} onOpenChange={setIsConfirmingFinish}>
               <motion.div whileTap={{ scale: 0.98 }} className="w-full">
                 <Button size="lg" onClick={onConfirm} disabled={itemLoading} className="w-full h-14 text-base bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-500/20 transition-all">
@@ -494,7 +506,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
         <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-1">
           {isFinishing ? (
             <button
-              onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); }}
+              onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishObs(''); }}
               className="w-full sm:w-auto h-10 px-4 rounded-xl text-sm font-bold text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 transition-colors"
             >
               Cancelar
@@ -531,7 +543,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               </div>
               <motion.div whileTap={{ scale: 0.96 }} className="ml-auto">
                 <button
-                  onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); }}
+                  onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); setFinishObs(''); }}
                   className="h-10 sm:h-12 px-3 sm:px-5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/25 flex items-center gap-1.5 sm:gap-2 shrink-0"
                 >
                   <CheckCircle2 className="w-4 h-4" /> Concluir

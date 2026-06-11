@@ -822,7 +822,7 @@ export default function App() {
         syntheticOp,
         '0',
         lastParadaEnd.length === 5 ? `${lastParadaEnd}:00` : lastParadaEnd,
-        '0',
+        '',
         paradas,
         (success, error) => {
           if (success) {
@@ -842,7 +842,7 @@ export default function App() {
   };
 
 
-  const handleFinish = useCallback(async (op: Operation, qtd: string, time: string, reprocesso: string, paradas: ParadaRecord[], onSuccess: () => void) => {
+  const handleFinish = useCallback(async (op: Operation, qtd: string, time: string, observacoes: string, paradas: ParadaRecord[], onSuccess: () => void) => {
     if (loginProfile) {
       const shiftCheck = isShiftAllowed(`Turno ${currentTurnForView}`);
       logAudit({
@@ -867,7 +867,7 @@ export default function App() {
         op,
         qtd,
         time.length === 5 ? `${time}:00` : time,
-        reprocesso,
+        observacoes,
         paradasToSave,
         (success, error) => {
           if (success) {

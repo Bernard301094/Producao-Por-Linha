@@ -34,7 +34,7 @@ export interface Operation {
 export interface FinishedOperation extends Operation {
   quantidade: string;
   horaFinal: string;
-  qntReprocesso?: string;
+  observacoes?: string;
   reportString?: string;
   reportDocId?: string;
   carimbo?: string;
@@ -143,8 +143,8 @@ export const markOperationFinished = async (
   op: Operation,
   quantidade: string,
   horaFinal: string,
-  qntReprocesso?: string,
-  paradas?: ParadaRecord[],
+  observacoes: string,
+  paradas: ParadaRecord[],
   onOneDriveSync?: (success: boolean, error?: string) => void
 ) => {
   const formattedLinha = op.linha ? (isNaN(Number(op.linha)) ? op.linha : `Linha ${op.linha}`) : '';
@@ -167,7 +167,7 @@ export const markOperationFinished = async (
     linha: formattedLinha,
     quantidade,
     horaFinal,
-    qntReprocesso: qntReprocesso || '',
+    observacoes: observacoes || '',
     carimbo: formatedCarimbo,
     paradas: paradasFinais,
     syncStatus: 'pending'
@@ -194,7 +194,7 @@ export const markOperationFinished = async (
     linha: formattedLinha,
     turno: op.turno,
     quantidade,
-    qntReprocesso: qntReprocesso || '',
+    observacoes: observacoes || '',
     horaInicial: op.horaInicial,
     horaFinal,
     paradas: paradasFinais,
@@ -344,7 +344,7 @@ export const syncFinishedOperation = async (opId: string) => {
         linha: data.linha,
         turno: data.turno,
         quantidade: data.quantidade,
-        qntReprocesso: data.qntReprocesso || '',
+        observacoes: data.observacoes || '',
         horaInicial: data.horaInicial,
         horaFinal: data.horaFinal,
         paradas: data.paradas || [],
