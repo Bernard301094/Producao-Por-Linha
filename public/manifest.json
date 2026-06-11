@@ -1,6 +1,6 @@
 {
-  "name": "Diário de Bordo",
-  "short_name": "Diário de Bordo",
+  "name": "Apontamento Produção",
+  "short_name": "Apontamento Produção",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
