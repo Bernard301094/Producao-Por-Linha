@@ -23,10 +23,13 @@ import { cn, useAutoIncrement } from './lib/utils';
 
 import { EditOpModal } from './components/EditOpModal/EditOpModal';
 import { ProductManagerModal } from './components/ProductManagerModal/ProductManagerModal';
+import { Dashboard } from './components/Dashboard/Dashboard';
 import { toast, Toaster } from 'sonner';
-import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp, HelpCircle, X, Settings } from 'lucide-react';
+import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp, HelpCircle, X, Settings, Moon, Sun, Monitor, PieChart as PieChartIcon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { motion } from 'motion/react';
 import { TourOverlay } from './components/TourOverlay/TourOverlay';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
 import { getServerTime, syncServerTime, getServerTimeISO, isTimeSynced } from './lib/time';
 import { logAudit } from './lib/audit';
@@ -235,6 +238,24 @@ const TOUR_MOCK_FINISHED: FinishedOperation[] = [
 ];
 // ─────────────────────────────────────────────────────────────────────────────
 
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div className="flex items-center justify-between p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
+      <button type="button" onClick={() => setTheme('light')} className={cn("flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all", theme === 'light' ? "bg-white dark:bg-zinc-950 shadow-sm text-zinc-900 dark:text-zinc-100" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200")}>
+        <Sun className="w-4 h-4" /> Claro
+      </button>
+      <button type="button" onClick={() => setTheme('dark')} className={cn("flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all", theme === 'dark' ? "bg-white dark:bg-zinc-950 shadow-sm text-zinc-900 dark:text-zinc-100" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200")}>
+        <Moon className="w-4 h-4" /> Escuro
+      </button>
+      <button type="button" onClick={() => setTheme('system')} className={cn("flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all", theme === 'system' ? "bg-white dark:bg-zinc-950 shadow-sm text-zinc-900 dark:text-zinc-100" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200")}>
+        <Monitor className="w-4 h-4" /> Auto
+      </button>
+    </div>
+  );
+}
+
 export default function App() {
   function extractLitragem(produto: string): string {
     const upper = (produto || '').toUpperCase();
@@ -251,8 +272,10 @@ export default function App() {
     return '';
   }
 
-  const [mobileTab, setMobileTab] = useState<'pendentes' | 'concluidas'>('pendentes');
   const [tourActive, setTourActive] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'pendentes' | 'concluidas'>('pendentes');
+  const [showDashboard, setShowDashboard] = useState(false);
+
   const [isNovaSheetOpen, setIsNovaSheetOpen] = useState(false);
   const [profileSheetOpen, setProfileSheetOpen] = useState(false);
 
@@ -722,6 +745,7 @@ export default function App() {
       };
       await addOperation(newOp);
       addProduct(data.produto, derivedLitragem);
+      Haptics.notification({ type: NotificationType.Success }).catch(() => {});
       toast.success('Operação iniciada!');
       localStorage.setItem('v-ops-default-linha', data.linha);
       localStorage.setItem('v-ops-default-operador', data.operador);
@@ -846,6 +870,7 @@ export default function App() {
           }
         }
       );
+      Haptics.notification({ type: NotificationType.Success }).catch(() => {});
       toast.success('OP concluída!');
       onSuccess();
     } catch (err: any) {
@@ -1139,6 +1164,21 @@ export default function App() {
                 <span className="hidden sm:inline">Tour</span>
               </button>
 
+              {/* Dashboard Toggle for Global Mode */}
+              {operatingMode === 'global' && (
+                <button 
+                  onClick={() => setShowDashboard(!showDashboard)}
+                  className={cn(
+                    "flex items-center justify-center sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold rounded-lg transition-colors shadow-sm ml-1",
+                    showDashboard ? "text-emerald-700 bg-emerald-50 border border-emerald-200" : "text-zinc-600 bg-zinc-50 border border-zinc-200 hover:bg-zinc-100"
+                  )}
+                  title="Dashboard"
+                >
+                  <PieChartIcon className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> 
+                  <span className="hidden sm:inline">Dashboard</span>
+                </button>
+              )}
+
               {/* Settings (Solo visible en Desktop porque en mobile está abajo) */}
               <div className="hidden lg:flex items-center gap-2 ml-1">
                 <div className="w-[1px] h-5 bg-zinc-200"></div>
@@ -1242,7 +1282,10 @@ export default function App() {
         </div>
 
         <div className="w-full max-w-[1920px] mx-auto px-0 sm:px-4 lg:px-6 2xl:px-8 py-0 sm:py-6 lg:py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-24 lg:pb-4">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-4 lg:gap-5 2xl:gap-7 items-start">
+          {showDashboard && operatingMode === 'global' && (
+            <Dashboard finishedOps={displayFinishedOps} operations={displayPendingOps} />
+          )}
+          <div className={cn("grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-4 lg:gap-5 2xl:gap-7 items-start", showDashboard && operatingMode === 'global' ? "hidden" : "")}>
 
             {/* Pendentes */}
             <div className={cn('bg-white sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-slate-200/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-5 2xl:col-span-5 lg:order-2 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-slate-200/80 sm:border-y-0 relative tour-pendentes w-full', mobileTab !== 'pendentes' ? 'hidden lg:flex' : 'flex')}>
@@ -1703,6 +1746,11 @@ export default function App() {
                   <span className="text-xs text-zinc-500 mt-1">Apenas 1 linha</span>
                 </button>
               </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Aparência</Label>
+              <ThemeToggle />
             </div>
 
             {operatingMode === 'dedicated' && (
