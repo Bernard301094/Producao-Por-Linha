@@ -50,9 +50,7 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
   const totalTime = uptimeDowntime[0].value + uptimeDowntime[1].value;
   const uptimePercent = totalTime > 0 ? ((uptimeDowntime[0].value / totalTime) * 100).toFixed(1) : '0.0';
 
-  // 2. Rework Rate
-  const reworkStats = useMemo(() => {
-    let good = 0;
+
   // 3. Top Paradas por Tempo (Minutos)
   const paradasTime = useMemo(() => {
     const map: Record<string, number> = {};
