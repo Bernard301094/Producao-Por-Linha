@@ -75,7 +75,7 @@ def process_file(filepath):
             f.write(new_content)
         print(f"Updated {filepath}")
 
-for root, _, files in os.walk('src'):
+for root, _, files in os.walk('components'):
     for f in files:
         if f.endswith('.tsx') or f.endswith('.ts'):
             process_file(os.path.join(root, f))

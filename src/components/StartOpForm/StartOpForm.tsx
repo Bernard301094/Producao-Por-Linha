@@ -114,7 +114,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
         </CardHeader>
       )}
       
-      <CardContent className="p-0 flex flex-col flex-1 min-h-0 bg-zinc-50 dark:bg-zinc-900/50/30">
+      <CardContent className="p-0 flex flex-col flex-1 min-h-0 bg-zinc-50 dark:bg-zinc-900/50">
         <form onSubmit={handleSubmit(handlePreStartOp, (errors: any) => {
           const errorMsg = Object.values(errors).map((e: any) => e.message).join(', ');
           if (errorMsg) toast.error('Faltam dados: ' + Object.keys(errors).join(', '));
@@ -341,7 +341,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   <Button type="button" onClick={() => startFormData && onStartOp(startFormData)} disabled={loadingNewOp} className="w-full h-[4.5rem] bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white rounded-[1.5rem] text-xl font-bold tracking-tight shadow-xl shadow-emerald-600/20 focus-visible:ring-4 focus-visible:ring-emerald-500/20 disabled:shadow-none transition-all">
                     {loadingNewOp ? <Loader2 className="w-7 h-7 animate-spin" /> : 'Confirmar Início'}
                   </Button>
-                  <Button type="button" variant="ghost" onClick={() => setShowConfirmStart(false)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
+                  <Button type="button" variant="ghost" onClick={() => setShowConfirmStart(false)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
                     Revisar Dados
                   </Button>
                 </div>

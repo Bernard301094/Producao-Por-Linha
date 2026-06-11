@@ -105,7 +105,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="w-full max-w-[500px] rounded-[1.5rem] p-0 border-0 overflow-hidden bg-zinc-50 dark:bg-zinc-900/50/95 backdrop-blur-xl shadow-2xl flex flex-col sm:top-1/2 sm:-translate-y-1/2 bottom-0 top-auto translate-y-0 max-h-[92dvh]"
+        className="w-full max-w-[500px] rounded-[1.5rem] p-0 border-0 overflow-hidden bg-zinc-50 dark:bg-zinc-900/50 backdrop-blur-xl shadow-2xl flex flex-col sm:top-1/2 sm:-translate-y-1/2 bottom-0 top-auto translate-y-0 max-h-[92dvh]"
       >
         <button type="button" autoFocus aria-hidden="true" className="sr-only" />
 
@@ -132,7 +132,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
             </div>
             <button
               onClick={() => onOpenChange(false)}
-              className="w-8 h-8 rounded-full bg-white dark:bg-zinc-950/5 dark:bg-white/5 hover:bg-white dark:bg-zinc-950/15 flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0"
+              className="w-8 h-8 rounded-full bg-white dark:bg-zinc-950/5 dark:bg-white dark:bg-zinc-950/5 dark:bg-white/5 hover:bg-white dark:bg-zinc-950/15 flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -214,7 +214,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
 
                 {/* Edit Form */}
                 {editingProduct?.produto === p.produto && (
-                  <div className="px-3 pb-3 space-y-3 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50/50 pt-3">
+                  <div className="px-3 pb-3 space-y-3 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 pt-3">
                     <div className="grid grid-cols-[2fr,1fr] gap-2">
                       <div className="space-y-1">
                         <label className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-0.5">Nome do Produto</label>
@@ -241,7 +241,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
                     <div className="flex justify-end gap-2 pt-1">
                       <button
                         onClick={() => setEditingProduct(null)}
-                        className="px-3 h-8 flex items-center justify-center bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors shadow-sm"
+                        className="px-3 h-8 flex items-center justify-center bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors shadow-sm"
                       >
                         Cancelar
                       </button>
@@ -258,14 +258,14 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
 
                 {/* Delete Confirmation */}
                 {confirmDelete?.produto === p.produto && (
-                  <div className="px-3 pb-3 border-t border-red-100 bg-red-50 dark:bg-red-950/30/50 pt-3">
+                  <div className="px-3 pb-3 border-t border-red-100 bg-red-50 dark:bg-red-950/30 pt-3">
                     <p className="text-xs font-bold text-red-800 mb-3">
                       Excluir este produto permanentemente?
                     </p>
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => setConfirmDelete(null)}
-                        className="px-3 h-8 flex items-center justify-center bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors shadow-sm"
+                        className="px-3 h-8 flex items-center justify-center bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors shadow-sm"
                       >
                         Cancelar
                       </button>

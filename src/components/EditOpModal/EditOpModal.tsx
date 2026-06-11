@@ -256,7 +256,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                             <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{parada.horaInicio} até {parada.horaFim}</span>
                           </div>
                         </div>
-                        <Button type="button" variant="outline" size="sm" onClick={() => removeEditParada(idx)} className="h-10 px-4 text-xs bg-red-50 dark:bg-red-950/30/50 hover:bg-red-50 dark:bg-red-950/30 text-red-600 font-bold border-red-100 rounded-xl shadow-sm self-start shrink-0 sm:self-auto w-full sm:w-auto pl-3 sm:pl-4">
+                        <Button type="button" variant="outline" size="sm" onClick={() => removeEditParada(idx)} className="h-10 px-4 text-xs bg-red-50 dark:bg-red-950/30 hover:bg-red-50 dark:bg-red-950/30 text-red-600 font-bold border-red-100 rounded-xl shadow-sm self-start shrink-0 sm:self-auto w-full sm:w-auto pl-3 sm:pl-4">
                           Remover
                         </Button>
                       </div>
@@ -345,7 +345,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
               <Button type="submit" disabled={loadingEdit} className="w-full h-16 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl text-lg font-black shadow-xl shadow-zinc-900/20 focus-visible:ring-4 focus-visible:ring-zinc-900/20 transition-all">
                 {loadingEdit ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Salvar Alterações'}
               </Button>
-              <Button variant="ghost" type="button" onClick={() => setEditingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">Cancelar</Button>
+              <Button variant="ghost" type="button" onClick={() => setEditingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">Cancelar</Button>
             </DialogFooter>
           </form>
         )}

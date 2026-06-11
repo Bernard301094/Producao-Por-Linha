@@ -1170,7 +1170,7 @@ export default function App() {
                   onClick={() => setShowDashboard(!showDashboard)}
                   className={cn(
                     "flex items-center justify-center sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold rounded-lg transition-colors shadow-sm ml-1",
-                    showDashboard ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50" : "text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800"
+                    showDashboard ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50" : "text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800"
                   )}
                   title="Dashboard"
                 >
@@ -1184,7 +1184,7 @@ export default function App() {
                 <div className="w-[1px] h-5 bg-zinc-200 dark:bg-zinc-700"></div>
                 <button 
                   onClick={() => setSettingsModalOpen(true)}
-                  className="flex items-center justify-center w-8 h-8 text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg transition-colors shadow-sm"
+                  className="flex items-center justify-center w-8 h-8 text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg transition-colors shadow-sm"
                   title="Configurações"
                 >
                   <Settings className="w-4 h-4" />
@@ -1207,7 +1207,7 @@ export default function App() {
             {/* Centro: Botón Nova OP */}
             <button
               onClick={() => setIsNovaSheetOpen(true)}
-              className="flex items-center gap-2 bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-950 dark:text-zinc-50 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
+              className="flex items-center gap-2 bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-950 dark:text-zinc-50 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
             >
               <Plus className="w-[18px] h-[18px] stroke-[3]" />
               Nova OP
@@ -1289,7 +1289,7 @@ export default function App() {
 
             {/* Pendentes */}
             <div className={cn('bg-white dark:bg-zinc-950 sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-slate-200 dark:ring-zinc-800/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-5 2xl:col-span-5 lg:order-2 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-slate-200 dark:border-zinc-800/80 sm:border-y-0 relative tour-pendentes w-full', mobileTab !== 'pendentes' ? 'hidden lg:flex' : 'flex')}>
-              <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col gap-3 bg-zinc-950/5 dark:bg-white/5 relative overflow-hidden shrink-0">
+              <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col gap-3 bg-zinc-950/5 dark:bg-white dark:bg-zinc-950/5 dark:bg-white/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:14px_14px] opacity-50" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
                   <div className="flex items-center gap-3">
@@ -1366,7 +1366,7 @@ export default function App() {
                 </div>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-3 pb-[5.5rem] sm:p-5 bg-zinc-50 dark:bg-zinc-900/50/50 tour-pendentes-items" onScroll={handleScrollPending}>
+              <div className="flex-1 overflow-y-auto p-3 pb-[5.5rem] sm:p-5 bg-zinc-50 dark:bg-zinc-900/50 tour-pendentes-items" onScroll={handleScrollPending}>
                 {displayPendingOps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full min-h-[250px] py-12 text-zinc-400 text-center animate-in fade-in duration-500">
                     <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-4">
@@ -1430,7 +1430,7 @@ export default function App() {
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#05966910_1px,transparent_1px),linear-gradient(to_bottom,#05966910_1px,transparent_1px)] bg-[size:14px_14px] opacity-70" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white dark:bg-zinc-950 shadow-sm ring-1 ring-emerald-200 dark:ring-emerald-800/50/80 rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-white dark:bg-zinc-950 shadow-sm ring-1 ring-emerald-200 dark:ring-emerald-800/50 rounded-xl flex items-center justify-center">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
                     </div>
                     <div className="flex flex-col">
@@ -1507,7 +1507,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-3 pb-[5.5rem] sm:p-5 bg-zinc-50 dark:bg-zinc-900/50/50" onScroll={handleScrollFinished}>
+              <div className="flex-1 overflow-y-auto p-3 pb-[5.5rem] sm:p-5 bg-zinc-50 dark:bg-zinc-900/50" onScroll={handleScrollFinished}>
                 {displayFinishedOps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full min-h-[250px] py-12 text-zinc-400 text-center animate-in fade-in duration-500">
                     <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-4">
@@ -1613,7 +1613,7 @@ export default function App() {
       <Dialog open={!!deletingOp} onOpenChange={(o: boolean) => { if (!o) setDeletingOp(null); }}>
         <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
           <DialogHeader className="text-center space-y-2 mb-8">
-            <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-800/50/50 shadow-sm">
+            <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-800/50 shadow-sm">
               <Trash2 className="w-8 h-8" />
             </div>
             <DialogTitle className="text-2xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight">Confirmar Exclusão</DialogTitle>
@@ -1623,7 +1623,7 @@ export default function App() {
             <Button onClick={confirmDelete} disabled={loadingDelete} className="w-full h-14 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-base font-black shadow-xl shadow-red-500/20 focus-visible:ring-4 focus-visible:ring-red-500/20 transition-all">
               {loadingDelete ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Sim, Remover Operação'}
             </Button>
-            <Button variant="ghost" onClick={() => setDeletingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
+            <Button variant="ghost" onClick={() => setDeletingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
                Cancelar
             </Button>
           </DialogFooter>
@@ -1634,7 +1634,7 @@ export default function App() {
       <Dialog open={!!revertingOp} onOpenChange={(o: boolean) => { if (!o) setRevertingOp(null); }}>
         <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
           <DialogHeader className="text-center space-y-2 mb-8">
-            <div className="w-16 h-16 bg-amber-100/50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200 dark:border-amber-800/50/50 shadow-sm">
+            <div className="w-16 h-16 bg-amber-100/50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200 dark:border-amber-800/50 shadow-sm">
               <RotateCcw className="w-8 h-8" />
             </div>
             <DialogTitle className="text-2xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight">Reverter OP</DialogTitle>
@@ -1646,7 +1646,7 @@ export default function App() {
             <Button onClick={confirmRevert} disabled={loadingRevert} className="w-full h-14 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl text-base font-black shadow-xl shadow-zinc-900/20 focus-visible:ring-4 focus-visible:ring-zinc-900/20 transition-all">
               {loadingRevert ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Confirmar Reversão'}
             </Button>
-            <Button variant="ghost" onClick={() => setRevertingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
+            <Button variant="ghost" onClick={() => setRevertingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
                Cancelar
             </Button>
           </DialogFooter>
