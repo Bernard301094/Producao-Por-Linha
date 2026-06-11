@@ -110,7 +110,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Nº da OP</Label>
-                <Input type="text" inputMode="numeric" pattern="[0-9]*" {...registerEdit('opNumber', { onChange: (e: any) => e.target.value = e.target.value.replace(/[^0-9]/g, '') })} className="w-full h-14 px-4 bg-[#F9FAFB] border-2 border-zinc-200 dark:border-zinc-800/80 rounded-2xl text-base font-mono text-zinc-900 dark:text-zinc-100 focus-visible:ring-0 focus-visible:border-zinc-950 transition-all shadow-sm focus:bg-white dark:bg-zinc-950" />
+                <Input type="text" inputMode="numeric" pattern="[0-9]*" {...registerEdit('opNumber', { onChange: (e: any) => e.target.value = e.target.value.replace(/[^0-9]/g, '') })} className="w-full h-14 px-4 bg-[#F9FAFB] dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-2xl text-base font-mono text-zinc-900 dark:text-zinc-100 focus-visible:ring-0 focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 transition-all shadow-sm focus:bg-white dark:focus:bg-zinc-950" />
               </div>
               <div className="space-y-2">
                 <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Inicial</Label>
@@ -118,14 +118,14 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                   value={watchEdit('horaInicial')}
                   onChange={(v: string) => setValueEdit('horaInicial', v, { shouldValidate: true })}
                   clockIconClass="absolute left-3 w-5 h-5 text-zinc-400 pointer-events-none"
-                  wrapperClass="bg-[#F9FAFB] h-14 rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-all shadow-sm focus-within:bg-white dark:bg-zinc-950"
+                  wrapperClass="bg-[#F9FAFB] dark:bg-zinc-900 h-14 rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 dark:focus-within:border-zinc-700 transition-all shadow-sm focus-within:bg-white dark:focus-within:bg-zinc-950"
                   inputClass="pl-9 pr-2 text-base w-full bg-transparent outline-none flex-1 font-bold"
                 />
               </div>
             </div>
             <div className="relative space-y-2" ref={editOpRef}>
               <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Produto</Label>
-              <input id="edit-produto" {...registerEdit('produto')} onClick={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} autoComplete="off" onFocus={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} className="flex h-14 w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] px-4 py-2 text-base text-zinc-900 dark:text-zinc-100 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-400 focus-visible:outline-none focus-visible:border-zinc-950 shadow-sm focus:bg-white dark:bg-zinc-950" />
+              <input id="edit-produto" {...registerEdit('produto')} onClick={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} autoComplete="off" onFocus={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} className="flex h-14 w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] dark:bg-zinc-900 px-4 py-2 text-base text-zinc-900 dark:text-zinc-100 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus-visible:outline-none focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 shadow-sm focus:bg-white dark:focus:bg-zinc-950" />
               {showEditProductSuggestions && (
                 <div className="absolute z-50 w-full mt-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl max-h-60 overflow-y-auto p-2 ring-1 ring-zinc-900/5">
                   {!isTypingEditProduct && (
@@ -153,7 +153,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
               <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Linha de Produção</Label>
               <input type="hidden" {...registerEdit('linha')} />
               <Popover open={openEditLineSelect} onOpenChange={setOpenEditLineSelect}>
-                <PopoverTrigger type="button" role="combobox" aria-expanded={openEditLineSelect} className={cn("flex items-center justify-between w-full h-14 px-4 border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] transition-all duration-200 text-base font-semibold rounded-2xl outline-none focus:border-zinc-950 shadow-sm disabled:cursor-not-allowed disabled:opacity-50", watchEdit('linha') ? 'border-zinc-300 bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400 hover:border-zinc-300')}>
+                <PopoverTrigger type="button" role="combobox" aria-expanded={openEditLineSelect} className={cn("flex items-center justify-between w-full h-14 px-4 border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] dark:bg-zinc-900 transition-all duration-200 text-base font-semibold rounded-2xl outline-none focus:border-zinc-950 shadow-sm disabled:cursor-not-allowed disabled:opacity-50", watchEdit('linha') ? 'border-zinc-300 bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400 hover:border-zinc-300')}>
                   {watchEdit('linha') ? `Linha ${watchEdit('linha').replace(/^Linha\s*/i, '')}` : 'Selecione a Linha'}
                   <ChevronsUpDown className="ml-3 h-5 w-5 shrink-0 text-zinc-400" />
                 </PopoverTrigger>
@@ -202,7 +202,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
               <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Turno</Label>
               <input type="hidden" {...registerEdit('turno')} />
               <Select onValueChange={(v) => setValueEdit('turno', v)} value={watchEdit('turno') || ''}>
-                <SelectTrigger className="w-full h-14 border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] rounded-2xl px-4 text-base font-bold text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-950 transition-all shadow-sm">
+                <SelectTrigger className="w-full h-14 border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] dark:bg-zinc-900 rounded-2xl px-4 text-base font-bold text-zinc-900 dark:text-zinc-100 focus:ring-0 focus:border-zinc-950 transition-all shadow-sm">
                   <SelectValue placeholder="Turno" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-zinc-200 dark:border-zinc-800/80 shadow-xl">
@@ -232,7 +232,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                        value={watchEdit('horaFinal')}
                        onChange={(v: string) => setValueEdit('horaFinal', v, { shouldValidate: true })}
                        clockIconClass="absolute left-3 w-5 h-5 text-zinc-400 pointer-events-none"
-                       wrapperClass="bg-[#F9FAFB] h-14 rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-all shadow-sm focus-within:bg-white dark:bg-zinc-950"
+                       wrapperClass="bg-[#F9FAFB] dark:bg-zinc-900 h-14 rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-all shadow-sm focus-within:bg-white dark:focus-within:bg-zinc-950"
                        inputClass="pl-9 pr-2 text-base w-full bg-transparent outline-none flex-1 font-bold"
                      />
                    </div>
@@ -326,11 +326,11 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                       <div className="grid grid-cols-2 gap-4">
                          <div className="relative">
                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10"><Clock className="w-4 h-4" /></div>
-                           <CustomTimePicker value={editParadaStart} onChange={setEditParadaStart} placeholder="Início" wrapperClass="h-14 bg-[#F9FAFB] rounded-xl shadow-sm border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors" inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0 w-full" />
+                           <CustomTimePicker value={editParadaStart} onChange={setEditParadaStart} placeholder="Início" wrapperClass="h-14 bg-[#F9FAFB] dark:bg-zinc-900 rounded-xl shadow-sm border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors focus-within:bg-white dark:focus-within:bg-zinc-950" inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0 w-full" />
                          </div>
                          <div className="relative">
                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10"><Clock className="w-4 h-4" /></div>
-                           <CustomTimePicker value={editParadaEnd} onChange={setEditParadaEnd} placeholder="Fim" wrapperClass="h-14 bg-[#F9FAFB] rounded-xl shadow-sm border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors" inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0 w-full" />
+                           <CustomTimePicker value={editParadaEnd} onChange={setEditParadaEnd} placeholder="Fim" wrapperClass="h-14 bg-[#F9FAFB] dark:bg-zinc-900 rounded-xl shadow-sm border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors focus-within:bg-white dark:focus-within:bg-zinc-950" inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0 w-full" />
                          </div>
                       </div>
                       <Button type="button" variant="outline" size="sm" onClick={addEditParada} className="w-full mt-2 h-14 text-sm font-bold border-dashed border-2 border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-zinc-900/20">
@@ -342,7 +342,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
               </div>
             )}
             <DialogFooter className="flex-col sm:flex-col gap-3 pt-6 mt-4 border-t border-zinc-100 dark:border-zinc-800 w-full">
-              <Button type="submit" disabled={loadingEdit} className="w-full h-16 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl text-lg font-black shadow-xl shadow-zinc-900/20 focus-visible:ring-4 focus-visible:ring-zinc-900/20 transition-all">
+              <Button type="submit" disabled={loadingEdit} className="w-full h-16 bg-zinc-950 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 rounded-2xl text-lg font-black shadow-xl shadow-zinc-900/20 focus-visible:ring-4 focus-visible:ring-zinc-900/20 transition-all">
                 {loadingEdit ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Salvar Alterações'}
               </Button>
               <Button variant="ghost" type="button" onClick={() => setEditingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">Cancelar</Button>

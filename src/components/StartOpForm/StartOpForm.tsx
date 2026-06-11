@@ -318,11 +318,11 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 </DialogHeader>
 
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div className="flex flex-col items-center justify-center min-w-0 h-28 sm:h-32 bg-[#F9FAFB] border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.5rem] shadow-inner p-3 sm:p-4 text-center">
+                  <div className="flex flex-col items-center justify-center min-w-0 h-28 sm:h-32 bg-[#F9FAFB] dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.5rem] shadow-inner p-3 sm:p-4 text-center">
                     <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">OP Selecionada</span>
                     <span className="text-3xl font-black text-zinc-950 dark:text-zinc-50 tracking-tighter w-full truncate" title={startFormData?.opNumber}>{startFormData?.opNumber}</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center min-w-0 h-28 sm:h-32 bg-[#F9FAFB] border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.5rem] shadow-inner p-3 sm:p-4 text-center">
+                  <div className="flex flex-col items-center justify-center min-w-0 h-28 sm:h-32 bg-[#F9FAFB] dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.5rem] shadow-inner p-3 sm:p-4 text-center">
                     <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Linha Atribuída</span>
                     <span className="text-3xl font-black text-zinc-950 dark:text-zinc-50 tracking-tighter w-full truncate" title={startFormData?.linha}>
                       {startFormData?.linha?.replace('Linha ', '')?.trim()}
@@ -330,7 +330,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   </div>
                 </div>
 
-                <div className="flex flex-col items-center justify-center min-w-0 h-20 bg-[#F9FAFB] border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.5rem] shadow-inner p-3 text-center mb-8">
+                <div className="flex flex-col items-center justify-center min-w-0 h-20 bg-[#F9FAFB] dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-[1.5rem] shadow-inner p-3 text-center mb-8">
                   <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Turno</span>
                   <span className="text-xl font-black text-zinc-950 dark:text-zinc-50 tracking-tighter">
                     {startFormData?.turno ? `Turno ${startFormData.turno.replace('Turno ', '')}` : ''}
