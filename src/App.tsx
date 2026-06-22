@@ -106,7 +106,7 @@ function parseReportString(s: string, turno: string): FinishedOperation {
       turno, carimboInicial: '', reportString: ''
     };
   }
-  const [opNumber, linha, produto, litragem, quantidade, horaInicial, horaFinal, qntReprocesso] = s.split('|');
+  const [opNumber, linha, produto, litragem, quantidade, horaInicial, horaFinal, observacoes] = s.split('|');
   return {
     id: s,
     opNumber: opNumber || '',
@@ -116,7 +116,7 @@ function parseReportString(s: string, turno: string): FinishedOperation {
     quantidade: quantidade || '',
     horaInicial: horaInicial || '',
     horaFinal: horaFinal || '',
-    qntReprocesso: qntReprocesso || '',
+    observacoes: observacoes || '',
     turno,
     carimboInicial: '',
     reportString: s,
@@ -211,14 +211,14 @@ const TOUR_MOCK_FINISHED: FinishedOperation[] = [
   {
     id: '__tour_f1', opNumber: '47920', produto: 'V-FLOC 1.5L', linha: '05',
     turno: 'Turno B', horaInicial: '06:00', horaFinal: '08:00',
-    quantidade: '850', qntReprocesso: '0',
+    quantidade: '850', observacoes: '0',
     carimboInicial: new Date(Date.now() - 18000000).toISOString(),
     litragem: '1.5L', paradas: [], syncStatus: 'success', isAvulsa: false,
   },
   {
     id: '__tour_f2', opNumber: '47921', produto: 'CLEAN CAR 500ML', linha: '03',
     turno: 'Turno B', horaInicial: '06:15', horaFinal: '07:45',
-    quantidade: '1200', qntReprocesso: '50',
+    quantidade: '1200', observacoes: '50',
     carimboInicial: new Date(Date.now() - 14400000).toISOString(),
     litragem: '500ML',
     paradas: [{ seq: 1, tipologia: 'Troca de Produto', horaInicio: '07:00', horaFim: '07:15' }],
@@ -227,7 +227,7 @@ const TOUR_MOCK_FINISHED: FinishedOperation[] = [
   {
     id: '__tour_f3', opNumber: '47922', produto: 'DESENGRAXANTE IBC', linha: '01',
     turno: 'Turno B', horaInicial: '06:00', horaFinal: '09:30',
-    quantidade: '2400', qntReprocesso: '120',
+    quantidade: '2400', observacoes: '120',
     carimboInicial: new Date(Date.now() - 21600000).toISOString(),
     litragem: 'IBC',
     paradas: [
@@ -357,7 +357,7 @@ export default function App() {
   const [revertingOp, setRevertingOp] = React.useState<FinishedOperation | null>(null);
   const [showConfirmStart, setShowConfirmStart] = useState(false);
   const [startFormData, setStartFormData] = useState<StartOpFormValues | null>(null);
-  const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setValueEdit, watch: watchEdit } = useForm<StartOpFormValues & { quantidade?: string; horaFinal?: string; qntReprocesso?: string }>({});
+  const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setValueEdit, watch: watchEdit } = useForm<StartOpFormValues & { quantidade?: string; horaFinal?: string; observacoes?: string }>({});
   const watchEditProduto = watchEdit('produto');
 
   const novaOpRef = useRef<HTMLDivElement>(null);
@@ -398,7 +398,7 @@ export default function App() {
       horaInicial: op.horaInicial,
       quantidade: (op as FinishedOperation).quantidade || '',
       horaFinal: (op as FinishedOperation).horaFinal || '',
-      qntReprocesso: (op as FinishedOperation).qntReprocesso || ''
+      observacoes: (op as FinishedOperation).observacoes || ''
     });
   }, [resetEdit]);
 
@@ -434,7 +434,7 @@ export default function App() {
               horaInicial: normalizeTime(data.horaInicial),
               quantidade: data.quantidade,
               horaFinal: normalizeTime(data.horaFinal),
-              qntReprocesso: data.qntReprocesso,
+              observacoes: data.observacoes,
               paradas: editParadas,
             },
             turno
@@ -752,6 +752,8 @@ export default function App() {
 
       const newOp: Operation = {
         id: newOpId, carimboInicial: new Date().toISOString(), ...data,
+        opNumber: data.opNumber || '',
+        produto: data.produto || '',
         horaInicial: data.horaInicial ? (data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial) : '',
         litragem: derivedLitragem,
         turno: data.turno
@@ -818,6 +820,8 @@ export default function App() {
         id: Date.now().toString(36) + Math.random().toString(36).substring(2),
         carimboInicial: new Date().toISOString(),
         ...data,
+        opNumber: data.opNumber || '',
+        produto: data.produto || '',
         horaInicial: sortedParadas[0].horaInicio.length === 5 ? `${sortedParadas[0].horaInicio}:00` : sortedParadas[0].horaInicio,
         litragem: derivedLitragem,
         turno: sameTurn,

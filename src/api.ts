@@ -325,7 +325,7 @@ export const syncFinishedOperation = async (opId: string) => {
       linha: data.linha,
       turno: data.turno,
       quantidade: data.quantidade,
-      qntReprocesso: data.qntReprocesso,
+      observacoes: data.observacoes,
       paradas: data.paradas || [],
       isAvulsa: data.isAvulsa
     }
@@ -400,7 +400,7 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
           linha:         mergedOp.linha,
           turno:         mergedOp.turno,
           quantidade:    mergedOp.quantidade || '0',
-          qntReprocesso: mergedOp.qntReprocesso || '0',
+          observacoes: mergedOp.observacoes || '',
           horaInicial:   mergedOp.horaInicial,
           horaFinal:     mergedOp.horaFinal,
           paradas:       mergedOp.paradas || [],
@@ -469,7 +469,7 @@ export const convertAvulsaToOp = async (
     linha:         original.linha,
     turno:         original.turno,
     quantidade:    quantidade || '0',
-    qntReprocesso: original.qntReprocesso || '0',
+    observacoes: original.observacoes || '',
     horaInicial,
     horaFinal,
     paradas:       [],
