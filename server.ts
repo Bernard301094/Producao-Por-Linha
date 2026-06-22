@@ -102,6 +102,7 @@ const parseDateToISO = (dateStr: string) => {
 };
 
 // DB_Producao_Envase field names
+// To verify real internal names: GET /api/list-fields?list=DB_Producao_Envase
 const F_PROD = {
   Title:       'Title',
   Data:        'Data',
@@ -112,7 +113,7 @@ const F_PROD = {
   HoraInicio:  'Hora_Inicio',
   HoraFim:     'Hora_Fim',
   Produto:     'Produto',
-  Quantidade:  'Quantidade_Produzida',  // display: "Quantidade Produzida"
+  Quantidade:  'QuantidadeProduzida',
   Observacoes: 'Observacoes',
 };
 
@@ -252,14 +253,14 @@ app.post('/api/update', async (req, res) => {
     if (isAvulsa || itemIdToUpdate) {
       if (!isAvulsa && itemIdToUpdate) {
         const uf: Record<string, any> = {};
-        if (updates.opNumber    !== undefined) uf[F_PROD.OP]         = parseFloat(String(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
-        if (updates.horaInicial !== undefined) uf[F_PROD.HoraInicio] = updates.horaInicial;
-        if (updates.horaFinal   !== undefined) uf[F_PROD.HoraFim]    = updates.horaFinal;
-        if (updates.produto     !== undefined) uf[F_PROD.Produto]    = updates.produto;
-        if (updates.linha       !== undefined) uf[F_PROD.Linha]      = updates.linha;
-        if (updates.turno       !== undefined) uf[F_PROD.Turno]      = updates.turno;
-        if (updates.operador    !== undefined) uf[F_PROD.Operador]   = updates.operador;
-        if (updates.quantidade  !== undefined) uf[F_PROD.Quantidade] = parseFloat(String(updates.quantidade).replace(/[^\d.,]/g, '')) || 0;
+        if (updates.opNumber    !== undefined) uf[F_PROD.OP]          = parseFloat(String(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
+        if (updates.horaInicial !== undefined) uf[F_PROD.HoraInicio]  = updates.horaInicial;
+        if (updates.horaFinal   !== undefined) uf[F_PROD.HoraFim]     = updates.horaFinal;
+        if (updates.produto     !== undefined) uf[F_PROD.Produto]     = updates.produto;
+        if (updates.linha       !== undefined) uf[F_PROD.Linha]       = updates.linha;
+        if (updates.turno       !== undefined) uf[F_PROD.Turno]       = updates.turno;
+        if (updates.operador    !== undefined) uf[F_PROD.Operador]    = updates.operador;
+        if (updates.quantidade  !== undefined) uf[F_PROD.Quantidade]  = parseFloat(String(updates.quantidade).replace(/[^\d.,]/g, '')) || 0;
         if (updates.observacoes !== undefined) uf[F_PROD.Observacoes] = updates.observacoes;
         await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).patch({ fields: uf });
       }
