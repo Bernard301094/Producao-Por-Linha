@@ -115,14 +115,11 @@ const F_PROD = {
   Quantidade: 'QuantidadeProduzida',
 };
 
-// Registro_Paradas_Geral — Area and Reator removed (not recognized)
+// Registro_Paradas_Geral — only fields confirmed to exist
+// Removed: Area, Reator, Linha, Turno, Produto, Operador (not recognized)
 const F_PAR = {
   Title:         'Title',
   Data:          'Data',
-  Linha:         'Linha',
-  Turno:         'Turno',
-  Produto:       'Produto',
-  Operador:      'Operador',
   OP:            'OP',
   TipoParada:    'Tipo_Parada',
   CodParada:     'Cod_Parada',
@@ -133,13 +130,9 @@ const F_PAR = {
   Observacao:    'Observacao',
 };
 
-const buildParadaFields = (p: any, baseDate: string, linha: string, turno: string, produto: string, operador: string, op: string) => ({
+const buildParadaFields = (p: any, baseDate: string, op: string) => ({
   [F_PAR.Title]:         String(p.seq || ''),
   [F_PAR.Data]:          baseDate,
-  [F_PAR.Linha]:         linha,
-  [F_PAR.Turno]:         turno,
-  [F_PAR.Produto]:       produto,
-  [F_PAR.Operador]:      operador,
   [F_PAR.OP]:            op,
   [F_PAR.TipoParada]:    p.tipologia || '',
   [F_PAR.CodParada]:     p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
@@ -188,7 +181,8 @@ app.post('/api/append', async (req, res) => {
     if (paradas && Array.isArray(paradas) && paradas.length > 0) {
       try {
         for (const p of paradas) {
-          const pf = buildParadaFields(p, baseDate, linha || '', turno || '', produto || '', operador || '', String(op || ''));
+          const pf = buildParadaFields(p, baseDate, String(op || ''));
+          console.log('Fields being sent to SP (Parada):', JSON.stringify(pf));
           await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: pf });
           await new Promise(r => setTimeout(r, 200));
         }
@@ -207,13 +201,13 @@ app.post('/api/append', async (req, res) => {
 app.post('/api/append-paradas', async (req, res) => {
   if (!hasLocalCredentials) return res.status(200).json({ success: true, message: 'MOCKED Paradas added' });
   try {
-    const { carimbo, op, produto, linha, turno, operador, paradas } = req.body;
+    const { carimbo, op, paradas } = req.body;
     if (!paradas || !Array.isArray(paradas) || paradas.length === 0)
       return res.status(200).json({ success: true, message: 'No paradas to append' });
     const baseDate = parseDateToISO(carimbo);
     const client   = getGraphClient();
     for (const p of paradas) {
-      const pf = buildParadaFields(p, baseDate, linha || '', turno || '', produto || '', operador || '', String(op || ''));
+      const pf = buildParadaFields(p, baseDate, String(op || ''));
       await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: pf });
       await new Promise(r => setTimeout(r, 200));
     }
@@ -261,12 +255,8 @@ app.post('/api/update', async (req, res) => {
             String(i.fields.Linha || '') === String(originalData.linha || ''));
           for (const m of oldParadas) { await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete(); await new Promise(r => setTimeout(r, 200)); }
           if (Array.isArray(updates.paradas) && updates.paradas.length > 0) {
-            const bL = updates.linha || originalData.linha || '';
-            const bT = updates.turno || originalData.turno || '';
-            const bO = updates.operador || originalData.operador || '';
-            const bP = updates.produto  || originalData.produto  || '';
             for (const p of updates.paradas) {
-              const pf = buildParadaFields(p, baseDate, bL, bT, bP, bO, baseOp);
+              const pf = buildParadaFields(p, baseDate, baseOp);
               await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: pf });
               await new Promise(r => setTimeout(r, 200));
             }
