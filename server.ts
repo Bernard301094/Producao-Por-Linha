@@ -50,7 +50,7 @@ const hasLocalCredentials = !!(
   process.env.MICROSOFT_CLIENT_SECRET
 );
 
-// GET /api/list-fields?list=DB_Producao_Envase  — returns real internal names
+// GET /api/list-fields?list=Registro_Paradas_Geral
 app.get('/api/list-fields', async (req, res) => {
   if (!hasLocalCredentials) return res.status(503).json({ error: 'No MS credentials configured' });
   const listName = (req.query.list as string) || PRODUCAO_LIST;
@@ -101,8 +101,7 @@ const parseDateToISO = (dateStr: string) => {
   return new Date().toISOString();
 };
 
-// DB_Producao_Envase — confirmed working internal field names
-// Observacoes removed: field not present in this SharePoint list
+// DB_Producao_Envase — confirmed working fields
 const F_PROD = {
   Title:      'Title',
   Data:       'Data',
@@ -116,13 +115,11 @@ const F_PROD = {
   Quantidade: 'QuantidadeProduzida',
 };
 
-// Registro_Paradas_Geral field names
+// Registro_Paradas_Geral — Area and Reator removed (not recognized)
 const F_PAR = {
   Title:         'Title',
   Data:          'Data',
-  Area:          'Area',
   Linha:         'Linha',
-  Reator:        'Reator',
   Turno:         'Turno',
   Produto:       'Produto',
   Operador:      'Operador',
@@ -135,6 +132,23 @@ const F_PAR = {
   NumeroOS:      'NumeroOS',
   Observacao:    'Observacao',
 };
+
+const buildParadaFields = (p: any, baseDate: string, linha: string, turno: string, produto: string, operador: string, op: string) => ({
+  [F_PAR.Title]:         String(p.seq || ''),
+  [F_PAR.Data]:          baseDate,
+  [F_PAR.Linha]:         linha,
+  [F_PAR.Turno]:         turno,
+  [F_PAR.Produto]:       produto,
+  [F_PAR.Operador]:      operador,
+  [F_PAR.OP]:            op,
+  [F_PAR.TipoParada]:    p.tipologia || '',
+  [F_PAR.CodParada]:     p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
+  [F_PAR.DetalheParada]: p.observacao || '',
+  [F_PAR.HoraInicio]:    p.horaInicio || '',
+  [F_PAR.HoraFim]:       p.horaFim    || '',
+  [F_PAR.NumeroOS]:      p.numeroOS   || '',
+  [F_PAR.Observacao]:    '',
+});
 
 app.post('/api/append', async (req, res) => {
   console.log('POST /api/append received', req.body);
@@ -174,25 +188,8 @@ app.post('/api/append', async (req, res) => {
     if (paradas && Array.isArray(paradas) && paradas.length > 0) {
       try {
         for (const p of paradas) {
-          const paradaFields = {
-            [F_PAR.Title]:         String(p.seq || ''),
-            [F_PAR.Data]:          baseDate,
-            [F_PAR.Area]:          'Envase',
-            [F_PAR.Linha]:         linha    || '',
-            [F_PAR.Reator]:        '',
-            [F_PAR.Turno]:         turno    || '',
-            [F_PAR.Produto]:       produto  || '',
-            [F_PAR.Operador]:      operador || '',
-            [F_PAR.OP]:            String(op || ''),
-            [F_PAR.TipoParada]:    p.tipologia || '',
-            [F_PAR.CodParada]:     p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
-            [F_PAR.DetalheParada]: p.observacao || '',
-            [F_PAR.HoraInicio]:    p.horaInicio || '',
-            [F_PAR.HoraFim]:       p.horaFim    || '',
-            [F_PAR.NumeroOS]:      p.numeroOS   || '',
-            [F_PAR.Observacao]:    '',
-          };
-          await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: paradaFields });
+          const pf = buildParadaFields(p, baseDate, linha || '', turno || '', produto || '', operador || '', String(op || ''));
+          await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: pf });
           await new Promise(r => setTimeout(r, 200));
         }
       } catch (err: any) {
@@ -216,16 +213,8 @@ app.post('/api/append-paradas', async (req, res) => {
     const baseDate = parseDateToISO(carimbo);
     const client   = getGraphClient();
     for (const p of paradas) {
-      const paradaFields = {
-        [F_PAR.Title]: String(p.seq || ''), [F_PAR.Data]: baseDate, [F_PAR.Area]: 'Envase',
-        [F_PAR.Linha]: linha || '', [F_PAR.Reator]: '', [F_PAR.Turno]: turno || '',
-        [F_PAR.Produto]: produto || '', [F_PAR.Operador]: operador || '', [F_PAR.OP]: String(op || ''),
-        [F_PAR.TipoParada]: p.tipologia || '',
-        [F_PAR.CodParada]: p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
-        [F_PAR.DetalheParada]: p.observacao || '', [F_PAR.HoraInicio]: p.horaInicio || '',
-        [F_PAR.HoraFim]: p.horaFim || '', [F_PAR.NumeroOS]: p.numeroOS || '', [F_PAR.Observacao]: '',
-      };
-      await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: paradaFields });
+      const pf = buildParadaFields(p, baseDate, linha || '', turno || '', produto || '', operador || '', String(op || ''));
+      await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: pf });
       await new Promise(r => setTimeout(r, 200));
     }
     return res.status(200).json({ success: true, message: 'Paradas added' });
@@ -277,14 +266,7 @@ app.post('/api/update', async (req, res) => {
             const bO = updates.operador || originalData.operador || '';
             const bP = updates.produto  || originalData.produto  || '';
             for (const p of updates.paradas) {
-              const pf = {
-                [F_PAR.Title]: String(p.seq || ''), [F_PAR.Data]: baseDate, [F_PAR.Area]: 'Envase',
-                [F_PAR.Linha]: bL, [F_PAR.Reator]: '', [F_PAR.Turno]: bT, [F_PAR.Produto]: bP,
-                [F_PAR.Operador]: bO, [F_PAR.OP]: baseOp, [F_PAR.TipoParada]: p.tipologia || '',
-                [F_PAR.CodParada]: p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
-                [F_PAR.DetalheParada]: p.observacao || '', [F_PAR.HoraInicio]: p.horaInicio || '',
-                [F_PAR.HoraFim]: p.horaFim || '', [F_PAR.NumeroOS]: p.numeroOS || '', [F_PAR.Observacao]: '',
-              };
+              const pf = buildParadaFields(p, baseDate, bL, bT, bP, bO, baseOp);
               await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: pf });
               await new Promise(r => setTimeout(r, 200));
             }
