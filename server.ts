@@ -142,44 +142,51 @@ const F_PAR = {
   NumeroOS:     'N_x00fa_meroO_x002e_S',     // display="Número O.S"
 };
 
+// Normaliza qualquer valor para string segura (nunca undefined/null)
+const s = (v: any): string => (v == null ? '' : String(v));
+
+// Compara dois valores de OP ignorando tipo (number vs string)
+const opMatch = (a: any, b: any): boolean => s(a).trim() === s(b).trim();
+
 const buildParadaFields = (p: any, baseDate: string, linha: string, turno: string, produto: string, operador: string, op: string) => ({
-  [F_PAR.Title]:         String(p.seq || ''),
+  [F_PAR.Title]:         s(p.seq),
   [F_PAR.Data]:          baseDate,
-  [F_PAR.OP]:            op,
-  [F_PAR.Linha]:         linha,
-  [F_PAR.Turno]:         turno,
-  [F_PAR.Operador]:      operador,
-  [F_PAR.Produto]:       produto,
-  [F_PAR.TipoParada]:    p.tipologia   || '',
-  [F_PAR.CodParada]:     p.tipologia   || '',
-  [F_PAR.DetalheParada]: p.detalhamento || p.observacao || '',
-  [F_PAR.HoraInicio]:    p.horaInicio  || '',
-  [F_PAR.HoraFim]:       p.horaFim     || '',
-  [F_PAR.Observacao]:    p.observacao  || '',
-  [F_PAR.NumeroOS]:      p.numeroOS    || '',
+  [F_PAR.OP]:            s(op),
+  [F_PAR.Linha]:         s(linha),
+  [F_PAR.Turno]:         s(turno),
+  [F_PAR.Operador]:      s(operador),
+  [F_PAR.Produto]:       s(produto),
+  [F_PAR.TipoParada]:    s(p.tipologia),
+  [F_PAR.CodParada]:     s(p.tipologia),
+  [F_PAR.DetalheParada]: s(p.detalhamento || p.observacao),
+  [F_PAR.HoraInicio]:    s(p.horaInicio),
+  [F_PAR.HoraFim]:       s(p.horaFim),
+  [F_PAR.Observacao]:    s(p.observacao),
+  [F_PAR.NumeroOS]:      s(p.numeroOS),
 });
 
 app.post('/api/append', async (req, res) => {
-  console.log('POST /api/append received', req.body);
+  console.log('POST /api/append received', JSON.stringify(req.body));
   if (!hasLocalCredentials) {
     return res.status(200).json({ success: true, message: 'MOCKED Row added' });
   }
   try {
     const { carimbo, op, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, paradas, isAvulsa } = req.body;
     const baseDate = parseDateToISO(carimbo);
-    const numOp    = parseFloat(String(op).replace(/[^\d.,]/g, '')) || 0;
-    const numQtd   = parseFloat(String(quantidade).replace(/[^\d.,]/g, '')) || 0;
+    // OP: tenta número, senão guarda como string no Title
+    const numOp  = parseFloat(s(op).replace(/[^\d.,]/g, '')) || 0;
+    const numQtd = parseFloat(s(quantidade).replace(/[^\d.,]/g, '')) || 0;
 
     const producaoFields: Record<string, any> = {
-      [F_PROD.Title]:      String(op || ''),
+      [F_PROD.Title]:      s(op),
       [F_PROD.Data]:       baseDate,
       [F_PROD.OP]:         numOp,
-      [F_PROD.Linha]:      linha       || '',
-      [F_PROD.Turno]:      turno       || '',
-      [F_PROD.Operador]:   operador    || '',
-      [F_PROD.HoraInicio]: horaInicial || '',
-      [F_PROD.HoraFim]:    horaFinal   || '',
-      [F_PROD.Produto]:    produto     || '',
+      [F_PROD.Linha]:      s(linha),
+      [F_PROD.Turno]:      s(turno),
+      [F_PROD.Operador]:   s(operador),
+      [F_PROD.HoraInicio]: s(horaInicial),
+      [F_PROD.HoraFim]:    s(horaFinal),
+      [F_PROD.Produto]:    s(produto),
       [F_PROD.Quantidade]: numQtd,
     };
 
@@ -197,7 +204,7 @@ app.post('/api/append', async (req, res) => {
     if (paradas && Array.isArray(paradas) && paradas.length > 0) {
       try {
         for (const p of paradas) {
-          const pf = buildParadaFields(p, baseDate, linha || '', turno || '', produto || '', operador || '', String(op || ''));
+          const pf = buildParadaFields(p, baseDate, s(linha), s(turno), s(produto), s(operador), s(op));
           console.log('Fields being sent to SP (Parada):', JSON.stringify(pf));
           await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: pf });
           await new Promise(r => setTimeout(r, 200));
@@ -223,7 +230,7 @@ app.post('/api/append-paradas', async (req, res) => {
     const baseDate = parseDateToISO(carimbo);
     const client   = getGraphClient();
     for (const p of paradas) {
-      const pf = buildParadaFields(p, baseDate, linha || '', turno || '', produto || '', operador || '', String(op || ''));
+      const pf = buildParadaFields(p, baseDate, s(linha), s(turno), s(produto), s(operador), s(op));
       await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: pf });
       await new Promise(r => setTimeout(r, 200));
     }
@@ -234,56 +241,95 @@ app.post('/api/append-paradas', async (req, res) => {
 });
 
 app.post('/api/update', async (req, res) => {
+  console.log('POST /api/update received', JSON.stringify(req.body));
   if (!hasLocalCredentials) return res.status(200).json({ success: true, message: 'MOCKED Row updated' });
   try {
     const { originalData, updates } = req.body;
     const isAvulsa = updates.isAvulsa || originalData.isAvulsa;
     const client   = getGraphClient();
     let itemIdToUpdate: string | null = null;
+
     if (!isAvulsa) {
       try {
-        const listItems = await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields`).get();
-        const matching = (listItems.value as any[]).filter(i => i.fields.OP === originalData.op && i.fields.Linha === originalData.linha);
-        if (matching.length > 0) itemIdToUpdate = matching[matching.length - 1].id;
-      } catch (err) { console.warn('Could not find item to update', err); }
+        // Paginar para buscar todos os itens (SharePoint limita 100 por default)
+        let nextLink: string | null =
+          `${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields&$top=500`;
+        while (nextLink && !itemIdToUpdate) {
+          const page: any = await client.api(nextLink).get();
+          // FIX: comparar como string para evitar number !== string
+          const matching = (page.value as any[]).filter(i =>
+            opMatch(i.fields.OP, originalData.op) &&
+            s(i.fields.Linha).trim() === s(originalData.linha).trim()
+          );
+          if (matching.length > 0) {
+            itemIdToUpdate = matching[matching.length - 1].id;
+          }
+          nextLink = page['@odata.nextLink'] || null;
+        }
+        console.log(`[update] itemIdToUpdate=${itemIdToUpdate} for OP="${originalData.op}" Linha="${originalData.linha}"`);
+      } catch (err) {
+        console.warn('Could not find item to update', err);
+      }
     }
+
     if (isAvulsa || itemIdToUpdate) {
       if (!isAvulsa && itemIdToUpdate) {
         const uf: Record<string, any> = {};
-        if (updates.opNumber    !== undefined) uf[F_PROD.OP]         = parseFloat(String(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
-        if (updates.horaInicial !== undefined) uf[F_PROD.HoraInicio] = updates.horaInicial;
-        if (updates.horaFinal   !== undefined) uf[F_PROD.HoraFim]    = updates.horaFinal;
-        if (updates.produto     !== undefined) uf[F_PROD.Produto]    = updates.produto;
-        if (updates.linha       !== undefined) uf[F_PROD.Linha]      = updates.linha;
-        if (updates.turno       !== undefined) uf[F_PROD.Turno]      = updates.turno;
-        if (updates.operador    !== undefined) uf[F_PROD.Operador]   = updates.operador;
-        if (updates.quantidade  !== undefined) uf[F_PROD.Quantidade] = parseFloat(String(updates.quantidade).replace(/[^\d.,]/g, '')) || 0;
+        if (updates.opNumber    !== undefined) uf[F_PROD.OP]         = parseFloat(s(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
+        if (updates.horaInicial !== undefined) uf[F_PROD.HoraInicio] = s(updates.horaInicial);
+        if (updates.horaFinal   !== undefined) uf[F_PROD.HoraFim]    = s(updates.horaFinal);
+        if (updates.produto     !== undefined) uf[F_PROD.Produto]    = s(updates.produto);
+        if (updates.linha       !== undefined) uf[F_PROD.Linha]      = s(updates.linha);
+        if (updates.turno       !== undefined) uf[F_PROD.Turno]      = s(updates.turno);
+        if (updates.operador    !== undefined) uf[F_PROD.Operador]   = s(updates.operador);
+        if (updates.quantidade  !== undefined) uf[F_PROD.Quantidade] = parseFloat(s(updates.quantidade).replace(/[^\d.,]/g, '')) || 0;
+        console.log('Fields being patched to SP (Producao):', JSON.stringify(uf));
         await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).patch({ fields: uf });
       }
+
       if (updates.paradas !== undefined) {
         try {
-          const pListItems = await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`).get();
-          let baseOp = String(originalData.op || '');
-          if (!isAvulsa && updates.opNumber !== undefined) baseOp = String(updates.opNumber);
+          let nextLink: string | null =
+            `${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields&$top=500`;
+          const allParadaItems: any[] = [];
+          while (nextLink) {
+            const page: any = await client.api(nextLink).get();
+            allParadaItems.push(...page.value);
+            nextLink = page['@odata.nextLink'] || null;
+          }
+
+          let baseOp = s(originalData.op);
+          if (!isAvulsa && updates.opNumber !== undefined) baseOp = s(updates.opNumber);
           const baseDate = parseDateToISO(originalData.carimbo);
-          const oldParadas = (pListItems.value as any[]).filter(i =>
-            String(i.fields.OP || '') === String(originalData.op || ''));
-          for (const m of oldParadas) { await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete(); await new Promise(r => setTimeout(r, 200)); }
+
+          // FIX: comparar como string
+          const oldParadas = allParadaItems.filter(i =>
+            opMatch(i.fields.OP, originalData.op)
+          );
+          for (const m of oldParadas) {
+            await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete();
+            await new Promise(r => setTimeout(r, 200));
+          }
+
           if (Array.isArray(updates.paradas) && updates.paradas.length > 0) {
-            const bL = updates.linha    || originalData.linha    || '';
-            const bT = updates.turno    || originalData.turno    || '';
-            const bO = updates.operador || originalData.operador || '';
-            const bP = updates.produto  || originalData.produto  || '';
+            const bL = s(updates.linha    || originalData.linha);
+            const bT = s(updates.turno    || originalData.turno);
+            const bO = s(updates.operador || originalData.operador);
+            const bP = s(updates.produto  || originalData.produto);
             for (const p of updates.paradas) {
               const pf = buildParadaFields(p, baseDate, bL, bT, bP, bO, baseOp);
               await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: pf });
               await new Promise(r => setTimeout(r, 200));
             }
           }
-        } catch (err: any) { console.warn('Could not update PARADAS.', err.message); }
+        } catch (err: any) {
+          console.warn('Could not update PARADAS.', err.message);
+        }
       }
+
       return res.status(200).json({ success: true, message: 'Row updated' });
     } else {
+      console.log(`[update] Item not found — returning 404 for OP="${originalData.op}"`);
       return res.status(404).json({ success: false, error: 'Row not found in spreadsheet' });
     }
   } catch (error: any) {
@@ -297,18 +343,51 @@ app.post('/api/delete', async (req, res) => {
     const { op, linha, isAvulsa } = req.body;
     const client = getGraphClient();
     let deletedAny = false;
+
     if (!isAvulsa) {
       try {
-        const listItems = await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields`).get();
-        const matching = (listItems.value as any[]).filter(i => i.fields.OP === op && i.fields.Linha === linha);
-        if (matching.length > 0) { await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${matching[matching.length - 1].id}`).delete(); deletedAny = true; }
-      } catch (err) { console.warn('Could not delete from PRODUCAO', err); }
+        let nextLink: string | null =
+          `${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields&$top=500`;
+        const allItems: any[] = [];
+        while (nextLink) {
+          const page: any = await client.api(nextLink).get();
+          allItems.push(...page.value);
+          nextLink = page['@odata.nextLink'] || null;
+        }
+        // FIX: comparar como string
+        const matching = allItems.filter(i =>
+          opMatch(i.fields.OP, op) &&
+          s(i.fields.Linha).trim() === s(linha).trim()
+        );
+        if (matching.length > 0) {
+          await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${matching[matching.length - 1].id}`).delete();
+          deletedAny = true;
+        }
+      } catch (err) {
+        console.warn('Could not delete from PRODUCAO', err);
+      }
     }
+
     try {
-      const pListItems = await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`).get();
-      const matching = (pListItems.value as any[]).filter(i => String(i.fields.OP || '') === String(op || ''));
-      for (const m of matching) { await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete(); await new Promise(r => setTimeout(r, 200)); deletedAny = true; }
-    } catch (err: any) { console.warn('Could not delete from PARADAS.', err.message); }
+      let nextLink: string | null =
+        `${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields&$top=500`;
+      const allParadas: any[] = [];
+      while (nextLink) {
+        const page: any = await client.api(nextLink).get();
+        allParadas.push(...page.value);
+        nextLink = page['@odata.nextLink'] || null;
+      }
+      // FIX: comparar como string
+      const matching = allParadas.filter(i => opMatch(i.fields.OP, op));
+      for (const m of matching) {
+        await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete();
+        await new Promise(r => setTimeout(r, 200));
+        deletedAny = true;
+      }
+    } catch (err: any) {
+      console.warn('Could not delete from PARADAS.', err.message);
+    }
+
     if (deletedAny) return res.status(200).json({ success: true, message: 'Row and related paradas deleted' });
     else return res.status(404).json({ success: false, error: 'Row not found in spreadsheet' });
   } catch (error: any) {
