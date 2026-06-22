@@ -182,7 +182,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 <Label htmlFor="produto" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Produto Fabricado</Label>
                 <input id="produto" {...register('produto')} onPointerDown={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} onClick={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} autoComplete="off" onFocus={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} placeholder="Digite para buscar..." className="flex h-16 w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-5 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 shadow-sm" />
                 {showProductSuggestions && (
-                  <div className="absolute z-[60] w-full mt-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[1.5rem] shadow-2xl max-h-[min(18rem,50dvh)] overflow-y-auto p-2 ring-1 ring-zinc-900/5">
+                  <div className="absolute z-[60] w-full bottom-full mb-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[1.5rem] shadow-2xl max-h-[min(18rem,50dvh)] overflow-y-auto p-2 ring-1 ring-zinc-900/5">
                     {!isTypingProduct && (
                       <div onClick={(e) => { e.preventDefault(); setIsTypingProduct(true); setTimeout(() => document.getElementById('produto')?.focus(), 50); }} className="hidden">
                       </div>

@@ -752,7 +752,7 @@ export default function App() {
 
       const newOp: Operation = {
         id: newOpId, carimboInicial: new Date().toISOString(), ...data,
-        horaInicial: data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial,
+        horaInicial: data.horaInicial ? (data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial) : '',
         litragem: derivedLitragem,
         turno: data.turno
       };
