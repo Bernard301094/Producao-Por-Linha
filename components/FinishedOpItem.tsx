@@ -23,10 +23,11 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
   const [showConvertModal, setShowConvertModal]  = useState(false);
   const [convHoraInicial,  setConvHoraInicial]   = useState('');
   const [convHoraFinal,    setConvHoraFinal]     = useState('');
+  const [convQuantidade,   setConvQuantidade]    = useState('');
   const [loadingConvert,   setLoadingConvert]    = useState(false);
 
   const resetForgot  = () => { setForgotMotivo(''); setForgotStart(''); setForgotEnd(''); setForgotSearch(''); setForgotOS(''); setForgotObs(''); };
-  const resetConvert = () => { setConvHoraInicial(''); setConvHoraFinal(''); };
+  const resetConvert = () => { setConvHoraInicial(''); setConvHoraFinal(''); setConvQuantidade(''); };
 
   const handleAddForgot = async () => {
     if (!forgotMotivo || !forgotStart || !forgotEnd) { toast.error('Preencha motivo e horários.'); return; }
@@ -42,12 +43,12 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
   };
 
   const handleConvert = async () => {
-    if (!convHoraInicial || !convHoraFinal) {
-      toast.error('Preencha a hora de início e de término.'); return;
+    if (!convHoraInicial || !convHoraFinal || !convQuantidade) {
+      toast.error('Preencha a quantidade, hora de início e de término.'); return;
     }
     setLoadingConvert(true);
     try {
-      await onConvertToOp?.(op, { horaInicial: convHoraInicial, horaFinal: convHoraFinal });
+      await onConvertToOp?.(op, { horaInicial: convHoraInicial, horaFinal: convHoraFinal, quantidade: convQuantidade });
       toast.success('OP convertida com sucesso!');
       setShowConvertModal(false); resetConvert();
     } catch (e: any) { toast.error(`Erro: ${e.message}`); }
@@ -307,12 +308,24 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
                 inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0 w-full"
               />
             </div>
+            <div className="space-y-1.5 col-span-2">
+              <Label className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest block">Quantidade Produzida</Label>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="0"
+                value={convQuantidade}
+                onChange={e => setConvQuantidade(e.target.value.replace(/[^0-9]/g, ''))}
+                className="w-full h-14 px-4 bg-white dark:bg-zinc-950 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-xl text-lg font-black text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-950 transition-colors shadow-sm"
+              />
+            </div>
           </div>
           <div className="flex flex-col gap-2 mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800">
             <Button
               type="button"
               onClick={handleConvert}
-              disabled={loadingConvert || !convHoraInicial || !convHoraFinal}
+              disabled={loadingConvert || !convHoraInicial || !convHoraFinal || !convQuantidade}
               className="w-full h-14 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl font-black text-base disabled:opacity-50 transition-all"
             >
               {loadingConvert ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar Conversão'}

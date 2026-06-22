@@ -440,6 +440,7 @@ export const convertAvulsaToOp = async (
   opId: string,
   horaInicial: string,
   horaFinal: string,
+  quantidade: string,
   onSync?: (success: boolean, error?: string) => void
 ) => {
   const opDocRef = doc(db, 'operations', opId);
@@ -452,6 +453,7 @@ export const convertAvulsaToOp = async (
   await updateDoc(opDocRef, {
     horaInicial,
     horaFinal,
+    quantidade,
     isAvulsa:   false,
     syncStatus: 'pending',
     syncError:  ''
@@ -466,7 +468,7 @@ export const convertAvulsaToOp = async (
     produto:       original.produto,
     linha:         original.linha,
     turno:         original.turno,
-    quantidade:    original.quantidade || '0',
+    quantidade:    quantidade || '0',
     qntReprocesso: original.qntReprocesso || '0',
     horaInicial,
     horaFinal,

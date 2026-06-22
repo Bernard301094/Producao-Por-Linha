@@ -1542,9 +1542,9 @@ export default function App() {
                       const updated = [...(finOp.paradas || []), parada];
                       await updateFinishedOperation(finOp.id, { paradas: updated }, finOp.turno);
                     }}
-                    onConvertToOp={async (finOp: FinishedOperation, data: { horaInicial: string; horaFinal: string }) => {
+                    onConvertToOp={async (finOp: FinishedOperation, data: { horaInicial: string; horaFinal: string; quantidade: string }) => {
                       await convertAvulsaToOp(
-                        finOp.id, data.horaInicial, data.horaFinal,
+                        finOp.id, data.horaInicial, data.horaFinal, data.quantidade,
                         (ok, err) => { if (!ok) toast.warning(`Salvo, mas erro na planilha: ${err}`); }
                       );
                     }}
