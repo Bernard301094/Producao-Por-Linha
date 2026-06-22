@@ -101,20 +101,19 @@ const parseDateToISO = (dateStr: string) => {
   return new Date().toISOString();
 };
 
-// DB_Producao_Envase field names
-// To verify real internal names: GET /api/list-fields?list=DB_Producao_Envase
+// DB_Producao_Envase — confirmed working internal field names
+// Observacoes removed: field not present in this SharePoint list
 const F_PROD = {
-  Title:       'Title',
-  Data:        'Data',
-  OP:          'OP',
-  Linha:       'Linha',
-  Turno:       'Turno',
-  Operador:    'Operador',
-  HoraInicio:  'Hora_Inicio',
-  HoraFim:     'Hora_Fim',
-  Produto:     'Produto',
-  Quantidade:  'QuantidadeProduzida',
-  Observacoes: 'Observacoes',
+  Title:      'Title',
+  Data:       'Data',
+  OP:         'OP',
+  Linha:      'Linha',
+  Turno:      'Turno',
+  Operador:   'Operador',
+  HoraInicio: 'Hora_Inicio',
+  HoraFim:    'Hora_Fim',
+  Produto:    'Produto',
+  Quantidade: 'QuantidadeProduzida',
 };
 
 // Registro_Paradas_Geral field names
@@ -143,23 +142,22 @@ app.post('/api/append', async (req, res) => {
     return res.status(200).json({ success: true, message: 'MOCKED Row added' });
   }
   try {
-    const { carimbo, op, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, observacoes, paradas, isAvulsa } = req.body;
+    const { carimbo, op, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, paradas, isAvulsa } = req.body;
     const baseDate = parseDateToISO(carimbo);
     const numOp    = parseFloat(String(op).replace(/[^\d.,]/g, '')) || 0;
     const numQtd   = parseFloat(String(quantidade).replace(/[^\d.,]/g, '')) || 0;
 
     const producaoFields = {
-      [F_PROD.Title]:       String(op || ''),
-      [F_PROD.Data]:        baseDate,
-      [F_PROD.OP]:          numOp,
-      [F_PROD.Linha]:       linha       || '',
-      [F_PROD.Turno]:       turno       || '',
-      [F_PROD.Operador]:    operador    || '',
-      [F_PROD.HoraInicio]:  horaInicial || '',
-      [F_PROD.HoraFim]:     horaFinal   || '',
-      [F_PROD.Produto]:     produto     || '',
-      [F_PROD.Quantidade]:  numQtd,
-      [F_PROD.Observacoes]: observacoes || '',
+      [F_PROD.Title]:      String(op || ''),
+      [F_PROD.Data]:       baseDate,
+      [F_PROD.OP]:         numOp,
+      [F_PROD.Linha]:      linha       || '',
+      [F_PROD.Turno]:      turno       || '',
+      [F_PROD.Operador]:   operador    || '',
+      [F_PROD.HoraInicio]: horaInicial || '',
+      [F_PROD.HoraFim]:    horaFinal   || '',
+      [F_PROD.Produto]:    produto     || '',
+      [F_PROD.Quantidade]: numQtd,
     };
 
     console.log('Fields being sent to SP (Producao):', JSON.stringify(producaoFields));
@@ -253,15 +251,14 @@ app.post('/api/update', async (req, res) => {
     if (isAvulsa || itemIdToUpdate) {
       if (!isAvulsa && itemIdToUpdate) {
         const uf: Record<string, any> = {};
-        if (updates.opNumber    !== undefined) uf[F_PROD.OP]          = parseFloat(String(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
-        if (updates.horaInicial !== undefined) uf[F_PROD.HoraInicio]  = updates.horaInicial;
-        if (updates.horaFinal   !== undefined) uf[F_PROD.HoraFim]     = updates.horaFinal;
-        if (updates.produto     !== undefined) uf[F_PROD.Produto]     = updates.produto;
-        if (updates.linha       !== undefined) uf[F_PROD.Linha]       = updates.linha;
-        if (updates.turno       !== undefined) uf[F_PROD.Turno]       = updates.turno;
-        if (updates.operador    !== undefined) uf[F_PROD.Operador]    = updates.operador;
-        if (updates.quantidade  !== undefined) uf[F_PROD.Quantidade]  = parseFloat(String(updates.quantidade).replace(/[^\d.,]/g, '')) || 0;
-        if (updates.observacoes !== undefined) uf[F_PROD.Observacoes] = updates.observacoes;
+        if (updates.opNumber    !== undefined) uf[F_PROD.OP]         = parseFloat(String(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
+        if (updates.horaInicial !== undefined) uf[F_PROD.HoraInicio] = updates.horaInicial;
+        if (updates.horaFinal   !== undefined) uf[F_PROD.HoraFim]    = updates.horaFinal;
+        if (updates.produto     !== undefined) uf[F_PROD.Produto]    = updates.produto;
+        if (updates.linha       !== undefined) uf[F_PROD.Linha]      = updates.linha;
+        if (updates.turno       !== undefined) uf[F_PROD.Turno]      = updates.turno;
+        if (updates.operador    !== undefined) uf[F_PROD.Operador]   = updates.operador;
+        if (updates.quantidade  !== undefined) uf[F_PROD.Quantidade] = parseFloat(String(updates.quantidade).replace(/[^\d.,]/g, '')) || 0;
         await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).patch({ fields: uf });
       }
       if (updates.paradas !== undefined) {
