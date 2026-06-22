@@ -83,10 +83,12 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
             <h3 className="text-base xl:text-lg 2xl:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-1">{op.produto}</h3>
           </div>
           {/* Time badge */}
-          <div className="shrink-0 flex items-center gap-1 text-[10px] xl:text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 px-2.5 xl:px-3 py-1.5 xl:py-2 rounded-xl">
-            <Clock className="w-3 h-3 xl:w-3.5 xl:h-3.5 text-slate-400" />
-            {op.horaInicial}{op.horaFinal ? ` → ${op.horaFinal}` : ''}
-          </div>
+          {!op.isAvulsa && (
+            <div className="shrink-0 flex items-center gap-1 text-[10px] xl:text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 px-2.5 xl:px-3 py-1.5 xl:py-2 rounded-xl">
+              <Clock className="w-3 h-3 xl:w-3.5 xl:h-3.5 text-slate-400" />
+              {op.horaInicial}{op.horaFinal ? ` → ${op.horaFinal}` : ''}
+            </div>
+          )}
         </div>
 
         {/* Stats */}

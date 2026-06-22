@@ -135,8 +135,8 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   };
 
   const onConfirm = async () => {
-    if ((!finishQtd && !op.isAvulsa) || !finishTime) {
-      toast.error(op.isAvulsa ? 'Preencha a hora final.' : 'Preencha a quantidade e hora final.');
+    if (!op.isAvulsa && (!finishQtd || !finishTime)) {
+      toast.error('Preencha a quantidade e hora final.');
       return;
     }
     setIsConfirmingFinish(true);
@@ -411,21 +411,21 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
 
         {isFinishing && (
           <div className="border-t border-emerald-200 dark:border-emerald-800/50 pt-4 space-y-4 bg-emerald-50 dark:bg-emerald-950/30 -mx-4 sm:-mx-5 px-4 sm:px-5 pb-1 mt-1">
-            <div className={cn("grid gap-3 items-end", op.isAvulsa ? "grid-cols-1" : "grid-cols-2")}>
-              {!op.isAvulsa && (
+            {!op.isAvulsa && (
+              <div className="grid gap-3 items-end grid-cols-2">
                 <QuickCounter label="Quantidade (UN)" value={finishQtd} onChange={setFinishQtd} className="w-full" />
-              )}
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Final</label>
-                <CustomTimePicker
-                  value={finishTime}
-                  onChange={setFinishTime}
-                  clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
-                  wrapperClass="h-[46px] bg-white dark:bg-zinc-950 rounded-xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors shadow-sm"
-                  inputClass="pl-9 pr-4 text-sm font-bold bg-transparent focus:ring-0 w-full h-full"
-                />
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Final</label>
+                  <CustomTimePicker
+                    value={finishTime}
+                    onChange={setFinishTime}
+                    clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
+                    wrapperClass="h-[46px] bg-white dark:bg-zinc-950 rounded-xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors shadow-sm"
+                    inputClass="pl-9 pr-4 text-sm font-bold bg-transparent focus:ring-0 w-full h-full"
+                  />
+                </div>
               </div>
-            </div>
+            )}
             <div className="space-y-1.5">
               <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Observação da OP (Opcional)</label>
               <input

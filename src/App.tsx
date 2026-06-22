@@ -129,7 +129,7 @@ const startOpSchema = z.object({
   produto: z.string().optional(),
   linha: z.string().min(1, 'Obrigatório'),
   turno: z.string().min(1, 'Obrigatório'),
-  horaInicial: z.string().min(1, 'Obrigatório'),
+  horaInicial: z.string().optional(),
   operador: z.string().min(1, 'Obrigatório'),
 });
 
@@ -689,9 +689,10 @@ export default function App() {
   // Login
   
   const handlePreStartOp = (data: StartOpFormValues) => {
+    if (!data.opNumber) { toast.error('Número de OP é obrigatório'); return; }
+    if (!data.produto) { toast.error('Produto é obrigatório'); return; }
     if (!data.isAvulsa) {
-      if (!data.opNumber) { toast.error('Número de OP é obrigatório'); return; }
-      if (!data.produto) { toast.error('Produto é obrigatório'); return; }
+      if (!data.horaInicial) { toast.error('Hora de Início é obrigatória'); return; }
     }
     setStartFormData(data);
     setShowConfirmStart(true);
