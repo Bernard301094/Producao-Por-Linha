@@ -23,6 +23,7 @@ export interface Operation {
   produto: string;
   linha: string;
   turno: string;
+  operador: string;
   horaInicial: string;
   carimboInicial?: string;
   litragem?: string;
@@ -53,7 +54,7 @@ export const subscribeToOperations = (linha: string | null, callback: (ops: Oper
   const q = query(
     collection(db, 'operations'),
     ...conditions,
-    limit(50) // A factory rarely has >20 pending OPs at once; 50 is a safe ceiling
+    limit(50)
   );
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as Operation)));
@@ -70,7 +71,7 @@ export const subscribeToFinishedOps = (linha: string | null, callback: (ops: Fin
     collection(db, 'operations'),
     ...conditions,
     orderBy('carimboInicial', 'desc'),
-    limit(75) // Ordered most-recent-first; a full 8-h shift rarely exceeds 30 OPs (was 1000)
+    limit(75)
   );
   return onSnapshot(q, (snap) => {
     callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as FinishedOperation)));
@@ -83,11 +84,6 @@ let cacheLinhas: string[] | null = null;
 let cacheProfiles: {name: string}[] | null = null;
 let cacheProdutos: {produto: string, litragem: string}[] | null = null;
 
-/**
- * Call on logout so the next session always fetches fresh master data.
- * Operational data (operations/finishedOps) is managed by onSnapshot listeners,
- * not by these caches, so they don't need to be invalidated.
- */
 export const invalidateCaches = () => {
   cacheParadas  = null;
   cacheLinhas   = null;
@@ -122,12 +118,6 @@ export const removeOperation = async (id: string) => {
 import { Capacitor } from '@capacitor/core';
 const isCapacitor = Capacitor.isNativePlatform();
 
-/**
- * DETERMINISTIC API BASE URL
- * In Capacitor native environments, nested fetch('/api/...') calls default to capacitor://localhost/api/...
- * which doesn't exist. We must point to the absolute URL of the deployed backend.
- */
-// @ts-ignore
 const API_BASE = import.meta.env?.VITE_API_URL || (isCapacitor ? 'https://producao-por-linha.vercel.app' : '');
 
 const formatSheetLitragem = (l: string) => {
@@ -173,7 +163,7 @@ export const markOperationFinished = async (
     syncStatus: 'pending'
   };
 
-  // 1. Write to Firebase FIRST — instant due to offline cache
+  // 1. Write to Firebase FIRST
   try {
     await setDoc(doc(db, 'operations', op.id), { 
       ...finishedOp, 
@@ -185,20 +175,19 @@ export const markOperationFinished = async (
     throw new Error(`Erro ao salvar na nuvem: ${firebaseErr.message}`);
   }
 
-  // 2. Sync OneDrive in background — fire and forget
+  // 2. Sync SharePoint in background
   const payload = {
-    carimbo: `'${formatedCarimbo}`,
-    op: op.opNumber,
-    litragem: formatSheetLitragem(op.litragem || ''),
-    produto: op.produto,
-    linha: formattedLinha,
-    turno: op.turno,
+    carimbo:     `'${formatedCarimbo}`,
+    op:          op.opNumber,
+    produto:     op.produto,
+    linha:       formattedLinha,
+    turno:       op.turno,
+    operador:    op.operador || '',
     quantidade,
-    observacoes: observacoes || '',
     horaInicial: op.horaInicial,
     horaFinal,
-    paradas: paradasFinais,
-    isAvulsa: op.isAvulsa ?? false
+    paradas:     paradasFinais,
+    isAvulsa:    op.isAvulsa ?? false
   };
 
   authedFetch(`${API_BASE}/api/append`, JSON.stringify(payload)).then(async res => {
@@ -211,7 +200,7 @@ export const markOperationFinished = async (
       onOneDriveSync?.(true);
     }
   }).catch(async error => {
-    console.error("OneDrive sync failed", error);
+    console.error("SharePoint sync failed", error);
     await updateDoc(doc(db, 'operations', op.id), { syncStatus: 'error', syncError: error.message });
     onOneDriveSync?.(false, error.message);
   });
@@ -235,7 +224,7 @@ export const getLinhas = async (): Promise<string[]> => {
 
 export const addProduct = async (produto: string, litragem: string) => {
   await setDoc(doc(db, 'produtos', produto.toUpperCase()), { produto: produto.toUpperCase(), litragem });
-  cacheProdutos = null; // invalidar cache
+  cacheProdutos = null;
 };
 
 export const updateProduct = async (oldName: string, newName: string, newLitragem: string) => {
@@ -243,11 +232,9 @@ export const updateProduct = async (oldName: string, newName: string, newLitrage
   const newRef = doc(db, 'produtos', newName.toUpperCase());
   
   if (oldName.toUpperCase() !== newName.toUpperCase()) {
-    // If name changed, we need to move the data
     await setDoc(newRef, { produto: newName.toUpperCase(), litragem: newLitragem });
     await deleteDoc(oldRef);
   } else {
-    // Just update litragem
     await updateDoc(oldRef, { litragem: newLitragem });
   }
   cacheProdutos = null;
@@ -281,21 +268,20 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
   if (docSnap.exists()) {
     const data = docSnap.data() as FinishedOperation;
     
-    // Attempt to remove from spreadsheet (fire and forget)
     authedFetch(`${API_BASE}/api/delete`, JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto, isAvulsa: data.isAvulsa })).catch(e => console.error('API delete error in revert', e));
     
-    // Clean up finished-specific fields
     const newOp: Operation = {
-      id: id,
-      opNumber: data.opNumber || '',
-      linha: data.linha || '',
-      produto: data.produto || '',
-      litragem: data.litragem || '',
-      turno: turno || 'A',
-      horaInicial: data.horaInicial || '',
+      id,
+      opNumber:       data.opNumber      || '',
+      linha:          data.linha         || '',
+      produto:        data.produto       || '',
+      litragem:       data.litragem      || '',
+      turno:          turno              || 'A',
+      operador:       data.operador      || '',
+      horaInicial:    data.horaInicial   || '',
       carimboInicial: data.carimboInicial || new Date().toISOString(),
-      status: 'pending',
-      paradas: data.paradas || []
+      status:         'pending',
+      paradas:        data.paradas       || []
     };
 
     await setDoc(opDocRef, newOp);
@@ -308,54 +294,45 @@ export const syncFinishedOperation = async (opId: string) => {
   if (!docSnap.exists()) return;
   const data = docSnap.data() as FinishedOperation;
 
-  // We use /api/update which searches for the existing row by OP and Linha and updates it.
-  // Importantly, /api/update completely deletes old paradas for this OP and inserts the ones in updates.paradas.
-  // This achieves idempotency: no duplicates even if we run it multiple times.
   const payload = {
     originalData: {
-      op: data.opNumber,
+      op:    data.opNumber,
       linha: data.linha
     },
     updates: {
-      opNumber: data.opNumber,
+      opNumber:    data.opNumber,
       horaInicial: data.horaInicial,
-      horaFinal: data.horaFinal,
-      litragem: data.litragem,
-      produto: data.produto,
-      linha: data.linha,
-      turno: data.turno,
-      quantidade: data.quantidade,
-      observacoes: data.observacoes,
-      paradas: data.paradas || [],
-      isAvulsa: data.isAvulsa
+      horaFinal:   data.horaFinal,
+      produto:     data.produto,
+      linha:       data.linha,
+      turno:       data.turno,
+      operador:    data.operador || '',
+      quantidade:  data.quantidade,
+      paradas:     data.paradas || [],
+      isAvulsa:    data.isAvulsa
     }
   };
 
   try {
     const resp = await authedFetch(`${API_BASE}/api/update`, JSON.stringify(payload));
     
-    // Fallback: If /api/update returns 404, it means the OP was NEVER appended to the main sheet originally.
     if (resp.status === 404) {
       const appendPayload = {
-        carimbo: `'${data.carimbo}`,
-        op: data.opNumber,
-        litragem: formatSheetLitragem(data.litragem || ''),
-        produto: data.produto,
-        linha: data.linha,
-        turno: data.turno,
-        quantidade: data.quantidade,
-        observacoes: data.observacoes || '',
+        carimbo:     `'${data.carimbo}`,
+        op:          data.opNumber,
+        produto:     data.produto,
+        linha:       data.linha,
+        turno:       data.turno,
+        operador:    data.operador || '',
+        quantidade:  data.quantidade,
         horaInicial: data.horaInicial,
-        horaFinal: data.horaFinal,
-        paradas: data.paradas || [],
-        isAvulsa: data.isAvulsa
+        horaFinal:   data.horaFinal,
+        paradas:     data.paradas || [],
+        isAvulsa:    data.isAvulsa
       };
       
       const appendResp = await authedFetch(`${API_BASE}/api/append`, JSON.stringify(appendPayload));
-      
-      if (!appendResp.ok) {
-        throw new Error(await appendResp.text());
-      }
+      if (!appendResp.ok) throw new Error(await appendResp.text());
     } else if (!resp.ok) {
       throw new Error(await resp.text());
     }
@@ -374,10 +351,8 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
   if (!docSnap.exists()) return;
 
   const original = docSnap.data() as FinishedOperation;
-  // Merge original + updates so the fallback append has all fields
   const mergedOp = { ...original, ...data } as FinishedOperation;
 
-  // Background fetch to update spreadsheet
   authedFetch(`${API_BASE}/api/update`, JSON.stringify({
     originalData: {
       op:       original.opNumber,
@@ -385,27 +360,25 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
       produto:  original.produto,
       isAvulsa: original.isAvulsa ?? false,
       carimbo:  original.carimbo,
-      litragem: original.litragem,
-      turno:    original.turno
+      turno:    original.turno,
+      operador: original.operador || ''
     },
-    updates: { ...data, isAvulsa: original.isAvulsa ?? false }
+    updates: { ...data, operador: (data.operador ?? original.operador) || '', isAvulsa: original.isAvulsa ?? false }
   })).then(async (resp) => {
-    // 404 means the Apontamento row was never created — create it now (non-avulsa only)
     if (resp.status === 404 && !original.isAvulsa) {
       const appendResp = await authedFetch(`${API_BASE}/api/append`, JSON.stringify({
-          carimbo:       `'${mergedOp.carimbo}`,
-          op:            mergedOp.opNumber,
-          litragem:      mergedOp.litragem || '',
-          produto:       mergedOp.produto,
-          linha:         mergedOp.linha,
-          turno:         mergedOp.turno,
-          quantidade:    mergedOp.quantidade || '0',
-          observacoes: mergedOp.observacoes || '',
-          horaInicial:   mergedOp.horaInicial,
-          horaFinal:     mergedOp.horaFinal,
-          paradas:       mergedOp.paradas || [],
-          isAvulsa:      false
-        }));
+        carimbo:     `'${mergedOp.carimbo}`,
+        op:          mergedOp.opNumber,
+        produto:     mergedOp.produto,
+        linha:       mergedOp.linha,
+        turno:       mergedOp.turno,
+        operador:    mergedOp.operador || '',
+        quantidade:  mergedOp.quantidade || '0',
+        horaInicial: mergedOp.horaInicial,
+        horaFinal:   mergedOp.horaFinal,
+        paradas:     mergedOp.paradas || [],
+        isAvulsa:    false
+      }));
       if (!appendResp.ok) {
         await updateDoc(opDocRef, { syncStatus: 'error', syncError: await appendResp.text() });
       } else {
@@ -421,7 +394,6 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
     await updateDoc(opDocRef, { syncStatus: 'error', syncError: e.message });
   });
 
-  // Update Firebase immediately (optimistic)
   await updateDoc(opDocRef, { ...data, syncStatus: 'pending' });
 };
 
@@ -429,13 +401,6 @@ export const updateOperation = async (id: string, data: Partial<Operation>) => {
   await updateDoc(doc(db, 'operations', id), data);
 };
 
-/**
- * Converts a finished "isAvulsa" record into a regular production OP.
- * 1. Updates Firestore in-place (sets isAvulsa=false + production fields).
- * 2. Removes the old avulsa row from the spreadsheet (fire-and-forget).
- * 3. Appends a new full production row to the spreadsheet (fire-and-forget).
- * No existing documents are deleted; only the spreadsheet row is replaced.
- */
 export const convertAvulsaToOp = async (
   opId: string,
   horaInicial: string,
@@ -449,7 +414,6 @@ export const convertAvulsaToOp = async (
 
   const original = docSnap.data() as FinishedOperation;
 
-  // 1. Update Firestore: set production times and clear avulsa flag
   await updateDoc(opDocRef, {
     horaInicial,
     horaFinal,
@@ -459,21 +423,18 @@ export const convertAvulsaToOp = async (
     syncError:  ''
   });
 
-  // 2. Append the production summary to Apontamento ONLY (fire and forget).
-  //    Existing PARADAS rows are intentionally preserved — they were written at avulsa creation.
   const payload = {
-    carimbo:       `'${original.carimbo}`,
-    op:            original.opNumber,
-    litragem:      formatSheetLitragem(original.litragem || ''),
-    produto:       original.produto,
-    linha:         original.linha,
-    turno:         original.turno,
-    quantidade:    quantidade || '0',
-    observacoes: original.observacoes || '',
+    carimbo:     `'${original.carimbo}`,
+    op:          original.opNumber,
+    produto:     original.produto,
+    linha:       original.linha,
+    turno:       original.turno,
+    operador:    original.operador || '',
+    quantidade:  quantidade || '0',
     horaInicial,
     horaFinal,
-    paradas:       [],
-    isAvulsa:      false
+    paradas:     [],
+    isAvulsa:    false
   };
 
   authedFetch(`${API_BASE}/api/append`, JSON.stringify(payload)).then(async res => {
@@ -521,9 +482,6 @@ export const clearTurnoRecords = async (turno: string) => {
 
 // ─── Firebase Auth helpers ──────────────────────────────────────────────────
 
-/** Maps a profile display name to its Firebase Auth email.
- *  Uses an explicit map to match accounts already created in the Firebase console.
- *  Unknown profiles fall back to a slug formula (lowercase, dots for spaces). */
 const PROFILE_EMAIL_MAP: Record<string, string> = {
   'Turno A':    'turnoa@vonixx.com',
   'Turno B':    'turnob@vonixx.com',
@@ -542,22 +500,17 @@ const profileToEmail = (profileName: string): string => {
   return `${slug}@vonixx.com`;
 };
 
-/** Sign in a profile via Firebase Auth (email/password). */
 export const signInToFirebase = async (profileName: string, password: string) => {
   const email = profileToEmail(profileName);
   try {
     await signInWithEmailAndPassword(auth, email, password);
   } catch (err: any) {
     if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-      // NOTE: invalid-credential in new Firebase versions also happens if user doesn't exist.
-      // We will try to create the user. If it already exists, this new call will fail with email-already-in-use.
       try {
         await createUserWithEmailAndPassword(auth, email, password);
-        return; // Success creating and signing in
+        return;
       } catch (createErr: any) {
-        if (createErr.code === 'auth/email-already-in-use') {
-          throw err; // The user exists, so it was indeed a wrong password
-        }
+        if (createErr.code === 'auth/email-already-in-use') throw err;
         throw createErr;
       }
     }
@@ -565,12 +518,10 @@ export const signInToFirebase = async (profileName: string, password: string) =>
   }
 };
 
-/** Sign out the current Firebase Auth user. */
 export const signOutFromFirebase = async () => {
   await signOut(auth);
 };
 
-/** Re-authenticate the currently signed-in user (required before password change). */
 export const reauthenticateCurrentUser = async (profileName: string, password: string) => {
   const user = auth.currentUser;
   if (!user) throw new Error('Nenhum usuário autenticado.');
@@ -578,10 +529,6 @@ export const reauthenticateCurrentUser = async (profileName: string, password: s
   await reauthenticateWithCredential(user, credential);
 };
 
-/**
- * Verifies supervisor credentials via the Firebase Auth REST API WITHOUT
- * changing the current app session — safe to call while another user is logged in.
- */
 export const verifySupervisorPassword = async (password: string): Promise<boolean> => {
   try {
     const apiKey = (firebaseConfig as any).apiKey;
@@ -599,7 +546,6 @@ export const verifySupervisorPassword = async (password: string): Promise<boolea
   }
 };
 
-/** Returns Content-Type + Authorization JWT headers for all backend /api/* calls. */
 const getApiHeaders = async (): Promise<Record<string, string>> => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   try {
@@ -613,7 +559,6 @@ const getApiHeaders = async (): Promise<Record<string, string>> => {
   return headers;
 };
 
-/** Authenticated POST wrapper for all /api/* backend calls. */
 const authedFetch = (url: string, body: string): Promise<Response> =>
   getApiHeaders().then(headers => fetch(url, { method: 'POST', headers, body }));
 
@@ -631,9 +576,7 @@ export const getAuthProfile = async (profileName: string) => {
   try {
     const docRef = doc(db, 'profiles', profileName);
     const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return docSnap.data();
-    }
+    if (docSnap.exists()) return docSnap.data();
   } catch (err) {
     console.error("Firestore get profile error", err);
   }
@@ -643,9 +586,7 @@ export const getAuthProfile = async (profileName: string) => {
 export const checkSheetConnection = async () => {
   try {
     const response = await fetch(`${API_BASE}/api/config-check`);
-    if (!response.ok) {
-      throw new Error(`Erro na API: ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`Erro na API: ${response.status}`);
     return await response.json();
   } catch (err) {
     return { status: 'Error', error: String(err) };
@@ -657,15 +598,9 @@ export const updateAuthProfile = async (profileName: string, dataOrPassword: str
   const safeProfileName = String(profileName).replace(/\//g, '_');
 
   if (typeof dataOrPassword === 'string') {
-    // 1. Update Firebase Auth password (primary credential store)
-    if (auth.currentUser) {
-      await updatePassword(auth.currentUser, dataOrPassword);
-    }
-    // Update lastChangedAt only
+    if (auth.currentUser) await updatePassword(auth.currentUser, dataOrPassword);
     try {
-      await setDoc(doc(db, 'profiles', safeProfileName), {
-        name: profileName, lastChangedAt: now
-      }, { merge: true });
+      await setDoc(doc(db, 'profiles', safeProfileName), { name: profileName, lastChangedAt: now }, { merge: true });
       cacheProfiles = null;
     } catch (err) {
       console.warn('Could not update Firestore profile metadata:', err);
@@ -673,12 +608,9 @@ export const updateAuthProfile = async (profileName: string, dataOrPassword: str
     return;
   }
 
-  // Object update — strip any credential fields, persist metadata only
   const { password: _pw, senha: _senha, ...safeMeta } = dataOrPassword as Record<string, any>;
   try {
-    await setDoc(doc(db, 'profiles', safeProfileName), {
-      ...safeMeta, name: profileName, lastChangedAt: now
-    }, { merge: true });
+    await setDoc(doc(db, 'profiles', safeProfileName), { ...safeMeta, name: profileName, lastChangedAt: now }, { merge: true });
     cacheProfiles = null;
   } catch (err: any) {
     console.error('Error saving profile to Firestore:', err);
