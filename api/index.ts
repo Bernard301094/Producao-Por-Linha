@@ -1,6 +1,7 @@
-// This file is the Vercel serverless entry point.
-// It must re-export the Express app from server.ts.
-// @vercel/node handles TypeScript compilation automatically.
+// Vercel serverless entry point — re-exports the Express app from server.ts
 import app from '../server.js';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default app;
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  return (app as any)(req, res);
+}
