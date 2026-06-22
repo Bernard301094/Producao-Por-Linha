@@ -101,58 +101,72 @@ const parseDateToISO = (dateStr: string) => {
   return new Date().toISOString();
 };
 
-// DB_Producao_Envase — confirmed fields from SharePoint columns list
-// Display name -> internal name (SharePoint uses internal names in API)
-// Título -> Title
-// Linha -> Linha (Choice)
-// Turno -> Turno (Choice)
-// Operador -> Operador (Text)
-// Produto -> Produto (Choice)
-// Data -> Data (DateTime)
-// Quantidade Produzida -> QuantidadeProduzida (Number)
-// Enviado_CSV -> Enviado_CSV (Boolean)
-// Hora_Inicio -> Hora_Inicio (Text)
-// Hora_Fim -> Hora_Fim (Text)
-// Observações -> Observacoes (Note) — internal name without accent
-// OP -> OP (Number)
+// DB_Producao_Envase — confirmed from screenshot
 const F_PROD = {
+  Title:       'Title',
+  Data:        'Data',
+  OP:          'OP',
+  Linha:       'Linha',
+  Turno:       'Turno',
+  Operador:    'Operador',
+  HoraInicio:  'Hora_Inicio',
+  HoraFim:     'Hora_Fim',
+  Produto:     'Produto',
+  Quantidade:  'QuantidadeProduzida',
+  Observacoes: 'Observacoes',
+};
+
+// Registro_Paradas_Geral — confirmed from screenshot
+// Display        -> Internal (best guess — use /api/list-fields to verify)
+// Título         -> Title
+// Número O.S     -> N_mero_O_S  (SharePoint replaces special chars)
+// Área           -> _x00c1_rea or Area (SP may encode Á as _x00c1_)
+// Linha          -> Linha
+// Reator         -> Reator
+// Turno          -> Turno
+// Operador       -> Operador
+// Tipo_Parada    -> Tipo_Parada
+// Cod_Parada     -> Cod_Parada
+// Status_Evento  -> Status_Evento
+// Hora_Inicio    -> Hora_Inicio
+// Hora_Fim       -> Hora_Fim
+// Observação    -> Observa_x00e7__x00e3_o or Observacao
+// OP             -> OP
+// Data           -> Data
+// Detalhe_Parada -> Detalhe_Parada
+// Produto        -> Produto
+const F_PAR = {
   Title:        'Title',
   Data:         'Data',
   OP:           'OP',
   Linha:        'Linha',
   Turno:        'Turno',
   Operador:     'Operador',
+  Produto:      'Produto',
+  TipoParada:   'Tipo_Parada',
+  CodParada:    'Cod_Parada',
+  DetalheParada:'Detalhe_Parada',
   HoraInicio:   'Hora_Inicio',
   HoraFim:      'Hora_Fim',
-  Produto:      'Produto',
-  Quantidade:   'QuantidadeProduzida',
-  Observacoes:  'Observacoes',
+  Observacao:   'Observacao',
+  NumeroOS:     'N_mero_O_S',
 };
 
-// Registro_Paradas_Geral — need to confirm fields via /api/list-fields?list=Registro_Paradas_Geral
-// Sending only safe minimal set for now
-const F_PAR = {
-  Title:         'Title',
-  Data:          'Data',
-  OP:            'OP',
-  TipoParada:    'Tipo_Parada',
-  CodParada:     'Cod_Parada',
-  DetalheParada: 'Detalhe_Parada',
-  HoraInicio:    'Hora_Inicio',
-  HoraFim:       'Hora_Fim',
-  NumeroOS:      'NumeroOS',
-};
-
-const buildParadaFields = (p: any, baseDate: string, op: string) => ({
+const buildParadaFields = (p: any, baseDate: string, linha: string, turno: string, produto: string, operador: string, op: string) => ({
   [F_PAR.Title]:         String(p.seq || ''),
   [F_PAR.Data]:          baseDate,
   [F_PAR.OP]:            op,
-  [F_PAR.TipoParada]:    p.tipologia || '',
-  [F_PAR.CodParada]:     p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
-  [F_PAR.DetalheParada]: p.observacao || '',
-  [F_PAR.HoraInicio]:    p.horaInicio || '',
-  [F_PAR.HoraFim]:       p.horaFim    || '',
-  [F_PAR.NumeroOS]:      p.numeroOS   || '',
+  [F_PAR.Linha]:         linha,
+  [F_PAR.Turno]:         turno,
+  [F_PAR.Operador]:      operador,
+  [F_PAR.Produto]:       produto,
+  [F_PAR.TipoParada]:    p.tipologia   || '',
+  [F_PAR.CodParada]:     p.tipologia   || '',
+  [F_PAR.DetalheParada]: p.observacao  || '',
+  [F_PAR.HoraInicio]:    p.horaInicio  || '',
+  [F_PAR.HoraFim]:       p.horaFim     || '',
+  [F_PAR.Observacao]:    p.observacao  || '',
+  [F_PAR.NumeroOS]:      p.numeroOS    || '',
 });
 
 app.post('/api/append', async (req, res) => {
@@ -193,7 +207,7 @@ app.post('/api/append', async (req, res) => {
     if (paradas && Array.isArray(paradas) && paradas.length > 0) {
       try {
         for (const p of paradas) {
-          const pf = buildParadaFields(p, baseDate, String(op || ''));
+          const pf = buildParadaFields(p, baseDate, linha || '', turno || '', produto || '', operador || '', String(op || ''));
           console.log('Fields being sent to SP (Parada):', JSON.stringify(pf));
           await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: pf });
           await new Promise(r => setTimeout(r, 200));
@@ -213,13 +227,13 @@ app.post('/api/append', async (req, res) => {
 app.post('/api/append-paradas', async (req, res) => {
   if (!hasLocalCredentials) return res.status(200).json({ success: true, message: 'MOCKED Paradas added' });
   try {
-    const { carimbo, op, paradas } = req.body;
+    const { carimbo, op, produto, linha, turno, operador, paradas } = req.body;
     if (!paradas || !Array.isArray(paradas) || paradas.length === 0)
       return res.status(200).json({ success: true, message: 'No paradas to append' });
     const baseDate = parseDateToISO(carimbo);
     const client   = getGraphClient();
     for (const p of paradas) {
-      const pf = buildParadaFields(p, baseDate, String(op || ''));
+      const pf = buildParadaFields(p, baseDate, linha || '', turno || '', produto || '', operador || '', String(op || ''));
       await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: pf });
       await new Promise(r => setTimeout(r, 200));
     }
@@ -266,8 +280,12 @@ app.post('/api/update', async (req, res) => {
             String(i.fields.OP || '') === String(originalData.op || ''));
           for (const m of oldParadas) { await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete(); await new Promise(r => setTimeout(r, 200)); }
           if (Array.isArray(updates.paradas) && updates.paradas.length > 0) {
+            const bL = updates.linha    || originalData.linha    || '';
+            const bT = updates.turno    || originalData.turno    || '';
+            const bO = updates.operador || originalData.operador || '';
+            const bP = updates.produto  || originalData.produto  || '';
             for (const p of updates.paradas) {
-              const pf = buildParadaFields(p, baseDate, baseOp);
+              const pf = buildParadaFields(p, baseDate, bL, bT, bP, bO, baseOp);
               await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({ fields: pf });
               await new Promise(r => setTimeout(r, 200));
             }
