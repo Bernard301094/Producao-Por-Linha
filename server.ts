@@ -83,21 +83,6 @@ app.get('/api/config-check', async (req, res) => {
   });
 });
 
-const formatLitragemText = (val: string): string => {
-  if (!val) return '';
-  const trimmed = val.trim();
-  if (/^(\d+(?:[.,]\d+)?)$/.test(trimmed)) {
-    const num = parseFloat(trimmed.replace(',', '.'));
-    return num === 1 ? `${trimmed} Litro` : `${trimmed} Litros`;
-  }
-  const match = trimmed.match(/^(\d+(?:[.,]\d+)?)\s*L$/i);
-  if (match) {
-    const num = parseFloat(match[1].replace(',', '.'));
-    return num === 1 ? `${match[1]} Litro` : `${match[1]} Litros`;
-  }
-  return trimmed;
-};
-
 const parseDateToISO = (dateStr: string) => {
   if (!dateStr) return new Date().toISOString();
   let cleanStr = dateStr.replace(/^'/, '').trim();
@@ -119,8 +104,9 @@ app.post('/api/append', async (req, res) => {
   }
   
   try {
+    // NOTE: litragem is intentionally excluded — no such column exists in DB_Producao_Envase.
     const {
-      carimbo, op, litragem, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, observacoes, paradas, isAvulsa
+      carimbo, op, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, observacoes, paradas, isAvulsa
     } = req.body;
 
     const baseDate = parseDateToISO(carimbo);
@@ -210,8 +196,9 @@ app.post('/api/append-paradas', async (req, res) => {
   }
   
   try {
+    // NOTE: litragem is intentionally excluded — no such column exists in Registro_Paradas_Geral.
     const {
-      carimbo, op, litragem, produto, linha, turno, operador, paradas
+      carimbo, op, produto, linha, turno, operador, paradas
     } = req.body;
 
     if (!paradas || !Array.isArray(paradas) || paradas.length === 0) {
@@ -277,8 +264,6 @@ app.post('/api/update', async (req, res) => {
 
     if (!isAvulsa) {
       // Find the item in Producao list
-      const query = `fields/OP eq '${originalData.op}' and fields/Linha eq '${originalData.linha}'`;
-      // Note: Filtering by fields in SharePoint might require specific indexes or $filter syntax. We may need to get items and filter in code if $filter fails.
       try {
         const listItems = await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields`).get();
         const items = listItems.value;
@@ -296,6 +281,7 @@ app.post('/api/update', async (req, res) => {
 
     if (isAvulsa || itemIdToUpdate) {
       if (!isAvulsa && itemIdToUpdate) {
+        // NOTE: litragem is intentionally excluded — no such column exists in DB_Producao_Envase.
         const updateFields: any = {};
         if (updates.opNumber !== undefined) updateFields.OP = parseFloat(String(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
         if (updates.horaInicial !== undefined) updateFields.Hora_Inicio = updates.horaInicial;
@@ -320,9 +306,6 @@ app.post('/api/update', async (req, res) => {
           
           let baseOp = String(originalData.op || '');
           if (!isAvulsa && updates.opNumber !== undefined) baseOp = String(updates.opNumber);
-          
-          let baseLinha = originalData.linha || '';
-          if (!isAvulsa && updates.linha !== undefined) baseLinha = updates.linha;
           
           let baseData = parseDateToISO(originalData.carimbo);
           
