@@ -98,6 +98,19 @@ const formatLitragemText = (val: string): string => {
   return trimmed;
 };
 
+const parseDateToISO = (dateStr: string) => {
+  if (!dateStr) return new Date().toISOString();
+  let cleanStr = dateStr.replace(/^'/, '').trim();
+  if (cleanStr.includes('/')) {
+    const parts = cleanStr.split('/');
+    if (parts.length === 3) {
+      const dt = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+      if (!isNaN(dt.getTime())) return dt.toISOString();
+    }
+  }
+  return new Date().toISOString();
+};
+
 app.post('/api/append', async (req, res) => {
   console.log("POST /api/append received (SharePoint Lists)", req.body);
   if (!hasLocalCredentials) {
@@ -110,19 +123,22 @@ app.post('/api/append', async (req, res) => {
       carimbo, op, litragem, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, observacoes, paradas, isAvulsa
     } = req.body;
 
+    const baseDate = parseDateToISO(carimbo);
+    const numOp = parseFloat(String(op).replace(/[^\d.,]/g, '')) || 0;
+    const numQuantidade = parseFloat(String(quantidade).replace(/[^\d.,]/g, '')) || 0;
+
     const producaoFields = {
-      Title: op || '', 
-      Data: carimbo || new Date().toLocaleDateString('pt-BR'),
-      OP: op || '',
+      Title: String(op || ''), 
+      Data: baseDate,
+      OP: numOp,
       Linha: linha || '',
       Turno: turno || '',
       Operador: operador || '',
       Hora_Inicio: horaInicial || '',
       Hora_Fim: horaFinal || '',
       Produto: produto || '',
-      Litragem: formatLitragemText(litragem || ''),
-      Quantidade_Produzida: quantidade || '',
-      Observacoes: observacoes || ''
+      QuantidadeProduzida: numQuantidade,
+      Observa_x00e7__x00f5_es: observacoes || ''
     };
 
     const client = getGraphClient();
@@ -141,20 +157,21 @@ app.post('/api/append', async (req, res) => {
         try {
           for (const p of paradas) {
             const paradaFields = {
-              Title: p.seq || '',
-              Data: producaoFields.Data,
-              Area: 'Envase',
-              Linha: producaoFields.Linha,
+              Title: String(p.seq || ''),
+              Data: baseDate,
+              _x00c1_rea: 'Envase',
+              Recurso: producaoFields.Linha,
               Turno: producaoFields.Turno,
               Produto: producaoFields.Produto,
               Operador: producaoFields.Operador,
-              OP: producaoFields.OP,
-              Cod_Parada: p.seq || '',
-              Tipologia: p.tipologia || '',
+              OP: String(op || ''),
+              Cod_Parada: p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
+              Tipo_Parada: p.tipologia || '',
+              Detalhe_Parada: p.observacao || '',
               Hora_Inicio: p.horaInicio || '',
               Hora_Fim: p.horaFim || '',
-              Numero_OS: p.numeroOS || '',
-              Observacao: p.observacao || ''
+              N_x00fa_meroO_x002e_S: p.numeroOS || '',
+              Observa_x00e7__x00e3_o: ''
             };
             
             await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
@@ -201,25 +218,27 @@ app.post('/api/append-paradas', async (req, res) => {
       return res.status(200).json({ success: true, message: 'No paradas to append' });
     }
 
+    const baseDate = parseDateToISO(carimbo);
     const client = getGraphClient();
     
     try {
       for (const p of paradas) {
         const paradaFields = {
-          Title: p.seq || '',
-          Data: carimbo || new Date().toLocaleDateString('pt-BR'),
-          Area: 'Envase',
-          Linha: linha || '',
+          Title: String(p.seq || ''),
+          Data: baseDate,
+          _x00c1_rea: 'Envase',
+          Recurso: linha || '',
           Turno: turno || '',
           Produto: produto || '',
           Operador: operador || '',
-          OP: op || '',
-          Cod_Parada: p.seq || '',
-          Tipologia: p.tipologia || '',
+          OP: String(op || ''),
+          Cod_Parada: p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
+          Tipo_Parada: p.tipologia || '',
+          Detalhe_Parada: p.observacao || '',
           Hora_Inicio: p.horaInicio || '',
           Hora_Fim: p.horaFim || '',
-          Numero_OS: p.numeroOS || '',
-          Observacao: p.observacao || ''
+          N_x00fa_meroO_x002e_S: p.numeroOS || '',
+          Observa_x00e7__x00e3_o: ''
         };
         
         await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
@@ -278,16 +297,15 @@ app.post('/api/update', async (req, res) => {
     if (isAvulsa || itemIdToUpdate) {
       if (!isAvulsa && itemIdToUpdate) {
         const updateFields: any = {};
-        if (updates.opNumber !== undefined) updateFields.OP = updates.opNumber;
+        if (updates.opNumber !== undefined) updateFields.OP = parseFloat(String(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
         if (updates.horaInicial !== undefined) updateFields.Hora_Inicio = updates.horaInicial;
         if (updates.horaFinal !== undefined) updateFields.Hora_Fim = updates.horaFinal;
-        if (updates.litragem !== undefined) updateFields.Litragem = formatLitragemText(updates.litragem);
         if (updates.produto !== undefined) updateFields.Produto = updates.produto;
         if (updates.linha !== undefined) updateFields.Linha = updates.linha;
         if (updates.turno !== undefined) updateFields.Turno = updates.turno;
         if (updates.operador !== undefined) updateFields.Operador = updates.operador;
-        if (updates.quantidade !== undefined) updateFields.Quantidade_Produzida = updates.quantidade;
-        if (updates.observacoes !== undefined) updateFields.Observacoes = updates.observacoes;
+        if (updates.quantidade !== undefined) updateFields.QuantidadeProduzida = parseFloat(String(updates.quantidade).replace(/[^\d.,]/g, '')) || 0;
+        if (updates.observacoes !== undefined) updateFields.Observa_x00e7__x00f5_es = updates.observacoes;
 
         await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).patch({
           fields: updateFields
@@ -299,8 +317,17 @@ app.post('/api/update', async (req, res) => {
         try {
           const pListItems = await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`).get();
           const items = pListItems.value;
+          
+          let baseOp = String(originalData.op || '');
+          if (!isAvulsa && updates.opNumber !== undefined) baseOp = String(updates.opNumber);
+          
+          let baseLinha = originalData.linha || '';
+          if (!isAvulsa && updates.linha !== undefined) baseLinha = updates.linha;
+          
+          let baseData = parseDateToISO(originalData.carimbo);
+          
           const matchingItems = items.filter((i: any) => 
-            i.fields.OP === originalData.op && i.fields.Linha === originalData.linha
+            String(i.fields.OP || '') === String(originalData.op || '') && String(i.fields.Recurso || '') === String(originalData.linha || '')
           );
           
           for (const m of matchingItems) {
@@ -309,8 +336,6 @@ app.post('/api/update', async (req, res) => {
           }
 
           if (Array.isArray(updates.paradas) && updates.paradas.length > 0) {
-            const baseDate = originalData.carimbo || new Date().toLocaleDateString('pt-BR');
-            const baseOp = updates.opNumber || originalData.op || '';
             const baseLinha = updates.linha || originalData.linha || '';
             const baseTurno = updates.turno || originalData.turno || '';
             const baseOperador = updates.operador || originalData.operador || '';
@@ -318,20 +343,21 @@ app.post('/api/update', async (req, res) => {
 
             for (const p of updates.paradas) {
               const paradaFields = {
-                Title: p.seq || '',
-                Data: baseDate,
-                Area: 'Envase',
-                Linha: baseLinha,
+                Title: String(p.seq || ''),
+                Data: baseData,
+                _x00c1_rea: 'Envase',
+                Recurso: baseLinha,
                 Turno: baseTurno,
                 Produto: baseProduto,
                 Operador: baseOperador,
                 OP: baseOp,
-                Cod_Parada: p.seq || '',
-                Tipologia: p.tipologia || '',
+                Cod_Parada: p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
+                Tipo_Parada: p.tipologia || '',
+                Detalhe_Parada: p.observacao || '',
                 Hora_Inicio: p.horaInicio || '',
                 Hora_Fim: p.horaFim || '',
-                Numero_OS: p.numeroOS || '',
-                Observacao: p.observacao || ''
+                N_x00fa_meroO_x002e_S: p.numeroOS || '',
+                Observa_x00e7__x00e3_o: ''
               };
               await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
                 fields: paradaFields
@@ -390,7 +416,7 @@ app.post('/api/delete', async (req, res) => {
       const pListItems = await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`).get();
       const items = pListItems.value;
       const matchingItems = items.filter((i: any) => 
-        i.fields.OP === op && i.fields.Linha === linha
+        String(i.fields.OP || '') === String(op || '') && String(i.fields.Recurso || '') === String(linha || '')
       );
       
       for (const m of matchingItems) {
