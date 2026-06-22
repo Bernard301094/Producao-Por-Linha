@@ -51,18 +51,34 @@ const hasLocalCredentials = !!(
 );
 
 // GET /api/list-fields?list=Registro_Paradas_Geral
+// Uses /columns endpoint (correct Graph API path for SharePoint list columns)
 app.get('/api/list-fields', async (req, res) => {
   if (!hasLocalCredentials) return res.status(503).json({ error: 'No MS credentials configured' });
   const listName = (req.query.list as string) || PRODUCAO_LIST;
   try {
     const client = getGraphClient();
-    const result = await client
-      .api(`${getSiteUrlPrefix()}/lists/${listName}/fields`)
-      .select('displayName,internalName,typeAsString')
+    const sitePrefix = getSiteUrlPrefix();
+
+    // Step 1: resolve the list ID by name
+    const listInfo = await client
+      .api(`${sitePrefix}/lists/${encodeURIComponent(listName)}`)
+      .select('id,displayName')
       .get();
-    return res.json(result.value.map((f: any) => ({ display: f.displayName, internal: f.internalName, type: f.typeAsString })));
+
+    // Step 2: fetch columns using the list ID (the /columns sub-resource is supported)
+    const result = await client
+      .api(`${sitePrefix}/lists/${listInfo.id}/columns`)
+      .select('displayName,name,description')
+      .get();
+
+    return res.json(
+      result.value.map((f: any) => ({
+        display:  f.displayName,
+        internal: f.name,
+      }))
+    );
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message, details: err.body || null });
   }
 });
 
@@ -116,25 +132,7 @@ const F_PROD = {
   Observacoes: 'Observacoes',
 };
 
-// Registro_Paradas_Geral — confirmed from screenshot
-// Display        -> Internal (best guess — use /api/list-fields to verify)
-// Título         -> Title
-// Número O.S     -> N_mero_O_S  (SharePoint replaces special chars)
-// Área           -> _x00c1_rea or Area (SP may encode Á as _x00c1_)
-// Linha          -> Linha
-// Reator         -> Reator
-// Turno          -> Turno
-// Operador       -> Operador
-// Tipo_Parada    -> Tipo_Parada
-// Cod_Parada     -> Cod_Parada
-// Status_Evento  -> Status_Evento
-// Hora_Inicio    -> Hora_Inicio
-// Hora_Fim       -> Hora_Fim
-// Observação    -> Observa_x00e7__x00e3_o or Observacao
-// OP             -> OP
-// Data           -> Data
-// Detalhe_Parada -> Detalhe_Parada
-// Produto        -> Produto
+// Registro_Paradas_Geral
 const F_PAR = {
   Title:        'Title',
   Data:         'Data',
