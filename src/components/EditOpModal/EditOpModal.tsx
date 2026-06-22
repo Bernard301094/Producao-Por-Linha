@@ -115,11 +115,13 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
         </DialogHeader>
         {editingOp && (
           <form onSubmit={handleSubmitEdit(onEditOp)} className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Nº da OP</Label>
-                <Input type="text" inputMode="numeric" pattern="[0-9]*" {...registerEdit('opNumber', { onChange: (e: any) => e.target.value = e.target.value.replace(/[^0-9]/g, '') })} className="w-full h-14 px-4 bg-[#F9FAFB] dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-2xl text-base font-mono text-zinc-900 dark:text-zinc-100 focus-visible:ring-0 focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 transition-all shadow-sm focus:bg-white dark:focus:bg-zinc-950" />
-              </div>
+            <div className={cn("grid gap-5", editingOp.isAvulsa ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
+              {!editingOp.isAvulsa && (
+                <div className="space-y-2">
+                  <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Nº da OP</Label>
+                  <Input type="text" inputMode="numeric" pattern="[0-9]*" {...registerEdit('opNumber', { onChange: (e: any) => e.target.value = e.target.value.replace(/[^0-9]/g, '') })} className="w-full h-14 px-4 bg-[#F9FAFB] dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-2xl text-base font-mono text-zinc-900 dark:text-zinc-100 focus-visible:ring-0 focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 transition-all shadow-sm focus:bg-white dark:focus:bg-zinc-950" />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Inicial</Label>
                 <CustomTimePicker
@@ -131,32 +133,34 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                 />
               </div>
             </div>
-            <div className="relative space-y-2" ref={editOpRef}>
-              <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Produto</Label>
-              <input id="edit-produto" {...registerEdit('produto')} onClick={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} autoComplete="off" onFocus={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} className="flex h-14 w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] dark:bg-zinc-900 px-4 py-2 text-base text-zinc-900 dark:text-zinc-100 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus-visible:outline-none focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 shadow-sm focus:bg-white dark:focus:bg-zinc-950" />
-              {showEditProductSuggestions && (
-                <div className="absolute z-50 w-full mt-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl max-h-60 overflow-y-auto p-2 ring-1 ring-zinc-900/5">
-                  {!isTypingEditProduct && (
-                    <div onClick={(e) => { e.preventDefault(); setIsTypingEditProduct(true); setTimeout(() => document.getElementById('edit-produto')?.focus(), 50); }} className="hidden">
-                    </div>
-                  )}
-                  {filteredEditProducts.length > 0 ? filteredEditProducts.map(p => (
-                    <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }} className="cursor-pointer px-4 py-3 min-h-[48px] text-sm text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] hover:text-zinc-950 dark:text-zinc-50 rounded-xl flex items-center justify-between gap-3 font-medium transition-colors">
-                       <span className="truncate">{p.produto}</span>
-                       {p.litragem && <span className="text-[10px] text-zinc-400 font-mono tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md">{p.litragem}</span>}
-                    </div>
-                  )) : watchEdit('produto') ? (
-                       <div className="px-4 py-3 min-h-[48px] text-sm text-zinc-500 dark:text-zinc-400 font-medium cursor-pointer hover:bg-zinc-50 dark:bg-zinc-900/50 rounded-xl transition-colors flex items-center" onClick={() => { setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }}>
-                          Adicionar produto "{watchEdit('produto')}"
-                       </div>
-                  ) : (
-                       <div className="px-4 py-3 text-sm text-zinc-400 font-medium text-center h-12 flex items-center justify-center">
-                          Digite na busca...
-                       </div>
-                  )}
-                </div>
-              )}
-            </div>
+            {!editingOp.isAvulsa && (
+              <div className="relative space-y-2" ref={editOpRef}>
+                <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Produto</Label>
+                <input id="edit-produto" {...registerEdit('produto')} onClick={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} autoComplete="off" onFocus={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} className="flex h-14 w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] dark:bg-zinc-900 px-4 py-2 text-base text-zinc-900 dark:text-zinc-100 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus-visible:outline-none focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 shadow-sm focus:bg-white dark:focus:bg-zinc-950" />
+                {showEditProductSuggestions && (
+                  <div className="absolute z-50 w-full mt-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl max-h-60 overflow-y-auto p-2 ring-1 ring-zinc-900/5">
+                    {!isTypingEditProduct && (
+                      <div onClick={(e) => { e.preventDefault(); setIsTypingEditProduct(true); setTimeout(() => document.getElementById('edit-produto')?.focus(), 50); }} className="hidden">
+                      </div>
+                    )}
+                    {filteredEditProducts.length > 0 ? filteredEditProducts.map(p => (
+                      <div key={`${p.produto}-${p.litragem}`} onClick={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }} className="cursor-pointer px-4 py-3 min-h-[48px] text-sm text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] hover:text-zinc-950 dark:text-zinc-50 rounded-xl flex items-center justify-between gap-3 font-medium transition-colors">
+                         <span className="truncate">{p.produto}</span>
+                         {p.litragem && <span className="text-[10px] text-zinc-400 font-mono tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md">{p.litragem}</span>}
+                      </div>
+                    )) : watchEdit('produto') ? (
+                         <div className="px-4 py-3 min-h-[48px] text-sm text-zinc-500 dark:text-zinc-400 font-medium cursor-pointer hover:bg-zinc-50 dark:bg-zinc-900/50 rounded-xl transition-colors flex items-center" onClick={() => { setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }}>
+                            Adicionar produto "{watchEdit('produto')}"
+                         </div>
+                    ) : (
+                         <div className="px-4 py-3 text-sm text-zinc-400 font-medium text-center h-12 flex items-center justify-center">
+                            Digite na busca...
+                         </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Linha de Produção</Label>
               <input type="hidden" {...registerEdit('linha')} />
@@ -209,13 +213,15 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
             <input type="hidden" {...registerEdit('turno')} />
             {'quantidade' in editingOp && (
               <div className="space-y-6 pt-2">
-                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-5 items-start">
-                    <QuickCounter 
-                      label="Quantidade (UN)"
-                      value={watchEdit('quantidade') || ''}
-                      onChange={(val: string) => setValueEdit('quantidade', val, { shouldValidate: true })}
-                    />
-                    <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                 <div className={cn("grid gap-5 items-start", editingOp.isAvulsa ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-1")}>
+                    {!editingOp.isAvulsa && (
+                      <QuickCounter 
+                        label="Quantidade (UN)"
+                        value={watchEdit('quantidade') || ''}
+                        onChange={(val: string) => setValueEdit('quantidade', val, { shouldValidate: true })}
+                      />
+                    )}
+                    <div className={cn("space-y-2", !editingOp.isAvulsa ? "sm:col-span-2 lg:col-span-1" : "")}>
                      <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Final</Label>
                      <CustomTimePicker
                        value={watchEdit('horaFinal')}
@@ -239,15 +245,47 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                       <div key={idx} className="group/parada relative flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-3 p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-400 opacity-80" />
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 pl-3 flex-1 min-w-[200px]">
-                          <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 leading-tight flex-1 break-words">{parada.seq} - {parada.tipologia}</span>
+                          <div className="flex-1">
+                            <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 leading-tight block break-words">{parada.seq} - {parada.tipologia}</span>
+                            {(parada.numeroOS || parada.observacao) && (
+                              <div className="mt-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 truncate flex items-center gap-2">
+                                {parada.numeroOS && <span className="bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] font-bold">OS: {parada.numeroOS}</span>}
+                                {parada.observacao && <span>{parada.observacao}</span>}
+                              </div>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1.5 align-middle bg-zinc-50 dark:bg-zinc-900/50 self-start sm:self-auto px-2.5 py-1.5 rounded-md border border-zinc-100 dark:border-zinc-800 shrink-0">
                             <Clock className="w-3.5 h-3.5 text-zinc-400" />
                             <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{parada.horaInicio} até {parada.horaFim}</span>
                           </div>
                         </div>
-                        <Button type="button" variant="outline" size="sm" onClick={() => removeEditParada(idx)} className="h-10 px-4 text-xs bg-red-50 dark:bg-red-950/30 hover:bg-red-50 dark:bg-red-950/30 text-red-600 font-bold border-red-100 rounded-xl shadow-sm self-start shrink-0 sm:self-auto w-full sm:w-auto pl-3 sm:pl-4">
-                          Remover
-                        </Button>
+                        <div className="flex items-center gap-2 self-start shrink-0 sm:self-auto w-full sm:w-auto pl-3 sm:pl-4">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              setEditParadaSelectedCode(parada.seq.toString());
+                              setEditParadaStart(parada.horaInicio);
+                              setEditParadaEnd(parada.horaFim);
+                              setEditParadaOS(parada.numeroOS || '');
+                              setEditParadaObs(parada.observacao || '');
+                              removeEditParada(idx);
+                            }} 
+                            className="h-10 px-3 text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 border-zinc-200 rounded-xl shadow-sm flex-1 sm:flex-none"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => removeEditParada(idx)} 
+                            className="h-10 px-4 text-xs bg-red-50 dark:bg-red-950/30 hover:bg-red-50 dark:bg-red-950/30 text-red-600 font-bold border-red-100 rounded-xl shadow-sm flex-1 sm:flex-none"
+                          >
+                            Remover
+                          </Button>
+                        </div>
                       </div>
                     ))}
                     {editParadas.length === 0 && (

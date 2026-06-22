@@ -129,12 +129,14 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
     setFinishParadaSelectedCode(paradaToEdit.seq.toString());
     setFinishParadaStart(paradaToEdit.horaInicio);
     setFinishParadaEnd(paradaToEdit.horaFim);
+    setFinishParadaOS(paradaToEdit.numeroOS || '');
+    setFinishParadaObs(paradaToEdit.observacao || '');
     removeParada(index);
   };
 
   const onConfirm = async () => {
-    if (!finishQtd || !finishTime) {
-      toast.error('Preencha a quantidade e hora final.');
+    if ((!finishQtd && !op.isAvulsa) || !finishTime) {
+      toast.error(op.isAvulsa ? 'Preencha a hora final.' : 'Preencha a quantidade e hora final.');
       return;
     }
     setIsConfirmingFinish(true);
@@ -143,7 +145,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   const handleActualFinish = async () => {
     setItemLoading(true);
     try {
-      await handleFinish(op, finishQtd, finishTime, finishObs, finishParadas, () => {
+      await handleFinish(op, finishQtd || '0', finishTime, finishObs, finishParadas, () => {
         setIsFinishing(false);
         setFinishQtd('');
         setFinishTime('');
@@ -213,12 +215,16 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
         <div className="pl-3 flex items-start justify-between gap-3">
           <div className="flex flex-col flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-              <span className="text-xs font-bold tracking-widest text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800/50 shadow-sm">OP {op.opNumber}</span>
+              <span className={cn("text-xs font-bold tracking-widest px-2.5 py-1 rounded-lg border shadow-sm", op.isAvulsa ? "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50" : "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50")}>
+                {op.isAvulsa ? 'PARADA AVULSA' : `OP ${op.opNumber}`}
+              </span>
               <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-zinc-950 px-2 py-1 rounded-lg border border-slate-200 dark:border-zinc-800">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
               <span className="text-[10px] font-bold tracking-widest text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-lg border border-indigo-200/60 dark:border-indigo-800/60 shadow-sm">{op.turno?.startsWith('Turno') ? op.turno : `Turno ${op.turno}`}</span>
-              {op.litragem && <span className="text-[10px] font-semibold text-slate-400">{op.litragem}</span>}
+              {!op.isAvulsa && op.litragem && <span className="text-[10px] font-semibold text-slate-400">{op.litragem}</span>}
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-1 mb-1">{op.produto}</h3>
+            {!op.isAvulsa && (
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-1 mb-1">{op.produto}</h3>
+            )}
             <div className="flex items-center gap-1.5">
               <Clock className="w-3 h-3 text-zinc-400" />
               <span className="text-[10px] font-semibold text-zinc-400">Início {op.horaInicial}</span>
@@ -239,8 +245,18 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                 {finishParadas.map((parada, idx) => (
                   <div key={idx} className="relative flex items-center gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl px-3 py-2.5 overflow-hidden">
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400 rounded-l-xl" />
-                    <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 border border-amber-200 dark:border-amber-800/50 px-1.5 py-0.5 rounded-md shrink-0 ml-1">{parada.seq}</span>
-                    <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 flex-1 min-w-0 truncate">{parada.tipologia}</span>
+                    <div className="flex flex-col flex-1 min-w-0 pl-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 border border-amber-200 dark:border-amber-800/50 px-1.5 py-0.5 rounded-md shrink-0">{parada.seq}</span>
+                        <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 flex-1 min-w-0 truncate">{parada.tipologia}</span>
+                      </div>
+                      {(parada.numeroOS || parada.observacao) && (
+                        <div className="mt-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 truncate flex items-center gap-2">
+                          {parada.numeroOS && <span className="bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] font-bold">OS: {parada.numeroOS}</span>}
+                          {parada.observacao && <span>{parada.observacao}</span>}
+                        </div>
+                      )}
+                    </div>
                     <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 tabular-nums shrink-0">{parada.horaInicio}–{parada.horaFim}</span>
                     <button
                       type="button"
@@ -395,8 +411,10 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
 
         {isFinishing && (
           <div className="border-t border-emerald-200 dark:border-emerald-800/50 pt-4 space-y-4 bg-emerald-50 dark:bg-emerald-950/30 -mx-4 sm:-mx-5 px-4 sm:px-5 pb-1 mt-1">
-            <div className="grid grid-cols-2 gap-3 items-end">
-              <QuickCounter label="Quantidade (UN)" value={finishQtd} onChange={setFinishQtd} className="w-full" />
+            <div className={cn("grid gap-3 items-end", op.isAvulsa ? "grid-cols-1" : "grid-cols-2")}>
+              {!op.isAvulsa && (
+                <QuickCounter label="Quantidade (UN)" value={finishQtd} onChange={setFinishQtd} className="w-full" />
+              )}
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Final</label>
                 <CustomTimePicker

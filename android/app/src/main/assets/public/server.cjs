@@ -1801,9 +1801,9 @@ var require_public_api = __commonJS({
   }
 });
 
-// node_modules/isomorphic-fetch/node_modules/node-fetch/lib/index.js
+// node_modules/node-fetch/lib/index.js
 var require_lib2 = __commonJS({
-  "node_modules/isomorphic-fetch/node_modules/node-fetch/lib/index.js"(exports2, module2) {
+  "node_modules/node-fetch/lib/index.js"(exports2, module2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     function _interopDefault(ex) {
@@ -8229,9 +8229,9 @@ var require_timespan = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/internal/constants.js
+// node_modules/semver/internal/constants.js
 var require_constants = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/internal/constants.js"(exports2, module2) {
+  "node_modules/semver/internal/constants.js"(exports2, module2) {
     "use strict";
     var SEMVER_SPEC_VERSION = "2.0.0";
     var MAX_LENGTH = 256;
@@ -8261,9 +8261,9 @@ var require_constants = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/internal/debug.js
+// node_modules/semver/internal/debug.js
 var require_debug = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/internal/debug.js"(exports2, module2) {
+  "node_modules/semver/internal/debug.js"(exports2, module2) {
     "use strict";
     var debug = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
     };
@@ -8271,9 +8271,9 @@ var require_debug = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/internal/re.js
+// node_modules/semver/internal/re.js
 var require_re = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/internal/re.js"(exports2, module2) {
+  "node_modules/semver/internal/re.js"(exports2, module2) {
     "use strict";
     var {
       MAX_SAFE_COMPONENT_LENGTH,
@@ -8359,9 +8359,9 @@ var require_re = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/internal/parse-options.js
+// node_modules/semver/internal/parse-options.js
 var require_parse_options = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/internal/parse-options.js"(exports2, module2) {
+  "node_modules/semver/internal/parse-options.js"(exports2, module2) {
     "use strict";
     var looseOption = Object.freeze({ loose: true });
     var emptyOpts = Object.freeze({});
@@ -8378,9 +8378,9 @@ var require_parse_options = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/internal/identifiers.js
+// node_modules/semver/internal/identifiers.js
 var require_identifiers = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/internal/identifiers.js"(exports2, module2) {
+  "node_modules/semver/internal/identifiers.js"(exports2, module2) {
     "use strict";
     var numeric = /^[0-9]+$/;
     var compareIdentifiers = (a, b) => {
@@ -8403,15 +8403,27 @@ var require_identifiers = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/classes/semver.js
+// node_modules/semver/classes/semver.js
 var require_semver = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/classes/semver.js"(exports2, module2) {
+  "node_modules/semver/classes/semver.js"(exports2, module2) {
     "use strict";
     var debug = require_debug();
     var { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants();
     var { safeRe: re, t } = require_re();
     var parseOptions = require_parse_options();
     var { compareIdentifiers } = require_identifiers();
+    var isPrereleaseIdentifier = (prerelease, identifier) => {
+      const identifiers = identifier.split(".");
+      if (identifiers.length > prerelease.length) {
+        return false;
+      }
+      for (let i = 0; i < identifiers.length; i++) {
+        if (compareIdentifiers(prerelease[i], identifiers[i]) !== 0) {
+          return false;
+        }
+      }
+      return true;
+    };
     var SemVer = class _SemVer {
       constructor(version3, options) {
         options = parseOptions(options);
@@ -8658,8 +8670,9 @@ var require_semver = __commonJS({
               if (identifierBase === false) {
                 prerelease = [identifier];
               }
-              if (compareIdentifiers(this.prerelease[0], identifier) === 0) {
-                if (isNaN(this.prerelease[1])) {
+              if (isPrereleaseIdentifier(this.prerelease, identifier)) {
+                const prereleaseBase = this.prerelease[identifier.split(".").length];
+                if (isNaN(prereleaseBase)) {
                   this.prerelease = prerelease;
                 }
               } else {
@@ -8682,9 +8695,9 @@ var require_semver = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/parse.js
+// node_modules/semver/functions/parse.js
 var require_parse = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/parse.js"(exports2, module2) {
+  "node_modules/semver/functions/parse.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var parse2 = (version3, options, throwErrors = false) => {
@@ -8704,9 +8717,9 @@ var require_parse = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/valid.js
+// node_modules/semver/functions/valid.js
 var require_valid = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/valid.js"(exports2, module2) {
+  "node_modules/semver/functions/valid.js"(exports2, module2) {
     "use strict";
     var parse2 = require_parse();
     var valid = (version3, options) => {
@@ -8717,9 +8730,9 @@ var require_valid = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/clean.js
+// node_modules/semver/functions/clean.js
 var require_clean = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/clean.js"(exports2, module2) {
+  "node_modules/semver/functions/clean.js"(exports2, module2) {
     "use strict";
     var parse2 = require_parse();
     var clean = (version3, options) => {
@@ -8730,9 +8743,9 @@ var require_clean = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/inc.js
+// node_modules/semver/functions/inc.js
 var require_inc = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/inc.js"(exports2, module2) {
+  "node_modules/semver/functions/inc.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var inc = (version3, release, options, identifier, identifierBase) => {
@@ -8754,9 +8767,9 @@ var require_inc = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/diff.js
+// node_modules/semver/functions/diff.js
 var require_diff = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/diff.js"(exports2, module2) {
+  "node_modules/semver/functions/diff.js"(exports2, module2) {
     "use strict";
     var parse2 = require_parse();
     var diff = (version1, version22) => {
@@ -8798,9 +8811,9 @@ var require_diff = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/major.js
+// node_modules/semver/functions/major.js
 var require_major = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/major.js"(exports2, module2) {
+  "node_modules/semver/functions/major.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var major = (a, loose) => new SemVer(a, loose).major;
@@ -8808,9 +8821,9 @@ var require_major = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/minor.js
+// node_modules/semver/functions/minor.js
 var require_minor = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/minor.js"(exports2, module2) {
+  "node_modules/semver/functions/minor.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var minor = (a, loose) => new SemVer(a, loose).minor;
@@ -8818,9 +8831,9 @@ var require_minor = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/patch.js
+// node_modules/semver/functions/patch.js
 var require_patch = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/patch.js"(exports2, module2) {
+  "node_modules/semver/functions/patch.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var patch = (a, loose) => new SemVer(a, loose).patch;
@@ -8828,9 +8841,9 @@ var require_patch = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/prerelease.js
+// node_modules/semver/functions/prerelease.js
 var require_prerelease = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/prerelease.js"(exports2, module2) {
+  "node_modules/semver/functions/prerelease.js"(exports2, module2) {
     "use strict";
     var parse2 = require_parse();
     var prerelease = (version3, options) => {
@@ -8841,9 +8854,9 @@ var require_prerelease = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/compare.js
+// node_modules/semver/functions/compare.js
 var require_compare = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/compare.js"(exports2, module2) {
+  "node_modules/semver/functions/compare.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var compare = (a, b, loose) => new SemVer(a, loose).compare(new SemVer(b, loose));
@@ -8851,9 +8864,9 @@ var require_compare = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/rcompare.js
+// node_modules/semver/functions/rcompare.js
 var require_rcompare = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/rcompare.js"(exports2, module2) {
+  "node_modules/semver/functions/rcompare.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var rcompare = (a, b, loose) => compare(b, a, loose);
@@ -8861,9 +8874,9 @@ var require_rcompare = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/compare-loose.js
+// node_modules/semver/functions/compare-loose.js
 var require_compare_loose = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/compare-loose.js"(exports2, module2) {
+  "node_modules/semver/functions/compare-loose.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var compareLoose = (a, b) => compare(a, b, true);
@@ -8871,9 +8884,9 @@ var require_compare_loose = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/compare-build.js
+// node_modules/semver/functions/compare-build.js
 var require_compare_build = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/compare-build.js"(exports2, module2) {
+  "node_modules/semver/functions/compare-build.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var compareBuild = (a, b, loose) => {
@@ -8885,9 +8898,9 @@ var require_compare_build = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/sort.js
+// node_modules/semver/functions/sort.js
 var require_sort = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/sort.js"(exports2, module2) {
+  "node_modules/semver/functions/sort.js"(exports2, module2) {
     "use strict";
     var compareBuild = require_compare_build();
     var sort = (list, loose) => list.sort((a, b) => compareBuild(a, b, loose));
@@ -8895,9 +8908,9 @@ var require_sort = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/rsort.js
+// node_modules/semver/functions/rsort.js
 var require_rsort = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/rsort.js"(exports2, module2) {
+  "node_modules/semver/functions/rsort.js"(exports2, module2) {
     "use strict";
     var compareBuild = require_compare_build();
     var rsort = (list, loose) => list.sort((a, b) => compareBuild(b, a, loose));
@@ -8905,9 +8918,9 @@ var require_rsort = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/gt.js
+// node_modules/semver/functions/gt.js
 var require_gt = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/gt.js"(exports2, module2) {
+  "node_modules/semver/functions/gt.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var gt = (a, b, loose) => compare(a, b, loose) > 0;
@@ -8915,9 +8928,9 @@ var require_gt = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/lt.js
+// node_modules/semver/functions/lt.js
 var require_lt = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/lt.js"(exports2, module2) {
+  "node_modules/semver/functions/lt.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var lt = (a, b, loose) => compare(a, b, loose) < 0;
@@ -8925,9 +8938,9 @@ var require_lt = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/eq.js
+// node_modules/semver/functions/eq.js
 var require_eq = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/eq.js"(exports2, module2) {
+  "node_modules/semver/functions/eq.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var eq = (a, b, loose) => compare(a, b, loose) === 0;
@@ -8935,9 +8948,9 @@ var require_eq = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/neq.js
+// node_modules/semver/functions/neq.js
 var require_neq = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/neq.js"(exports2, module2) {
+  "node_modules/semver/functions/neq.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var neq = (a, b, loose) => compare(a, b, loose) !== 0;
@@ -8945,9 +8958,9 @@ var require_neq = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/gte.js
+// node_modules/semver/functions/gte.js
 var require_gte = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/gte.js"(exports2, module2) {
+  "node_modules/semver/functions/gte.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var gte = (a, b, loose) => compare(a, b, loose) >= 0;
@@ -8955,9 +8968,9 @@ var require_gte = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/lte.js
+// node_modules/semver/functions/lte.js
 var require_lte = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/lte.js"(exports2, module2) {
+  "node_modules/semver/functions/lte.js"(exports2, module2) {
     "use strict";
     var compare = require_compare();
     var lte = (a, b, loose) => compare(a, b, loose) <= 0;
@@ -8965,9 +8978,9 @@ var require_lte = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/cmp.js
+// node_modules/semver/functions/cmp.js
 var require_cmp = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/cmp.js"(exports2, module2) {
+  "node_modules/semver/functions/cmp.js"(exports2, module2) {
     "use strict";
     var eq = require_eq();
     var neq = require_neq();
@@ -9015,9 +9028,9 @@ var require_cmp = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/coerce.js
+// node_modules/semver/functions/coerce.js
 var require_coerce = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/coerce.js"(exports2, module2) {
+  "node_modules/semver/functions/coerce.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var parse2 = require_parse();
@@ -9061,9 +9074,50 @@ var require_coerce = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/internal/lrucache.js
+// node_modules/semver/functions/truncate.js
+var require_truncate = __commonJS({
+  "node_modules/semver/functions/truncate.js"(exports2, module2) {
+    "use strict";
+    var parse2 = require_parse();
+    var constants2 = require_constants();
+    var SemVer = require_semver();
+    var truncate = (version3, truncation, options) => {
+      if (!constants2.RELEASE_TYPES.includes(truncation)) {
+        return null;
+      }
+      const clonedVersion = cloneInputVersion(version3, options);
+      return clonedVersion && doTruncation(clonedVersion, truncation);
+    };
+    var cloneInputVersion = (version3, options) => {
+      const versionStringToParse = version3 instanceof SemVer ? version3.version : version3;
+      return parse2(versionStringToParse, options);
+    };
+    var doTruncation = (version3, truncation) => {
+      if (isPrerelease(truncation)) {
+        return version3.version;
+      }
+      version3.prerelease = [];
+      switch (truncation) {
+        case "major":
+          version3.minor = 0;
+          version3.patch = 0;
+          break;
+        case "minor":
+          version3.patch = 0;
+          break;
+      }
+      return version3.format();
+    };
+    var isPrerelease = (type) => {
+      return type.startsWith("pre");
+    };
+    module2.exports = truncate;
+  }
+});
+
+// node_modules/semver/internal/lrucache.js
 var require_lrucache = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/internal/lrucache.js"(exports2, module2) {
+  "node_modules/semver/internal/lrucache.js"(exports2, module2) {
     "use strict";
     var LRUCache = class {
       constructor() {
@@ -9099,9 +9153,9 @@ var require_lrucache = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/classes/range.js
+// node_modules/semver/classes/range.js
 var require_range = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/classes/range.js"(exports2, module2) {
+  "node_modules/semver/classes/range.js"(exports2, module2) {
     "use strict";
     var SPACE_CHARACTERS = /\s+/g;
     var Range = class _Range {
@@ -9169,6 +9223,7 @@ var require_range = __commonJS({
         return this.range;
       }
       parseRange(range) {
+        range = range.replace(BUILDSTRIPRE, "");
         const memoOpts = (this.options.includePrerelease && FLAG_INCLUDE_PRERELEASE) | (this.options.loose && FLAG_LOOSE);
         const memoKey = memoOpts + ":" + range;
         const cached = cache.get(memoKey);
@@ -9251,12 +9306,14 @@ var require_range = __commonJS({
     var SemVer = require_semver();
     var {
       safeRe: re,
+      src,
       t,
       comparatorTrimReplace,
       tildeTrimReplace,
       caretTrimReplace
     } = require_re();
     var { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = require_constants();
+    var BUILDSTRIPRE = new RegExp(src[t.BUILD], "g");
     var isNullSet = (c) => c.value === "<0.0.0-0";
     var isAny = (c) => c.value === "";
     var isSatisfiable = (comparators, options) => {
@@ -9285,6 +9342,7 @@ var require_range = __commonJS({
       return comp;
     };
     var isX = (id) => !id || id.toLowerCase() === "x" || id === "*";
+    var invalidXRangeOrder = (M, m, p) => isX(M) && !isX(m) || isX(m) && p && !isX(p);
     var replaceTildes = (comp, options) => {
       return comp.trim().split(/\s+/).map((c) => replaceTilde(c, options)).join(" ");
     };
@@ -9344,9 +9402,9 @@ var require_range = __commonJS({
           debug("no pr");
           if (M === "0") {
             if (m === "0") {
-              ret = `>=${M}.${m}.${p}${z} <${M}.${m}.${+p + 1}-0`;
+              ret = `>=${M}.${m}.${p} <${M}.${m}.${+p + 1}-0`;
             } else {
-              ret = `>=${M}.${m}.${p}${z} <${M}.${+m + 1}.0-0`;
+              ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
             }
           } else {
             ret = `>=${M}.${m}.${p} <${+M + 1}.0.0-0`;
@@ -9365,6 +9423,9 @@ var require_range = __commonJS({
       const r = options.loose ? re[t.XRANGELOOSE] : re[t.XRANGE];
       return comp.replace(r, (ret, gtlt, M, m, p, pr) => {
         debug("xRange", comp, ret, gtlt, M, m, p, pr);
+        if (invalidXRangeOrder(M, m, p)) {
+          return comp;
+        }
         const xM = isX(M);
         const xm = xM || isX(m);
         const xp = xm || isX(p);
@@ -9476,9 +9537,9 @@ var require_range = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/classes/comparator.js
+// node_modules/semver/classes/comparator.js
 var require_comparator = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/classes/comparator.js"(exports2, module2) {
+  "node_modules/semver/classes/comparator.js"(exports2, module2) {
     "use strict";
     var ANY = /* @__PURE__ */ Symbol("SemVer ANY");
     var Comparator = class _Comparator {
@@ -9589,9 +9650,9 @@ var require_comparator = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/functions/satisfies.js
+// node_modules/semver/functions/satisfies.js
 var require_satisfies = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/functions/satisfies.js"(exports2, module2) {
+  "node_modules/semver/functions/satisfies.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
     var satisfies = (version3, range, options) => {
@@ -9606,9 +9667,9 @@ var require_satisfies = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/ranges/to-comparators.js
+// node_modules/semver/ranges/to-comparators.js
 var require_to_comparators = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/ranges/to-comparators.js"(exports2, module2) {
+  "node_modules/semver/ranges/to-comparators.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
     var toComparators = (range, options) => new Range(range, options).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
@@ -9616,9 +9677,9 @@ var require_to_comparators = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/ranges/max-satisfying.js
+// node_modules/semver/ranges/max-satisfying.js
 var require_max_satisfying = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/ranges/max-satisfying.js"(exports2, module2) {
+  "node_modules/semver/ranges/max-satisfying.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var Range = require_range();
@@ -9645,9 +9706,9 @@ var require_max_satisfying = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/ranges/min-satisfying.js
+// node_modules/semver/ranges/min-satisfying.js
 var require_min_satisfying = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/ranges/min-satisfying.js"(exports2, module2) {
+  "node_modules/semver/ranges/min-satisfying.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var Range = require_range();
@@ -9674,9 +9735,9 @@ var require_min_satisfying = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/ranges/min-version.js
+// node_modules/semver/ranges/min-version.js
 var require_min_version = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/ranges/min-version.js"(exports2, module2) {
+  "node_modules/semver/ranges/min-version.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var Range = require_range();
@@ -9733,9 +9794,9 @@ var require_min_version = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/ranges/valid.js
+// node_modules/semver/ranges/valid.js
 var require_valid2 = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/ranges/valid.js"(exports2, module2) {
+  "node_modules/semver/ranges/valid.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
     var validRange = (range, options) => {
@@ -9749,9 +9810,9 @@ var require_valid2 = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/ranges/outside.js
+// node_modules/semver/ranges/outside.js
 var require_outside = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/ranges/outside.js"(exports2, module2) {
+  "node_modules/semver/ranges/outside.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
     var Comparator = require_comparator();
@@ -9818,9 +9879,9 @@ var require_outside = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/ranges/gtr.js
+// node_modules/semver/ranges/gtr.js
 var require_gtr = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/ranges/gtr.js"(exports2, module2) {
+  "node_modules/semver/ranges/gtr.js"(exports2, module2) {
     "use strict";
     var outside = require_outside();
     var gtr = (version3, range, options) => outside(version3, range, ">", options);
@@ -9828,9 +9889,9 @@ var require_gtr = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/ranges/ltr.js
+// node_modules/semver/ranges/ltr.js
 var require_ltr = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/ranges/ltr.js"(exports2, module2) {
+  "node_modules/semver/ranges/ltr.js"(exports2, module2) {
     "use strict";
     var outside = require_outside();
     var ltr = (version3, range, options) => outside(version3, range, "<", options);
@@ -9838,9 +9899,9 @@ var require_ltr = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/ranges/intersects.js
+// node_modules/semver/ranges/intersects.js
 var require_intersects = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/ranges/intersects.js"(exports2, module2) {
+  "node_modules/semver/ranges/intersects.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
     var intersects = (r1, r2, options) => {
@@ -9852,9 +9913,9 @@ var require_intersects = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/ranges/simplify.js
+// node_modules/semver/ranges/simplify.js
 var require_simplify = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/ranges/simplify.js"(exports2, module2) {
+  "node_modules/semver/ranges/simplify.js"(exports2, module2) {
     "use strict";
     var satisfies = require_satisfies();
     var compare = require_compare();
@@ -9902,9 +9963,9 @@ var require_simplify = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/ranges/subset.js
+// node_modules/semver/ranges/subset.js
 var require_subset = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/ranges/subset.js"(exports2, module2) {
+  "node_modules/semver/ranges/subset.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
     var Comparator = require_comparator();
@@ -10012,7 +10073,7 @@ var require_subset = __commonJS({
             if (higher === c && higher !== gt) {
               return false;
             }
-          } else if (gt.operator === ">=" && !satisfies(gt.semver, String(c), options)) {
+          } else if (gt.operator === ">=" && !c.test(gt.semver)) {
             return false;
           }
         }
@@ -10027,7 +10088,7 @@ var require_subset = __commonJS({
             if (lower === c && lower !== lt) {
               return false;
             }
-          } else if (lt.operator === "<=" && !satisfies(lt.semver, String(c), options)) {
+          } else if (lt.operator === "<=" && !c.test(lt.semver)) {
             return false;
           }
         }
@@ -10064,9 +10125,9 @@ var require_subset = __commonJS({
   }
 });
 
-// node_modules/jsonwebtoken/node_modules/semver/index.js
+// node_modules/semver/index.js
 var require_semver2 = __commonJS({
-  "node_modules/jsonwebtoken/node_modules/semver/index.js"(exports2, module2) {
+  "node_modules/semver/index.js"(exports2, module2) {
     "use strict";
     var internalRe = require_re();
     var constants2 = require_constants();
@@ -10095,6 +10156,7 @@ var require_semver2 = __commonJS({
     var lte = require_lte();
     var cmp = require_cmp();
     var coerce = require_coerce();
+    var truncate = require_truncate();
     var Comparator = require_comparator();
     var Range = require_range();
     var satisfies = require_satisfies();
@@ -10133,6 +10195,7 @@ var require_semver2 = __commonJS({
       lte,
       cmp,
       coerce,
+      truncate,
       Comparator,
       Range,
       satisfies,
@@ -11148,12 +11211,12 @@ var require_common = __commonJS({
           if (!debug.enabled) {
             return;
           }
-          const self2 = debug;
+          const self = debug;
           const curr = Number(/* @__PURE__ */ new Date());
           const ms = curr - (prevTime || curr);
-          self2.diff = ms;
-          self2.prev = prevTime;
-          self2.curr = curr;
+          self.diff = ms;
+          self.prev = prevTime;
+          self.curr = curr;
           prevTime = curr;
           args[0] = createDebug.coerce(args[0]);
           if (typeof args[0] !== "string") {
@@ -11168,15 +11231,15 @@ var require_common = __commonJS({
             const formatter = createDebug.formatters[format];
             if (typeof formatter === "function") {
               const val = args[index];
-              match = formatter.call(self2, val);
+              match = formatter.call(self, val);
               args.splice(index, 1);
               index--;
             }
             return match;
           });
-          createDebug.formatArgs.call(self2, args);
-          const logFn = self2.log || createDebug.log;
-          logFn.apply(self2, args);
+          createDebug.formatArgs.call(self, args);
+          const logFn = self.log || createDebug.log;
+          logFn.apply(self, args);
         }
         debug.namespace = namespace;
         debug.useColors = createDebug.useColors();
@@ -11215,63 +11278,49 @@ var require_common = __commonJS({
         createDebug.namespaces = namespaces;
         createDebug.names = [];
         createDebug.skips = [];
-        const split = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
-        for (const ns of split) {
-          if (ns[0] === "-") {
-            createDebug.skips.push(ns.slice(1));
+        let i;
+        const split = (typeof namespaces === "string" ? namespaces : "").split(/[\s,]+/);
+        const len = split.length;
+        for (i = 0; i < len; i++) {
+          if (!split[i]) {
+            continue;
+          }
+          namespaces = split[i].replace(/\*/g, ".*?");
+          if (namespaces[0] === "-") {
+            createDebug.skips.push(new RegExp("^" + namespaces.slice(1) + "$"));
           } else {
-            createDebug.names.push(ns);
+            createDebug.names.push(new RegExp("^" + namespaces + "$"));
           }
         }
-      }
-      function matchesTemplate(search, template) {
-        let searchIndex = 0;
-        let templateIndex = 0;
-        let starIndex = -1;
-        let matchIndex = 0;
-        while (searchIndex < search.length) {
-          if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === "*")) {
-            if (template[templateIndex] === "*") {
-              starIndex = templateIndex;
-              matchIndex = searchIndex;
-              templateIndex++;
-            } else {
-              searchIndex++;
-              templateIndex++;
-            }
-          } else if (starIndex !== -1) {
-            templateIndex = starIndex + 1;
-            matchIndex++;
-            searchIndex = matchIndex;
-          } else {
-            return false;
-          }
-        }
-        while (templateIndex < template.length && template[templateIndex] === "*") {
-          templateIndex++;
-        }
-        return templateIndex === template.length;
       }
       function disable2() {
         const namespaces = [
-          ...createDebug.names,
-          ...createDebug.skips.map((namespace) => "-" + namespace)
+          ...createDebug.names.map(toNamespace),
+          ...createDebug.skips.map(toNamespace).map((namespace) => "-" + namespace)
         ].join(",");
         createDebug.enable("");
         return namespaces;
       }
       function enabled2(name3) {
-        for (const skip of createDebug.skips) {
-          if (matchesTemplate(name3, skip)) {
+        if (name3[name3.length - 1] === "*") {
+          return true;
+        }
+        let i;
+        let len;
+        for (i = 0, len = createDebug.skips.length; i < len; i++) {
+          if (createDebug.skips[i].test(name3)) {
             return false;
           }
         }
-        for (const ns of createDebug.names) {
-          if (matchesTemplate(name3, ns)) {
+        for (i = 0, len = createDebug.names.length; i < len; i++) {
+          if (createDebug.names[i].test(name3)) {
             return true;
           }
         }
         return false;
+      }
+      function toNamespace(regexp) {
+        return regexp.toString().substring(2, regexp.toString().length - 2).replace(/\.\*\?$/, "*");
       }
       function coerce(val) {
         if (val instanceof Error) {
@@ -11391,11 +11440,10 @@ var require_browser = __commonJS({
       if (typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
         return false;
       }
-      let m;
       return typeof document !== "undefined" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || // Is firebug? http://stackoverflow.com/a/398120/376773
       typeof window !== "undefined" && window.console && (window.console.firebug || window.console.exception && window.console.table) || // Is firefox >= v31?
       // https://developer.mozilla.org/en-US/docs/Tools/Web_Console#Styling_messages
-      typeof navigator !== "undefined" && navigator.userAgent && (m = navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/)) && parseInt(m[1], 10) >= 31 || // Double check webkit in userAgent just in case we are in a worker
+      typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/) && parseInt(RegExp.$1, 10) >= 31 || // Double check webkit in userAgent just in case we are in a worker
       typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
     }
     function formatArgs(args) {
@@ -11433,7 +11481,7 @@ var require_browser = __commonJS({
     function load() {
       let r;
       try {
-        r = exports2.storage.getItem("debug") || exports2.storage.getItem("DEBUG");
+        r = exports2.storage.getItem("debug");
       } catch (error) {
       }
       if (!r && typeof process !== "undefined" && "env" in process) {
@@ -11710,7 +11758,7 @@ var require_node = __commonJS({
       return (/* @__PURE__ */ new Date()).toISOString() + " ";
     }
     function log2(...args) {
-      return process.stderr.write(util2.formatWithOptions(exports2.inspectOpts, ...args) + "\n");
+      return process.stderr.write(util2.format(...args) + "\n");
     }
     function save(namespaces) {
       if (namespaces) {
@@ -12355,9 +12403,9 @@ var require_dist3 = __commonJS({
   }
 });
 
-// node_modules/@azure/core-client/dist/commonjs/state.js
-var require_state2 = __commonJS({
-  "node_modules/@azure/core-client/dist/commonjs/state.js"(exports2) {
+// node_modules/@azure/core-client/dist/commonjs/state-cjs.js
+var require_state_cjs = __commonJS({
+  "node_modules/@azure/core-client/dist/commonjs/state-cjs.js"(exports2) {
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.state = void 0;
@@ -12420,15 +12468,15 @@ var init_is_inside_container = __esm({
 });
 
 // node_modules/is-wsl/index.js
-var import_node_process3, import_node_os3, import_node_fs3, isWsl, is_wsl_default;
+var import_node_process4, import_node_os3, import_node_fs3, isWsl, is_wsl_default;
 var init_is_wsl = __esm({
   "node_modules/is-wsl/index.js"() {
-    import_node_process3 = __toESM(require("node:process"), 1);
+    import_node_process4 = __toESM(require("node:process"), 1);
     import_node_os3 = __toESM(require("node:os"), 1);
     import_node_fs3 = __toESM(require("node:fs"), 1);
     init_is_inside_container();
     isWsl = () => {
-      if (import_node_process3.default.platform !== "linux") {
+      if (import_node_process4.default.platform !== "linux") {
         return false;
       }
       if (import_node_os3.default.release().toLowerCase().includes("microsoft")) {
@@ -12448,15 +12496,15 @@ var init_is_wsl = __esm({
       }
       return false;
     };
-    is_wsl_default = import_node_process3.default.env.__IS_WSL_TEST__ ? isWsl : isWsl();
+    is_wsl_default = import_node_process4.default.env.__IS_WSL_TEST__ ? isWsl : isWsl();
   }
 });
 
-// node_modules/@azure/identity/node_modules/wsl-utils/index.js
-var import_node_process4, import_promises, wslDrivesMountPoint, powerShellPathFromWsl, powerShellPath;
+// node_modules/wsl-utils/index.js
+var import_node_process5, import_promises, wslDrivesMountPoint, powerShellPathFromWsl, powerShellPath;
 var init_wsl_utils = __esm({
-  "node_modules/@azure/identity/node_modules/wsl-utils/index.js"() {
-    import_node_process4 = __toESM(require("node:process"), 1);
+  "node_modules/wsl-utils/index.js"() {
+    import_node_process5 = __toESM(require("node:process"), 1);
     import_promises = __toESM(require("node:fs/promises"), 1);
     init_is_wsl();
     init_is_wsl();
@@ -12495,7 +12543,7 @@ var init_wsl_utils = __esm({
       if (is_wsl_default) {
         return powerShellPathFromWsl();
       }
-      return `${import_node_process4.default.env.SYSTEMROOT || import_node_process4.default.env.windir || String.raw`C:\Windows`}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`;
+      return `${import_node_process5.default.env.SYSTEMROOT || import_node_process5.default.env.windir || String.raw`C:\Windows`}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`;
     };
   }
 });
@@ -12524,7 +12572,7 @@ var init_define_lazy_prop = __esm({
 
 // node_modules/default-browser-id/index.js
 async function defaultBrowserId() {
-  if (import_node_process5.default.platform !== "darwin") {
+  if (import_node_process6.default.platform !== "darwin") {
     throw new Error("macOS only");
   }
   const { stdout } = await execFileAsync("defaults", ["read", "com.apple.LaunchServices/com.apple.launchservices.secure", "LSHandlers"]);
@@ -12535,11 +12583,11 @@ async function defaultBrowserId() {
   }
   return browserId;
 }
-var import_node_util3, import_node_process5, import_node_child_process, execFileAsync;
+var import_node_util3, import_node_process6, import_node_child_process, execFileAsync;
 var init_default_browser_id = __esm({
   "node_modules/default-browser-id/index.js"() {
     import_node_util3 = require("node:util");
-    import_node_process5 = __toESM(require("node:process"), 1);
+    import_node_process6 = __toESM(require("node:process"), 1);
     import_node_child_process = require("node:child_process");
     execFileAsync = (0, import_node_util3.promisify)(import_node_child_process.execFile);
   }
@@ -12547,7 +12595,7 @@ var init_default_browser_id = __esm({
 
 // node_modules/run-applescript/index.js
 async function runAppleScript(script, { humanReadableOutput = true, signal } = {}) {
-  if (import_node_process6.default.platform !== "darwin") {
+  if (import_node_process7.default.platform !== "darwin") {
     throw new Error("macOS only");
   }
   const outputArguments = humanReadableOutput ? [] : ["-ss"];
@@ -12558,10 +12606,10 @@ async function runAppleScript(script, { humanReadableOutput = true, signal } = {
   const { stdout } = await execFileAsync2("osascript", ["-e", script, outputArguments], execOptions);
   return stdout.trim();
 }
-var import_node_process6, import_node_util4, import_node_child_process2, execFileAsync2;
+var import_node_process7, import_node_util4, import_node_child_process2, execFileAsync2;
 var init_run_applescript = __esm({
   "node_modules/run-applescript/index.js"() {
-    import_node_process6 = __toESM(require("node:process"), 1);
+    import_node_process7 = __toESM(require("node:process"), 1);
     import_node_util4 = require("node:util");
     import_node_child_process2 = require("node:child_process");
     execFileAsync2 = (0, import_node_util4.promisify)(import_node_child_process2.execFile);
@@ -12631,27 +12679,27 @@ var init_windows = __esm({
 
 // node_modules/default-browser/index.js
 async function defaultBrowser2() {
-  if (import_node_process7.default.platform === "darwin") {
+  if (import_node_process8.default.platform === "darwin") {
     const id = await defaultBrowserId();
     const name3 = await bundleName(id);
     return { name: name3, id };
   }
-  if (import_node_process7.default.platform === "linux") {
+  if (import_node_process8.default.platform === "linux") {
     const { stdout } = await execFileAsync4("xdg-mime", ["query", "default", "x-scheme-handler/http"]);
     const id = stdout.trim();
     const name3 = titleize(id.replace(/.desktop$/, "").replace("-", " "));
     return { name: name3, id };
   }
-  if (import_node_process7.default.platform === "win32") {
+  if (import_node_process8.default.platform === "win32") {
     return defaultBrowser();
   }
   throw new Error("Only macOS, Linux, and Windows are supported");
 }
-var import_node_util6, import_node_process7, import_node_child_process4, execFileAsync4, titleize;
+var import_node_util6, import_node_process8, import_node_child_process4, execFileAsync4, titleize;
 var init_default_browser = __esm({
   "node_modules/default-browser/index.js"() {
     import_node_util6 = require("node:util");
-    import_node_process7 = __toESM(require("node:process"), 1);
+    import_node_process8 = __toESM(require("node:process"), 1);
     import_node_child_process4 = require("node:child_process");
     init_default_browser_id();
     init_bundle_name();
@@ -12661,7 +12709,7 @@ var init_default_browser = __esm({
   }
 });
 
-// node_modules/@azure/identity/node_modules/open/index.js
+// node_modules/open/index.js
 var open_exports = {};
 __export(open_exports, {
   apps: () => apps,
@@ -12712,10 +12760,10 @@ function detectPlatformBinary({ [platform]: platformBinary }, { wsl }) {
   }
   return detectArchBinary(platformBinary);
 }
-var import_node_process8, import_node_buffer, import_node_path, import_node_url, import_node_util7, import_node_child_process5, import_promises2, import_meta, execFile5, __dirname, localXdgOpenPath, platform, arch, pTryEach, baseOpen, open, openApp, apps, open_default;
+var import_node_process9, import_node_buffer, import_node_path, import_node_url, import_node_util7, import_node_child_process5, import_promises2, import_meta, execFile5, __dirname, localXdgOpenPath, platform, arch, pTryEach, baseOpen, open, openApp, apps, open_default;
 var init_open = __esm({
-  "node_modules/@azure/identity/node_modules/open/index.js"() {
-    import_node_process8 = __toESM(require("node:process"), 1);
+  "node_modules/open/index.js"() {
+    import_node_process9 = __toESM(require("node:process"), 1);
     import_node_buffer = require("node:buffer");
     import_node_path = __toESM(require("node:path"), 1);
     import_node_url = require("node:url");
@@ -12730,7 +12778,7 @@ var init_open = __esm({
     execFile5 = (0, import_node_util7.promisify)(import_node_child_process5.default.execFile);
     __dirname = import_node_path.default.dirname((0, import_node_url.fileURLToPath)(import_meta.url));
     localXdgOpenPath = import_node_path.default.join(__dirname, "xdg-open");
-    ({ platform, arch } = import_node_process8.default);
+    ({ platform, arch } = import_node_process9.default);
     pTryEach = async (array, mapper) => {
       let latestError;
       for (const item of array) {
@@ -12858,7 +12906,7 @@ var init_open = __esm({
             exeLocalXdgOpen = true;
           } catch {
           }
-          const useSystemXdgOpen = import_node_process8.default.versions.electron ?? (platform === "android" || isBundled || !exeLocalXdgOpen);
+          const useSystemXdgOpen = import_node_process9.default.versions.electron ?? (platform === "android" || isBundled || !exeLocalXdgOpen);
           command = useSystemXdgOpen ? "xdg-open" : localXdgOpenPath;
         }
         if (appArguments.length > 0) {
@@ -13836,8 +13884,17 @@ function log(message, ...args) {
   import_node_process.default.stderr.write(`${import_node_util.default.format(message, ...args)}${import_node_os.EOL}`);
 }
 
+// node_modules/@typespec/ts-http-runtime/dist/esm/env.js
+var import_node_process2 = __toESM(require("node:process"), 1);
+function getEnvironmentVariable(name3) {
+  return import_node_process2.default.env[name3];
+}
+var isDeno = typeof import_node_process2.default.versions.deno === "string" && import_node_process2.default.versions.deno.length > 0;
+var isBun = typeof import_node_process2.default.versions.bun === "string" && import_node_process2.default.versions.bun.length > 0;
+var isNodeLike = true;
+
 // node_modules/@typespec/ts-http-runtime/dist/esm/logger/debug.js
-var debugEnvVariable = typeof process !== "undefined" && process.env && process.env.DEBUG || void 0;
+var debugEnvVariable = getEnvironmentVariable("DEBUG");
 var enabledString;
 var enabledNamespaces = [];
 var skippedNamespaces = [];
@@ -14012,7 +14069,7 @@ function isTypeSpecRuntimeLogLevel(level) {
 }
 function createLoggerContext(options) {
   const registeredLoggers = /* @__PURE__ */ new Set();
-  const logLevelFromEnv = typeof process !== "undefined" && process.env && process.env[options.logLevelEnvVarName] || void 0;
+  const logLevelFromEnv = getEnvironmentVariable(options.logLevelEnvVarName);
   let logLevel;
   const clientLogger = debug_default(options.namespace);
   clientLogger.log = (...args) => {
@@ -15085,7 +15142,9 @@ __export(ClientConfigurationErrorCodes_exports, {
   invalidClaims: () => invalidClaims,
   invalidCloudDiscoveryMetadata: () => invalidCloudDiscoveryMetadata,
   invalidCodeChallengeMethod: () => invalidCodeChallengeMethod,
+  invalidPlatformBrokerConfiguration: () => invalidPlatformBrokerConfiguration,
   invalidRequestMethodForEAR: () => invalidRequestMethodForEAR,
+  issuerValidationFailed: () => issuerValidationFailed,
   logoutRequestEmpty: () => logoutRequestEmpty,
   missingNonceAuthenticationHeader: () => missingNonceAuthenticationHeader,
   missingSshJwk: () => missingSshJwk,
@@ -15119,6 +15178,8 @@ var cannotSetOIDCOptions = "cannot_set_OIDCOptions";
 var cannotAllowPlatformBroker = "cannot_allow_platform_broker";
 var authorityMismatch = "authority_mismatch";
 var invalidRequestMethodForEAR = "invalid_request_method_for_EAR";
+var invalidPlatformBrokerConfiguration = "invalid_platform_broker_configuration";
+var issuerValidationFailed = "issuer_validation_failed";
 
 // node_modules/@azure/msal-common/dist/error/ClientAuthErrorCodes.mjs
 var ClientAuthErrorCodes_exports = {};
@@ -15573,8 +15634,14 @@ function addSshJwk(parameters, sshJwkString) {
   }
 }
 function addServerTelemetry(parameters, serverTelemetryManager) {
-  parameters.set(X_CLIENT_CURR_TELEM, serverTelemetryManager.generateCurrentRequestHeaderValue());
-  parameters.set(X_CLIENT_LAST_TELEM, serverTelemetryManager.generateLastRequestHeaderValue());
+  const currentTelemetryHeader = serverTelemetryManager.generateCurrentRequestHeaderValue();
+  const lastTelemetryHeader = serverTelemetryManager.generateLastRequestHeaderValue();
+  if (currentTelemetryHeader) {
+    parameters.set(X_CLIENT_CURR_TELEM, currentTelemetryHeader);
+  }
+  if (lastTelemetryHeader) {
+    parameters.set(X_CLIENT_LAST_TELEM, lastTelemetryHeader);
+  }
 }
 function addThrottling(parameters) {
   parameters.set(X_MS_LIB_CAPABILITY, X_MS_LIB_CAPABILITY_VALUE);
@@ -15607,23 +15674,9 @@ __export(UrlUtils_exports, {
   getDeserializedResponse: () => getDeserializedResponse,
   mapToQueryString: () => mapToQueryString,
   normalizeUrlForComparison: () => normalizeUrlForComparison,
-  stripLeadingHashOrQuery: () => stripLeadingHashOrQuery
+  stripLeadingHashOrQuery: () => stripLeadingHashOrQuery,
+  validateUrl: () => validateUrl
 });
-function canonicalizeUrl(url) {
-  if (!url) {
-    return url;
-  }
-  let lowerCaseUrl = url.toLowerCase();
-  if (StringUtils.endsWith(lowerCaseUrl, "?")) {
-    lowerCaseUrl = lowerCaseUrl.slice(0, -1);
-  } else if (StringUtils.endsWith(lowerCaseUrl, "?/")) {
-    lowerCaseUrl = lowerCaseUrl.slice(0, -2);
-  }
-  if (!StringUtils.endsWith(lowerCaseUrl, "/")) {
-    lowerCaseUrl += "/";
-  }
-  return lowerCaseUrl;
-}
 function stripLeadingHashOrQuery(responseString) {
   if (responseString.startsWith("#/")) {
     return responseString.substring(2);
@@ -15654,17 +15707,41 @@ function mapToQueryString(parameters) {
   });
   return queryParameterArray.join("&");
 }
-function normalizeUrlForComparison(url) {
+function normalizeUrlForComparison(url, logger27, correlationId) {
   if (!url) {
     return url;
   }
   const urlWithoutHash = url.split("#")[0];
+  if (!urlWithoutHash) {
+    return urlWithoutHash;
+  }
   try {
     const urlObj = new URL(urlWithoutHash);
-    const normalizedUrl = urlObj.origin + urlObj.pathname + urlObj.search;
-    return canonicalizeUrl(normalizedUrl);
+    if (!urlObj.search) {
+      urlObj.search = "";
+    }
+    let pathname;
+    try {
+      pathname = decodeURIComponent(urlObj.pathname);
+    } catch (e) {
+      pathname = urlObj.pathname;
+    }
+    if (!pathname.endsWith("/")) {
+      pathname += "/";
+    }
+    urlObj.pathname = pathname;
+    return urlObj.href;
   } catch (e) {
-    return canonicalizeUrl(urlWithoutHash);
+    logger27?.error(`Failed to normalize URL for comparison: '${e}'`, correlationId || "");
+    throw createClientConfigurationError(urlParseError);
+  }
+}
+function validateUrl(url, logger27, correlationId) {
+  try {
+    new URL(url);
+  } catch (e) {
+    logger27?.error(`Failed to validate URL: '${e}'`, correlationId || "");
+    throw createClientConfigurationError(urlParseError);
   }
 }
 
@@ -15728,7 +15805,7 @@ function addLogToCache(correlationId, loggedMessage) {
     correlationCache.set(correlationId, data);
     if (correlationCache.size > CACHE_CAPACITY) {
       const firstKey = correlationCache.keys().next().value;
-      if (firstKey) {
+      if (firstKey !== void 0) {
         correlationCache.delete(firstKey);
       }
     }
@@ -15927,7 +16004,7 @@ var Logger = class _Logger {
 
 // node_modules/@azure/msal-common/dist/packageMetadata.mjs
 var name = "@azure/msal-common";
-var version = "16.5.2";
+var version = "16.8.0";
 
 // node_modules/@azure/msal-common/dist/authority/AuthorityOptions.mjs
 var AzureCloudInstance = {
@@ -16238,6 +16315,15 @@ var rawMetdataJSON = {
         preferred_network: "login.sovcloud-identity.sg",
         preferred_cache: "login.sovcloud-identity.sg",
         aliases: ["login.sovcloud-identity.sg"]
+      },
+      {
+        preferred_network: "login.windows-ppe.net",
+        preferred_cache: "login.windows-ppe.net",
+        aliases: [
+          "login.windows-ppe.net",
+          "sts.windows-ppe.net",
+          "login.microsoft-ppe.com"
+        ]
       }
     ]
   }
@@ -16625,7 +16711,7 @@ var CacheManager = class {
     if (tenantProfileFilter.isHomeTenant !== void 0 && !(tenantProfile.isHomeTenant === tenantProfileFilter.isHomeTenant)) {
       return false;
     }
-    if (!!tenantProfileFilter.username && !(this.matchUsername(tenantProfile.username, tenantProfileFilter.username) || !this.matchUsername(tenantProfile.upn, tenantProfileFilter.username))) {
+    if (!!tenantProfileFilter.username && !this.matchUsername(tenantProfile.username, tenantProfileFilter.username) && !this.matchUsername(tenantProfile.upn, tenantProfileFilter.username)) {
       return false;
     }
     if (!!tenantProfileFilter.loginHint && !this.matchLoginHintWithTenantProfile(tenantProfile, tenantProfileFilter.loginHint)) {
@@ -18037,12 +18123,12 @@ __export(InteractionRequiredAuthErrorCodes_exports, {
   nativeAccountUnavailable: () => nativeAccountUnavailable,
   noTokensFound: () => noTokensFound,
   refreshTokenExpired: () => refreshTokenExpired,
-  uxNotAllowed: () => uxNotAllowed
+  uiNotAllowed: () => uiNotAllowed
 });
 var noTokensFound = "no_tokens_found";
 var nativeAccountUnavailable = "native_account_unavailable";
 var refreshTokenExpired = "refresh_token_expired";
-var uxNotAllowed = "ux_not_allowed";
+var uiNotAllowed = "ui_not_allowed";
 var interactionRequired = "interaction_required";
 var consentRequired = "consent_required";
 var loginRequired = "login_required";
@@ -18055,7 +18141,7 @@ var InteractionRequiredServerErrorMessage = [
   consentRequired,
   loginRequired,
   badToken,
-  uxNotAllowed,
+  uiNotAllowed,
   interruptedUser
 ];
 var InteractionRequiredAuthSubErrorMessage = [
@@ -18065,7 +18151,7 @@ var InteractionRequiredAuthSubErrorMessage = [
   "user_password_expired",
   "consent_required",
   "bad_token",
-  "ux_not_allowed",
+  "ui_not_allowed",
   "interrupted_user"
 ];
 var InteractionRequiredAuthError = class _InteractionRequiredAuthError extends AuthError {
@@ -18936,7 +19022,7 @@ var Authority = class _Authority {
     }, this.correlationId);
   }
   /**
-   * Returns metadata entity from cache if it exists, otherwiser returns a new metadata entity built
+   * Returns metadata entity from cache if it exists, otherwise returns a new metadata entity built
    * from the configured canonical authority
    * @returns
    */
@@ -18996,6 +19082,7 @@ var Authority = class _Authority {
     }
     let metadata = await invokeAsync(this.getEndpointMetadataFromNetwork.bind(this), AuthorityGetEndpointMetadataFromNetwork, this.logger, this.performanceClient, this.correlationId)();
     if (metadata) {
+      this.validateIssuer(metadata.issuer);
       if (this.authorityOptions.azureRegionConfiguration?.azureRegion) {
         metadata = await invokeAsync(this.updateMetadataWithRegionalInformation.bind(this), AuthorityUpdateMetadataWithRegionalInformation, this.logger, this.performanceClient, this.correlationId)(metadata);
       }
@@ -19138,7 +19225,7 @@ var Authority = class _Authority {
     throw createClientConfigurationError(untrustedAuthority);
   }
   updateCloudDiscoveryMetadataFromLocalSources(metadataEntity) {
-    this.logger.verbose("Attempting to get cloud discovery metadata  from authority configuration", this.correlationId);
+    this.logger.verbose("Attempting to get cloud discovery metadata from authority configuration", this.correlationId);
     this.logger.verbosePii(`Known Authorities: '${this.authorityOptions.knownAuthorities || NOT_APPLICABLE}'`, this.correlationId);
     this.logger.verbosePii(`Authority Metadata: '${this.authorityOptions.authorityMetadata || NOT_APPLICABLE}'`, this.correlationId);
     this.logger.verbosePii(`Canonical Authority: '${metadataEntity.canonical_authority || NOT_APPLICABLE}'`, this.correlationId);
@@ -19191,7 +19278,7 @@ var Authority = class _Authority {
         throw createClientConfigurationError(invalidCloudDiscoveryMetadata);
       }
     }
-    if (this.isInKnownAuthorities()) {
+    if (this.isInKnownAuthorities(this.hostnameAndPort)) {
       this.logger.verbose("The host is included in knownAuthorities. Creating new cloud discovery metadata from the host.", this.correlationId);
       return _Authority.createCloudDiscoveryMetadataFromHost(this.hostnameAndPort);
     }
@@ -19252,11 +19339,12 @@ Error Description: '${typedError.message}'`, this.correlationId);
     return match;
   }
   /**
-   * Helper function to determine if this host is included in the knownAuthorities config option
+   * Helper function to determine if a host is included in the knownAuthorities config option.
    */
-  isInKnownAuthorities() {
+  isInKnownAuthorities(host) {
+    const normalizedHost = host.toLowerCase();
     const matches = this.authorityOptions.knownAuthorities.filter((authority) => {
-      return authority && UrlString.getDomainFromUrl(authority).toLowerCase() === this.hostnameAndPort;
+      return authority && UrlString.getDomainFromUrl(authority).toLowerCase() === normalizedHost;
     });
     return matches.length > 0;
   }
@@ -19309,6 +19397,106 @@ Error Description: '${typedError.message}'`, this.correlationId);
    */
   isAliasOfKnownMicrosoftAuthority(host) {
     return InstanceDiscoveryMetadataAliases.has(host);
+  }
+  /**
+   * Validates the `issuer` returned by an OIDC discovery document against
+   * this authority, per
+   * https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationValidation
+   *
+   * The issuer is accepted when ANY of the following holds:
+   *  1. The issuer scheme + host + port match the authority's (path may
+   *     differ). Applies to all authorities.
+   *  2. The authority is a Microsoft cloud authority (public, sovereign,
+   *     or CIAM), the issuer is HTTPS, and the issuer host is in the known
+   *     Microsoft authority host set.
+   *  3. Same as (2), but the issuer host is a single-label regional variant
+   *     of a known Microsoft host (e.g. `westus.login.microsoftonline.com`).
+   *  4. Same as (2), but the issuer host matches the CIAM tenant pattern
+   *     `{tenant}.ciamlogin.com` with an optional `/{tenant}[.onmicrosoft.com][/v2.0]`
+   *     path.
+   *  5. The issuer host is HTTPS and is explicitly listed in the
+   *     developer-configured `knownAuthorities`. This covers scenarios where
+   *     the OIDC discovery document returns an issuer host that differs from
+   *     the authority (e.g., a GUID-based issuer for a name-based CIAM authority).
+   *
+   * @param issuer The `issuer` value returned in the OIDC discovery document.
+   * @throws ClientConfigurationError("issuer_validation_failed") on failure.
+   */
+  validateIssuer(issuer) {
+    if (!issuer) {
+      throw createClientConfigurationError(issuerValidationFailed);
+    }
+    let issuerUrl;
+    try {
+      issuerUrl = new URL(issuer);
+    } catch {
+      throw createClientConfigurationError(issuerValidationFailed);
+    }
+    const issuerScheme = issuerUrl.protocol;
+    const issuerHost = issuerUrl.host;
+    const authorityScheme = (this.canonicalAuthorityUrlComponents.Protocol || "").toLowerCase();
+    const authorityHost = (this.canonicalAuthorityUrlComponents.HostNameAndPort || "").toLowerCase();
+    const matchesAuthorityOrigin = this.matchesAuthorityOrigin(issuerScheme, issuerHost, authorityScheme, authorityHost);
+    const matchesKnownMicrosoftHost = issuerScheme === "https:" && this.isAliasOfKnownMicrosoftAuthority(issuerHost);
+    const matchesRegionalMicrosoftHost = issuerScheme === "https:" && this.matchesRegionalMicrosoftHost(issuerHost);
+    const matchesCiamTenantPattern = this.matchesCiamTenantPattern(issuerUrl, authorityHost, this.canonicalAuthorityUrlComponents.PathSegments);
+    const matchesKnownAuthority = issuerScheme === "https:" && this.isInKnownAuthorities(issuerHost);
+    if (matchesAuthorityOrigin || matchesKnownMicrosoftHost || matchesRegionalMicrosoftHost || matchesCiamTenantPattern || matchesKnownAuthority) {
+      return;
+    }
+    throw createClientConfigurationError(issuerValidationFailed);
+  }
+  /**
+   * Rule 1: The issuer scheme + host (and port) match the authority's. Path
+   * may differ. Applies to all authorities.
+   */
+  matchesAuthorityOrigin(issuerScheme, issuerHost, authorityScheme, authorityHost) {
+    return issuerScheme === authorityScheme && issuerHost === authorityHost;
+  }
+  /**
+   * Rule 3: The issuer host is a regional variant
+   * (`{region}.{host}`) of a known Microsoft authority host.
+   * E.g. `westus2.login.microsoft.com`.
+   */
+  matchesRegionalMicrosoftHost(issuerHost) {
+    const firstDot = issuerHost.indexOf(".");
+    if (firstDot > 0 && firstDot < issuerHost.length - 1) {
+      const hostWithoutRegion = issuerHost.substring(firstDot + 1);
+      return this.isAliasOfKnownMicrosoftAuthority(hostWithoutRegion);
+    }
+    return false;
+  }
+  /**
+   * Rule 4: The issuer matches one of the well-known CIAM tenant patterns
+   * (`https://{tenant}.ciamlogin.com[/{tenant}[.onmicrosoft.com][/v2.0]]`).
+   *
+   * The bare tenant name is extracted from the authority's first path segment
+   * when available (stripping the `.onmicrosoft.com` suffix that
+   * `transformCIAMAuthority` adds), or otherwise from the leftmost label of
+   * the authority host (to support CIAM custom domain scenarios).
+   *
+   * Both `/{tenant}` and `/{tenant}.onmicrosoft.com` path forms are accepted
+   * because the OIDC issuer may use either form depending on the authority URL
+   * that was used to trigger discovery.
+   */
+  matchesCiamTenantPattern(issuerUrl, authorityHost, authorityPathSegments) {
+    const pathSegment = authorityPathSegments[0];
+    const tenantName = pathSegment ? pathSegment.endsWith(AAD_TENANT_DOMAIN_SUFFIX) ? pathSegment.slice(0, -AAD_TENANT_DOMAIN_SUFFIX.length) : pathSegment : authorityHost.split(".")[0];
+    if (!tenantName) {
+      return false;
+    }
+    const ciamBaseURL = `https://${tenantName}${CIAM_AUTH_URL}`;
+    const validCiamPatterns = [
+      ciamBaseURL,
+      `${ciamBaseURL}/${tenantName}`,
+      `${ciamBaseURL}/${tenantName}/v2.0`,
+      `${ciamBaseURL}/${tenantName}${AAD_TENANT_DOMAIN_SUFFIX}`,
+      `${ciamBaseURL}/${tenantName}${AAD_TENANT_DOMAIN_SUFFIX}/v2.0`
+      // https://{tenant}.ciamlogin.com/{tenant}.onmicrosoft.com/v2.0
+    ];
+    const issuerPath = issuerUrl.pathname.replace(/\/+$/, "");
+    const normalizedIssuer = `${issuerUrl.protocol}//${issuerUrl.host}${issuerPath}`;
+    return validCiamPatterns.some((pattern) => pattern === normalizedIssuer);
   }
   /**
    * Checks whether the provided host is that of a public cloud authority
@@ -20174,29 +20362,32 @@ var ServerTelemetryManager = class _ServerTelemetryManager {
    * @param error
    */
   cacheFailedRequest(error) {
-    const lastRequests = this.getLastRequests();
-    if (lastRequests.errors.length >= SERVER_TELEM_MAX_CACHED_ERRORS) {
-      lastRequests.failedRequests.shift();
-      lastRequests.failedRequests.shift();
-      lastRequests.errors.shift();
-    }
-    lastRequests.failedRequests.push(this.apiId, this.correlationId);
-    if (error instanceof Error && !!error && error.toString()) {
-      if (error instanceof AuthError) {
-        if (error.subError) {
-          lastRequests.errors.push(error.subError);
-        } else if (error.errorCode) {
-          lastRequests.errors.push(error.errorCode);
+    try {
+      const lastRequests = this.getLastRequests();
+      if (lastRequests.errors.length >= SERVER_TELEM_MAX_CACHED_ERRORS) {
+        lastRequests.failedRequests.shift();
+        lastRequests.failedRequests.shift();
+        lastRequests.errors.shift();
+      }
+      lastRequests.failedRequests.push(this.apiId, this.correlationId);
+      if (error instanceof Error && !!error && error.toString()) {
+        if (error instanceof AuthError) {
+          if (error.subError) {
+            lastRequests.errors.push(error.subError);
+          } else if (error.errorCode) {
+            lastRequests.errors.push(error.errorCode);
+          } else {
+            lastRequests.errors.push(error.toString());
+          }
         } else {
           lastRequests.errors.push(error.toString());
         }
       } else {
-        lastRequests.errors.push(error.toString());
+        lastRequests.errors.push(SERVER_TELEM_UNKNOWN_ERROR);
       }
-    } else {
-      lastRequests.errors.push(SERVER_TELEM_UNKNOWN_ERROR);
+      this.cacheManager.setServerTelemetry(this.telemetryCacheKey, lastRequests, this.correlationId);
+    } catch {
     }
-    this.cacheManager.setServerTelemetry(this.telemetryCacheKey, lastRequests, this.correlationId);
     return;
   }
   /**
@@ -20470,7 +20661,10 @@ var ManagedIdentityHeaders = {
   AUTHORIZATION_HEADER_NAME: "Authorization",
   METADATA_HEADER_NAME: "Metadata",
   APP_SERVICE_SECRET_HEADER_NAME: "X-IDENTITY-HEADER",
-  ML_AND_SF_SECRET_HEADER_NAME: "secret"
+  ML_AND_SF_SECRET_HEADER_NAME: "secret",
+  CLIENT_SKU: AADServerParamKeys_exports.X_CLIENT_SKU,
+  CLIENT_VER: AADServerParamKeys_exports.X_CLIENT_VER,
+  CLIENT_REQUEST_ID: "x-ms-client-request-id"
 };
 var ManagedIdentityQueryParameters = {
   API_VERSION: "api-version",
@@ -21946,7 +22140,7 @@ var ClientAssertion = class _ClientAssertion {
 
 // node_modules/@azure/msal-node/dist/packageMetadata.mjs
 var name2 = "@azure/msal-node";
-var version2 = "5.1.5";
+var version2 = "5.2.4";
 
 // node_modules/@azure/msal-node/dist/client/BaseClient.mjs
 var BaseClient = class {
@@ -23498,6 +23692,14 @@ var BaseManagedIdentitySource = class {
     this.disableInternalRetries = disableInternalRetries;
   }
   /**
+   * Generates a new correlation ID for request tracing.
+   *
+   * @returns A new GUID string for use as a correlation or request ID
+   */
+  createCorrelationId() {
+    return this.cryptoProvider.createNewGuid();
+  }
+  /**
    * Processes the network response and converts it to a standardized server token response.
    * This async version allows for source-specific response processing logic while maintaining
    * backward compatibility with the synchronous version.
@@ -24235,6 +24437,9 @@ var Imds = class _Imds extends BaseManagedIdentitySource {
   createRequest(resource, managedIdentityId) {
     const request = new ManagedIdentityRequestParameters(HttpMethod2.GET, this.identityEndpoint);
     request.headers[ManagedIdentityHeaders.METADATA_HEADER_NAME] = "true";
+    request.headers[ManagedIdentityHeaders.CLIENT_SKU] = Constants.MSAL_SKU;
+    request.headers[ManagedIdentityHeaders.CLIENT_VER] = version2;
+    request.headers[ManagedIdentityHeaders.CLIENT_REQUEST_ID] = this.createCorrelationId();
     request.queryParameters[ManagedIdentityQueryParameters.API_VERSION] = IMDS_API_VERSION;
     request.queryParameters[ManagedIdentityQueryParameters.RESOURCE] = resource;
     if (managedIdentityId.idType !== ManagedIdentityIdType.SYSTEM_ASSIGNED) {
@@ -24676,14 +24881,6 @@ function isError(e) {
 function randomUUID2() {
   return crypto.randomUUID();
 }
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/util/checkEnvironment.js
-var isBrowser = typeof window !== "undefined" && typeof window.document !== "undefined";
-var isWebWorker = typeof self === "object" && typeof self?.importScripts === "function" && (self.constructor?.name === "DedicatedWorkerGlobalScope" || self.constructor?.name === "ServiceWorkerGlobalScope" || self.constructor?.name === "SharedWorkerGlobalScope");
-var isDeno = typeof Deno !== "undefined" && typeof Deno.version !== "undefined" && typeof Deno.version.deno !== "undefined";
-var isBun = typeof Bun !== "undefined" && typeof Bun.version !== "undefined";
-var isNodeLike = typeof globalThis.process !== "undefined" && Boolean(globalThis.process.version) && Boolean(globalThis.process.versions?.node);
-var isReactNative = typeof navigator !== "undefined" && navigator?.product === "ReactNative";
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/bytesEncoding.js
 function stringToUint8Array(value, format) {
@@ -25133,6 +25330,9 @@ var AbortError2 = class extends Error {
 function normalizeName(name3) {
   return name3.toLowerCase();
 }
+function normalizeValue(value) {
+  return String(value).trim().replace(/[\r\n]/g, "");
+}
 function* headerIterator(map) {
   for (const entry of map.values()) {
     yield [entry.name, entry.value];
@@ -25155,7 +25355,7 @@ var HttpHeadersImpl = class {
    * @param value - The value of the header to set.
    */
   set(name3, value) {
-    this._headersMap.set(normalizeName(name3), { name: name3, value: String(value).trim() });
+    this._headersMap.set(normalizeName(name3), { name: name3, value: normalizeValue(value) });
   }
   /**
    * Get the header value for the provided header name, or undefined if no header exists in this
@@ -25703,7 +25903,7 @@ var NodeHttpClient = class {
         if (typeof body === "string" || Buffer.isBuffer(body)) {
           req.end(body);
         } else if (isArrayBuffer(body)) {
-          req.end(ArrayBuffer.isView(body) ? Buffer.from(body.buffer) : Buffer.from(body));
+          req.end(ArrayBuffer.isView(body) ? Buffer.from(body.buffer, body.byteOffset, body.byteLength) : Buffer.from(body));
         } else {
           logger4.error("Unrecognized body type", body);
           reject(new RestError("Unrecognized body type"));
@@ -25842,44 +26042,6 @@ function logPolicy(options = {}) {
   };
 }
 
-// node_modules/@typespec/ts-http-runtime/dist/esm/policies/redirectPolicy.js
-var redirectPolicyName = "redirectPolicy";
-var allowedRedirect = ["GET", "HEAD"];
-function redirectPolicy(options = {}) {
-  const { maxRetries = 20, allowCrossOriginRedirects = false } = options;
-  return {
-    name: redirectPolicyName,
-    async sendRequest(request, next) {
-      const response = await next(request);
-      return handleRedirect(next, response, maxRetries, allowCrossOriginRedirects);
-    }
-  };
-}
-async function handleRedirect(next, response, maxRetries, allowCrossOriginRedirects, currentRetries = 0) {
-  const { request, status, headers } = response;
-  const locationHeader = headers.get("location");
-  if (locationHeader && (status === 300 || status === 301 && allowedRedirect.includes(request.method) || status === 302 && allowedRedirect.includes(request.method) || status === 303 && request.method === "POST" || status === 307) && currentRetries < maxRetries) {
-    const url = new URL(locationHeader, request.url);
-    if (!allowCrossOriginRedirects) {
-      const originalUrl = new URL(request.url);
-      if (url.origin !== originalUrl.origin) {
-        logger4.verbose(`Skipping cross-origin redirect from ${originalUrl.origin} to ${url.origin}.`);
-        return response;
-      }
-    }
-    request.url = url.toString();
-    if (status === 303) {
-      request.method = "GET";
-      request.headers.delete("Content-Length");
-      delete request.body;
-    }
-    request.headers.delete("Authorization");
-    const res = await next(request);
-    return handleRedirect(next, res, maxRetries, allowCrossOriginRedirects, currentRetries + 1);
-  }
-  return response;
-}
-
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/userAgentPlatform.js
 function getHeaderName() {
   return "User-Agent";
@@ -25895,20 +26057,6 @@ function getUserAgentHeaderName() {
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/policies/userAgentPolicy.js
 var UserAgentHeaderName = getUserAgentHeaderName();
-
-// node_modules/@typespec/ts-http-runtime/dist/esm/policies/decompressResponsePolicy.js
-var decompressResponsePolicyName = "decompressResponsePolicy";
-function decompressResponsePolicy() {
-  return {
-    name: decompressResponsePolicyName,
-    async sendRequest(request, next) {
-      if (request.method !== "HEAD") {
-        request.headers.set("Accept-Encoding", "gzip,deflate");
-      }
-      return next(request);
-    }
-  };
-}
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/helpers.js
 var StandardAbortMessage2 = "The operation was aborted.";
@@ -26127,22 +26275,32 @@ function defaultRetryPolicy(options = {}) {
   };
 }
 
+// node_modules/@typespec/ts-http-runtime/dist/esm/formData.js
+function convertBodyToFormDataMap(body) {
+  if (typeof FormData !== "undefined" && body instanceof FormData) {
+    const formDataMap = {};
+    for (const [key, value] of body.entries()) {
+      const existing = formDataMap[key];
+      if (Array.isArray(existing)) {
+        existing.push(value);
+      } else {
+        formDataMap[key] = existing !== void 0 ? [existing, value] : [value];
+      }
+    }
+    return formDataMap;
+  }
+  return void 0;
+}
+
 // node_modules/@typespec/ts-http-runtime/dist/esm/policies/formDataPolicy.js
 var formDataPolicyName = "formDataPolicy";
-function formDataToFormDataMap(formData) {
-  const formDataMap = {};
-  for (const [key, value] of formData.entries()) {
-    formDataMap[key] ??= [];
-    formDataMap[key].push(value);
-  }
-  return formDataMap;
-}
 function formDataPolicy() {
   return {
     name: formDataPolicyName,
     async sendRequest(request, next) {
-      if (isNodeLike && typeof FormData !== "undefined" && request.body instanceof FormData) {
-        request.formData = formDataToFormDataMap(request.body);
+      const converted = convertBodyToFormDataMap(request.body);
+      if (converted) {
+        request.formData = converted;
         request.body = void 0;
       }
       if (request.formData) {
@@ -26202,6 +26360,34 @@ async function prepareFormData(formData, request) {
     }
   }
   request.multipartBody = { parts };
+}
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/policies/agentPolicy.js
+var agentPolicyName = "agentPolicy";
+function agentPolicy(agent) {
+  return {
+    name: agentPolicyName,
+    sendRequest: async (req, next) => {
+      if (!req.agent) {
+        req.agent = agent;
+      }
+      return next(req);
+    }
+  };
+}
+
+// node_modules/@typespec/ts-http-runtime/dist/esm/policies/tlsPolicy.js
+var tlsPolicyName = "tlsPolicy";
+function tlsPolicy(tlsSettings) {
+  return {
+    name: tlsPolicyName,
+    sendRequest: async (req, next) => {
+      if (!req.tlsSettings) {
+        req.tlsSettings = tlsSettings;
+      }
+      return next(req);
+    }
+  };
 }
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/policies/proxyPolicy.js
@@ -26327,37 +26513,61 @@ function proxyPolicy(proxySettings, options) {
   };
 }
 
-// node_modules/@typespec/ts-http-runtime/dist/esm/policies/agentPolicy.js
-var agentPolicyName = "agentPolicy";
-function agentPolicy(agent) {
+// node_modules/@typespec/ts-http-runtime/dist/esm/policies/decompressResponsePolicy.js
+var decompressResponsePolicyName = "decompressResponsePolicy";
+function decompressResponsePolicy() {
   return {
-    name: agentPolicyName,
-    sendRequest: async (req, next) => {
-      if (!req.agent) {
-        req.agent = agent;
+    name: decompressResponsePolicyName,
+    async sendRequest(request, next) {
+      if (request.method !== "HEAD") {
+        request.headers.set("Accept-Encoding", "gzip,deflate");
       }
-      return next(req);
+      return next(request);
     }
   };
 }
 
-// node_modules/@typespec/ts-http-runtime/dist/esm/policies/tlsPolicy.js
-var tlsPolicyName = "tlsPolicy";
-function tlsPolicy(tlsSettings) {
+// node_modules/@typespec/ts-http-runtime/dist/esm/policies/redirectPolicy.js
+var redirectPolicyName = "redirectPolicy";
+var allowedRedirect = ["GET", "HEAD"];
+function redirectPolicy(options = {}) {
+  const { maxRetries = 20, allowCrossOriginRedirects = false } = options;
   return {
-    name: tlsPolicyName,
-    sendRequest: async (req, next) => {
-      if (!req.tlsSettings) {
-        req.tlsSettings = tlsSettings;
-      }
-      return next(req);
+    name: redirectPolicyName,
+    async sendRequest(request, next) {
+      const response = await next(request);
+      return handleRedirect(next, response, maxRetries, allowCrossOriginRedirects);
     }
   };
+}
+async function handleRedirect(next, response, maxRetries, allowCrossOriginRedirects, currentRetries = 0) {
+  const { request, status, headers } = response;
+  const locationHeader = headers.get("location");
+  if (locationHeader && (status === 300 || status === 301 && allowedRedirect.includes(request.method) || status === 302 && allowedRedirect.includes(request.method) || status === 303 && request.method === "POST" || status === 307) && currentRetries < maxRetries) {
+    const url = new URL(locationHeader, request.url);
+    if (!allowCrossOriginRedirects) {
+      const originalUrl = new URL(request.url);
+      if (url.origin !== originalUrl.origin) {
+        logger4.verbose(`Skipping cross-origin redirect from ${originalUrl.origin} to ${url.origin}.`);
+        return response;
+      }
+    }
+    request.url = url.toString();
+    if (status === 303) {
+      request.method = "GET";
+      request.headers.delete("Content-Length");
+      delete request.body;
+    }
+    request.headers.delete("Authorization");
+    const res = await next(request);
+    return handleRedirect(next, res, maxRetries, allowCrossOriginRedirects, currentRetries + 1);
+  }
+  return response;
 }
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/typeGuards.js
 function isBlob(x) {
-  return typeof Blob !== "undefined" && x instanceof Blob;
+  return x instanceof Blob;
 }
 
 // node_modules/@typespec/ts-http-runtime/dist/esm/util/concat.js
@@ -26534,26 +26744,25 @@ function redirectPolicy2(options = {}) {
 
 // node_modules/@azure/core-rest-pipeline/dist/esm/util/userAgentPlatform.js
 var import_node_os2 = __toESM(require("node:os"), 1);
-var import_node_process2 = __toESM(require("node:process"), 1);
+var import_node_process3 = __toESM(require("node:process"), 1);
 function getHeaderName2() {
   return "User-Agent";
 }
 async function setPlatformSpecificData2(map) {
-  if (import_node_process2.default && import_node_process2.default.versions) {
+  if (import_node_process3.default && import_node_process3.default.versions) {
     const osInfo = `${import_node_os2.default.type()} ${import_node_os2.default.release()}; ${import_node_os2.default.arch()}`;
-    const versions = import_node_process2.default.versions;
-    if (versions.bun) {
-      map.set("Bun", `${versions.bun} (${osInfo})`);
-    } else if (versions.deno) {
-      map.set("Deno", `${versions.deno} (${osInfo})`);
-    } else if (versions.node) {
-      map.set("Node", `${versions.node} (${osInfo})`);
+    if (import_node_process3.default.versions.bun) {
+      map.set("Bun", `${import_node_process3.default.versions.bun} (${osInfo})`);
+    } else if (import_node_process3.default.versions.deno) {
+      map.set("Deno", `${import_node_process3.default.versions.deno} (${osInfo})`);
+    } else if (import_node_process3.default.versions.node) {
+      map.set("Node", `${import_node_process3.default.versions.node} (${osInfo})`);
     }
   }
 }
 
 // node_modules/@azure/core-rest-pipeline/dist/esm/constants.js
-var SDK_VERSION3 = "1.22.3";
+var SDK_VERSION3 = "1.24.0";
 
 // node_modules/@azure/core-rest-pipeline/dist/esm/util/userAgent.js
 function getUserAgentString(telemetryInfo) {
@@ -26783,7 +26992,9 @@ function wrapAbortSignalLike(abortSignalLike) {
     return { abortSignal: abortSignalLike };
   }
   if (abortSignalLike.aborted) {
-    return { abortSignal: AbortSignal.abort(abortSignalLike.reason) };
+    return {
+      abortSignal: AbortSignal.abort("reason" in abortSignalLike ? abortSignalLike.reason : void 0)
+    };
   }
   const controller = new AbortController();
   let needsCleanup = true;
@@ -26794,7 +27005,7 @@ function wrapAbortSignalLike(abortSignalLike) {
     }
   }
   function listener() {
-    controller.abort(abortSignalLike.reason);
+    controller.abort("reason" in abortSignalLike ? abortSignalLike.reason : void 0);
     cleanup();
   }
   abortSignalLike.addEventListener("abort", listener);
@@ -26931,13 +27142,16 @@ function createTokenCycler(credential, tokenCyclerOptions) {
      * window and not already refreshing)
      */
     get shouldRefresh() {
+      if (token === null) {
+        return true;
+      }
       if (cycler.isRefreshing) {
         return false;
       }
-      if (token?.refreshAfterTimestamp && token.refreshAfterTimestamp < Date.now()) {
+      if (token.refreshAfterTimestamp && token.refreshAfterTimestamp < Date.now()) {
         return true;
       }
-      return (token?.expiresOnTimestamp ?? 0) - options.refreshWindowInMs < Date.now();
+      return token.expiresOnTimestamp - options.refreshWindowInMs < Date.now();
     },
     /**
      * Produces true if the cycler MUST refresh (null or nearly-expired
@@ -27098,7 +27312,7 @@ function bearerTokenAuthenticationPolicy(options) {
             [response, error] = await trySendRequest(request, next);
           }
           if (isChallengeResponse(response)) {
-            claims = getCaeChallengeClaims(response.headers.get("WWW-Authenticate"));
+            claims = getCaeChallengeClaims(response.headers.get("WWW-Authenticate") ?? "");
             if (claims) {
               let parsedClaim;
               try {
@@ -27155,8 +27369,8 @@ function getCaeChallengeClaims(challenges) {
 }
 
 // node_modules/@azure/core-client/dist/esm/state.js
-var import_state3 = __toESM(require_state2(), 1);
-var state2 = import_state3.state;
+var import_state_cjs = __toESM(require_state_cjs(), 1);
+var state2 = import_state_cjs.state;
 
 // node_modules/@azure/core-client/dist/esm/operationHelpers.js
 function getOperationArgumentValueFromParameter(operationArguments, parameter, fallbackObject) {
@@ -27186,9 +27400,8 @@ function getOperationArgumentValueFromParameter(operationArguments, parameter, f
     if (parameterMapper.required) {
       value = {};
     }
-    for (const propertyName in parameterPath) {
+    for (const [propertyName, propertyPath] of Object.entries(parameterPath)) {
       const propertyMapper = parameterMapper.type.modelProperties[propertyName];
-      const propertyPath = parameterPath[propertyName];
       const propertyValue = getOperationArgumentValueFromParameter(operationArguments, {
         parameterPath: propertyPath,
         mapper: propertyMapper
@@ -27197,7 +27410,12 @@ function getOperationArgumentValueFromParameter(operationArguments, parameter, f
         if (!value) {
           value = {};
         }
-        value[propertyName] = propertyValue;
+        Object.defineProperty(value, propertyName, {
+          value: propertyValue,
+          enumerable: true,
+          configurable: true,
+          writable: true
+        });
       }
     }
   }
@@ -27425,8 +27643,7 @@ async function parse(jsonContentTypes, xmlContentTypes, operationResponse, opts,
 // node_modules/@azure/core-client/dist/esm/interfaceHelpers.js
 function getStreamingResponseStatusCodes(operationSpec) {
   const result = /* @__PURE__ */ new Set();
-  for (const statusCode in operationSpec.responses) {
-    const operationResponse = operationSpec.responses[statusCode];
+  for (const [statusCode, operationResponse] of Object.entries(operationSpec.responses)) {
     if (operationResponse.bodyMapper && operationResponse.bodyMapper.type.name === MapperTypeNames.Stream) {
       result.add(Number(statusCode));
     }
@@ -27452,7 +27669,7 @@ function serializationPolicy(options = {}) {
   const stringifyXML = options.stringifyXML;
   return {
     name: serializationPolicyName,
-    async sendRequest(request, next) {
+    sendRequest(request, next) {
       const operationInfo = getOperationRequestInfo(request);
       const operationSpec = operationInfo?.operationSpec;
       const operationArguments = operationInfo?.operationArguments;
@@ -27663,7 +27880,7 @@ function appendPath(url, pathToAppend) {
   } else {
     newPath = newPath + pathToAppend;
   }
-  parsedUrl.pathname = newPath;
+  Object.assign(parsedUrl, { pathname: newPath });
   return parsedUrl.toString();
 }
 function calculateQueryParameters(operationSpec, operationArguments, fallbackObject) {
@@ -27831,7 +28048,7 @@ var ServiceClient = class {
   /**
    * Send the provided httpRequest.
    */
-  async sendRequest(request) {
+  sendRequest(request) {
     return this.pipeline.sendRequest(this._httpClient, request);
   }
   /**
@@ -27928,7 +28145,7 @@ function getCredentialScopes(options) {
   if (options.baseUri) {
     return `${options.baseUri}/.default`;
   }
-  if (options.credential && !options.credentialScopes) {
+  if (options.credential) {
     throw new Error(`When using credentials, the ServiceClientOptions must contain either a endpoint or a credentialScopes. Unable to create a bearerTokenAuthenticationPolicy`);
   }
   return void 0;
@@ -28893,21 +29110,12 @@ var getGraphClient = () => {
     }
   });
 };
-var MS_EXCEL_URL = process.env.MICROSOFT_EXCEL_URL;
-var MS_SHEET_NAME = process.env.MICROSOFT_SHEET_NAME || "Sheet1";
-var getShareId = (url) => {
-  return "u!" + Buffer.from(url).toString("base64").replace(/\//g, "_").replace(/\+/g, "-").replace(/=/g, "");
-};
-var resolveExcelFile = async (client) => {
-  if (process.env.MICROSOFT_DRIVE_ID && process.env.MICROSOFT_EXCEL_ITEM_ID) {
-    return { driveId: process.env.MICROSOFT_DRIVE_ID, itemId: process.env.MICROSOFT_EXCEL_ITEM_ID };
-  }
-  if (!MS_EXCEL_URL) {
-    throw new Error("Falta el enlace configurado en MICROSOFT_EXCEL_URL");
-  }
-  const shareId = getShareId(MS_EXCEL_URL);
-  const driveItem = await client.api(`/shares/${shareId}/driveItem`).get();
-  return { driveId: driveItem.parentReference.driveId, itemId: driveItem.id };
+var SITE_HOSTNAME = "vonixxevc-my.sharepoint.com";
+var SITE_PATH = "/personal/maurilio_nascimento_tractgroup_com_br";
+var PRODUCAO_LIST = "DB_Producao_Envase";
+var PARADAS_LIST = "Registro_Paradas_Geral";
+var getSiteUrlPrefix = () => {
+  return `/sites/${SITE_HOSTNAME}:${SITE_PATH}:`;
 };
 var hasLocalCredentials = !!(process.env.MICROSOFT_TENANT_ID && process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
 app.get("/api/config-check", async (req, res) => {
@@ -28915,12 +29123,11 @@ app.get("/api/config-check", async (req, res) => {
   const clientId = process.env.MICROSOFT_CLIENT_ID;
   let connectionStatus = "Not Configured";
   let details = "";
-  if (tenantId && clientId && MS_EXCEL_URL) {
+  if (tenantId && clientId) {
     try {
       const client = getGraphClient();
-      const { driveId, itemId } = await resolveExcelFile(client);
-      await client.api(`/drives/${driveId}/items/${itemId}`).get();
-      connectionStatus = "Connected to OneDrive";
+      await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}`).get();
+      connectionStatus = "Connected to SharePoint Lists";
     } catch (err) {
       connectionStatus = `Error: ${err.message}`;
       details = JSON.stringify(err.body || err);
@@ -28929,32 +29136,29 @@ app.get("/api/config-check", async (req, res) => {
   res.json({
     env: {
       MICROSOFT_TENANT_ID: tenantId ? "Set" : "NOT SET",
-      MICROSOFT_CLIENT_ID: clientId ? "Set" : "NOT SET",
-      MICROSOFT_EXCEL_URL: MS_EXCEL_URL ? "Set" : "NOT SET"
+      MICROSOFT_CLIENT_ID: clientId ? "Set" : "NOT SET"
     },
     status: connectionStatus,
     details
   });
 });
-var formatLitragemText = (val) => {
-  if (!val) return "";
-  const trimmed = val.trim();
-  if (/^(\d+(?:[.,]\d+)?)$/.test(trimmed)) {
-    const num = parseFloat(trimmed.replace(",", "."));
-    return num === 1 ? `${trimmed} Litro` : `${trimmed} Litros`;
+var parseDateToISO = (dateStr) => {
+  if (!dateStr) return (/* @__PURE__ */ new Date()).toISOString();
+  let cleanStr = dateStr.replace(/^'/, "").trim();
+  if (cleanStr.includes("/")) {
+    const parts = cleanStr.split("/");
+    if (parts.length === 3) {
+      const dt = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+      if (!isNaN(dt.getTime())) return dt.toISOString();
+    }
   }
-  const match = trimmed.match(/^(\d+(?:[.,]\d+)?)\s*L$/i);
-  if (match) {
-    const num = parseFloat(match[1].replace(",", "."));
-    return num === 1 ? `${match[1]} Litro` : `${match[1]} Litros`;
-  }
-  return trimmed;
+  return (/* @__PURE__ */ new Date()).toISOString();
 };
 app.post("/api/append", async (req, res) => {
-  console.log("POST /api/append received (OneDrive)", req.body);
+  console.log("POST /api/append received (SharePoint Lists)", req.body);
   if (!hasLocalCredentials) {
     console.log("[Mock] MOCKING SUCCESS for /api/append because local MS credentials are missing.");
-    return res.status(200).json({ success: true, message: "MOCKED Row added via OneDrive" });
+    return res.status(200).json({ success: true, message: "MOCKED Row added via SharePoint Lists" });
   }
   try {
     const {
@@ -28964,86 +29168,76 @@ app.post("/api/append", async (req, res) => {
       produto,
       linha,
       turno,
+      operador,
       quantidade,
       horaInicial,
       horaFinal,
-      qntReprocesso,
+      observacoes,
       paradas,
       isAvulsa
     } = req.body;
-    const rowValues = [
-      carimbo || (/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR"),
-      op || "",
-      horaInicial || "",
-      horaFinal || "",
-      formatLitragemText(litragem || ""),
-      produto || "",
-      linha || "",
-      turno || "",
-      quantidade || "",
-      qntReprocesso || ""
-    ];
+    const baseDate = parseDateToISO(carimbo);
+    const numOp = parseFloat(String(op).replace(/[^\d.,]/g, "")) || 0;
+    const numQuantidade = parseFloat(String(quantidade).replace(/[^\d.,]/g, "")) || 0;
+    const producaoFields = {
+      Title: String(op || ""),
+      Data: baseDate,
+      OP: numOp,
+      Linha: linha || "",
+      Turno: turno || "",
+      Operador: operador || "",
+      Hora_Inicio: horaInicial || "",
+      Hora_Fim: horaFinal || "",
+      Produto: produto || "",
+      QuantidadeProduzida: numQuantidade,
+      Observa_x00e7__x00f5_es: observacoes || ""
+    };
     const client = getGraphClient();
-    const { driveId, itemId } = await resolveExcelFile(client);
     try {
-      const msSheetName = MS_SHEET_NAME;
       let updateRes = null;
       if (!isAvulsa) {
-        const tablesRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/tables`).get();
-        if (tablesRes.value && tablesRes.value.length > 0) {
-          const tableName = tablesRes.value[0].name;
-          updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/tables('${tableName}')/rows`).post({ values: [rowValues] });
-        } else {
-          const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-          const rowCount = usedRange.rowCount;
-          let nextRow = usedRange.rowIndex + rowCount;
-          if (rowCount === 1 && usedRange.values[0][0] === "") nextRow = 0;
-          const appendRangeStr = `A${nextRow + 1}:J${nextRow + 1}`;
-          updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`).patch({ values: [rowValues] });
-        }
+        updateRes = await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items`).post({
+          fields: producaoFields
+        });
       }
       if (paradas && Array.isArray(paradas) && paradas.length > 0) {
         try {
-          const paradasSheetName = "PARADAS";
-          const pRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
-          const pRowCount = pRange.rowCount;
-          let pNextRow = pRange.rowIndex + pRowCount;
-          if (pRowCount === 1 && pRange.values[0][0] === "") pNextRow = 0;
-          const baseDate = rowValues[0];
-          const baseOp = rowValues[1];
-          const baseLitragem = rowValues[4];
-          const baseProduto = rowValues[5];
-          const baseLinha = rowValues[6];
-          const baseTurno = rowValues[7];
-          const newValues = paradas.map((p) => [
-            baseDate,
-            baseOp,
-            baseLitragem,
-            baseProduto,
-            baseLinha,
-            baseTurno,
-            p.seq || "",
-            p.tipologia || "",
-            p.horaInicio || "",
-            p.horaFim || ""
-          ]);
-          const startRow = pNextRow + 1;
-          const endRow = pNextRow + newValues.length;
-          const pAppendRangeStr = `A${startRow}:J${endRow}`;
-          await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${pAppendRangeStr}')`).patch({ values: newValues });
-          console.log("OneDrive Append Paradas success inside /api/append");
+          for (const p of paradas) {
+            const paradaFields = {
+              Title: String(p.seq || ""),
+              Data: baseDate,
+              _x00c1_rea: "Envase",
+              Recurso: producaoFields.Linha,
+              Turno: producaoFields.Turno,
+              Produto: producaoFields.Produto,
+              Operador: producaoFields.Operador,
+              OP: String(op || ""),
+              Cod_Parada: p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : p.tipologia || String(p.seq || ""),
+              Tipo_Parada: p.tipologia || "",
+              Detalhe_Parada: p.observacao || "",
+              Hora_Inicio: p.horaInicio || "",
+              Hora_Fim: p.horaFim || "",
+              N_x00fa_meroO_x002e_S: p.numeroOS || "",
+              Observa_x00e7__x00e3_o: ""
+            };
+            await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
+              fields: paradaFields
+            });
+            await new Promise((resolve) => setTimeout(resolve, 200));
+          }
+          console.log("SharePoint Lists Append Paradas success");
         } catch (err) {
           console.warn("Could not handle PARADAS append.", err.message);
           throw new Error(`OP salva, mas falha ao sincronizar paradas: ${err.message}`);
         }
       }
-      console.log("OneDrive Append success");
-      return res.status(200).json({ success: true, message: "Row added via OneDrive", data: updateRes });
+      console.log("SharePoint Append success");
+      return res.status(200).json({ success: true, message: "Row added via SharePoint Lists", data: updateRes });
     } catch (e) {
       throw e;
     }
   } catch (error) {
-    console.error("Failed to append to OneDrive:", error?.message || error);
+    console.error("Failed to append to SharePoint:", error?.message || error);
     res.status(500).json({
       success: false,
       error: error?.message || String(error),
@@ -29055,7 +29249,7 @@ app.post("/api/append-paradas", async (req, res) => {
   console.log("POST /api/append-paradas received", req.body);
   if (!hasLocalCredentials) {
     console.log("[Mock] MOCKING SUCCESS for /api/append-paradas because local MS credentials are missing.");
-    return res.status(200).json({ success: true, message: "MOCKED Paradas added via OneDrive" });
+    return res.status(200).json({ success: true, message: "MOCKED Paradas added via SharePoint" });
   }
   try {
     const {
@@ -29065,42 +29259,45 @@ app.post("/api/append-paradas", async (req, res) => {
       produto,
       linha,
       turno,
+      operador,
       paradas
     } = req.body;
     if (!paradas || !Array.isArray(paradas) || paradas.length === 0) {
       return res.status(200).json({ success: true, message: "No paradas to append" });
     }
+    const baseDate = parseDateToISO(carimbo);
     const client = getGraphClient();
-    const { driveId, itemId } = await resolveExcelFile(client);
-    const msSheetName = "PARADAS";
     try {
-      const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-      const rowCount = usedRange.rowCount;
-      let nextRow = usedRange.rowIndex + rowCount;
-      if (rowCount === 1 && usedRange.values[0][0] === "") nextRow = 0;
-      const newValues = paradas.map((p) => [
-        carimbo || (/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR"),
-        op || "",
-        formatLitragemText(litragem || ""),
-        produto || "",
-        linha || "",
-        turno || "",
-        p.seq || "",
-        p.tipologia || "",
-        p.horaInicio || "",
-        p.horaFim || ""
-      ]);
-      const startRow = nextRow + 1;
-      const endRow = nextRow + newValues.length;
-      const appendRangeStr = `A${startRow}:J${endRow}`;
-      const updateRes = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`).patch({ values: newValues });
-      console.log("OneDrive Append Paradas success");
-      return res.status(200).json({ success: true, message: "Paradas added via OneDrive", data: updateRes });
+      for (const p of paradas) {
+        const paradaFields = {
+          Title: String(p.seq || ""),
+          Data: baseDate,
+          _x00c1_rea: "Envase",
+          Recurso: linha || "",
+          Turno: turno || "",
+          Produto: produto || "",
+          Operador: operador || "",
+          OP: String(op || ""),
+          Cod_Parada: p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : p.tipologia || String(p.seq || ""),
+          Tipo_Parada: p.tipologia || "",
+          Detalhe_Parada: p.observacao || "",
+          Hora_Inicio: p.horaInicio || "",
+          Hora_Fim: p.horaFim || "",
+          N_x00fa_meroO_x002e_S: p.numeroOS || "",
+          Observa_x00e7__x00e3_o: ""
+        };
+        await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
+          fields: paradaFields
+        });
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+      console.log("SharePoint Append Paradas success");
+      return res.status(200).json({ success: true, message: "Paradas added via SharePoint Lists" });
     } catch (e) {
       throw e;
     }
   } catch (error) {
-    console.error("Failed to append paradas to OneDrive:", error?.message || error);
+    console.error("Failed to append paradas to SharePoint:", error?.message || error);
     res.status(500).json({
       success: false,
       error: error?.message || String(error),
@@ -29117,90 +29314,82 @@ app.post("/api/update", async (req, res) => {
     const { originalData, updates } = req.body;
     const isAvulsa = updates.isAvulsa || originalData.isAvulsa;
     const client = getGraphClient();
-    const { driveId, itemId } = await resolveExcelFile(client);
-    const msSheetName = MS_SHEET_NAME;
-    let rowIndexFound = -1;
-    let excelRowFound = -1;
+    let itemIdToUpdate = null;
     if (!isAvulsa) {
-      const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-      for (let i = usedRange.values.length - 1; i >= 0; i--) {
-        const row = usedRange.values[i];
-        const rowLinha = String(row[6] || "").trim().replace("Linha ", "");
-        const searchLinha = String(originalData.linha || "").trim().replace("Linha ", "");
-        if (String(row[1] || "").trim() === String(originalData.op || "").trim() && rowLinha === searchLinha) {
-          rowIndexFound = i;
-          excelRowFound = usedRange.rowIndex + i + 1;
-          break;
+      const query = `fields/OP eq '${originalData.op}' and fields/Linha eq '${originalData.linha}'`;
+      try {
+        const listItems = await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields`).get();
+        const items = listItems.value;
+        const matchingItems = items.filter(
+          (i) => i.fields.OP === originalData.op && i.fields.Linha === originalData.linha
+        );
+        if (matchingItems.length > 0) {
+          itemIdToUpdate = matchingItems[matchingItems.length - 1].id;
         }
+      } catch (err) {
+        console.warn("Could not find item to update", err);
       }
     }
-    if (isAvulsa || excelRowFound !== -1 && rowIndexFound !== -1) {
-      let updatedRow = [];
-      if (!isAvulsa && excelRowFound !== -1) {
-        const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-        const existingRow = usedRange.values[rowIndexFound];
-        updatedRow = [
-          existingRow[0],
-          // DATA
-          updates.opNumber !== void 0 ? updates.opNumber : existingRow[1],
-          updates.horaInicial !== void 0 ? updates.horaInicial : existingRow[2],
-          updates.horaFinal !== void 0 ? updates.horaFinal : existingRow[3],
-          updates.litragem !== void 0 ? formatLitragemText(updates.litragem) : existingRow[4],
-          updates.produto !== void 0 ? updates.produto : existingRow[5],
-          updates.linha !== void 0 ? updates.linha : existingRow[6],
-          updates.turno !== void 0 ? updates.turno : existingRow[7],
-          updates.quantidade !== void 0 ? updates.quantidade : existingRow[8],
-          updates.qntReprocesso !== void 0 ? updates.qntReprocesso : existingRow[9]
-        ];
-        const appendRangeStr = `A${excelRowFound}:J${excelRowFound}`;
-        await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${appendRangeStr}')`).patch({ values: [updatedRow] });
+    if (isAvulsa || itemIdToUpdate) {
+      if (!isAvulsa && itemIdToUpdate) {
+        const updateFields = {};
+        if (updates.opNumber !== void 0) updateFields.OP = parseFloat(String(updates.opNumber).replace(/[^\d.,]/g, "")) || 0;
+        if (updates.horaInicial !== void 0) updateFields.Hora_Inicio = updates.horaInicial;
+        if (updates.horaFinal !== void 0) updateFields.Hora_Fim = updates.horaFinal;
+        if (updates.produto !== void 0) updateFields.Produto = updates.produto;
+        if (updates.linha !== void 0) updateFields.Linha = updates.linha;
+        if (updates.turno !== void 0) updateFields.Turno = updates.turno;
+        if (updates.operador !== void 0) updateFields.Operador = updates.operador;
+        if (updates.quantidade !== void 0) updateFields.QuantidadeProduzida = parseFloat(String(updates.quantidade).replace(/[^\d.,]/g, "")) || 0;
+        if (updates.observacoes !== void 0) updateFields.Observa_x00e7__x00f5_es = updates.observacoes;
+        await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).patch({
+          fields: updateFields
+        });
       }
       if (updates.paradas !== void 0) {
         try {
-          const paradasSheetName = "PARADAS";
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          const paradasRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
-          const rowsToDelete = [];
-          for (let i = paradasRange.values.length - 1; i >= 0; i--) {
-            const row = paradasRange.values[i];
-            const rowLinha = String(row[4] || "").trim().replace("Linha ", "");
-            const searchLinha = String(originalData.linha || "").trim().replace("Linha ", "");
-            if (String(row[1] || "").trim() === String(originalData.op || "").trim() && rowLinha === searchLinha) {
-              rowsToDelete.push(paradasRange.rowIndex + i + 1);
-            }
-          }
-          for (const rowIdx of rowsToDelete) {
-            const rowToDelete = `${rowIdx}:${rowIdx}`;
-            await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${rowToDelete}')/delete`).post({ shift: "Up" });
-            await new Promise((resolve) => setTimeout(resolve, 300));
+          const pListItems = await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`).get();
+          const items = pListItems.value;
+          let baseOp = String(originalData.op || "");
+          if (!isAvulsa && updates.opNumber !== void 0) baseOp = String(updates.opNumber);
+          let baseLinha = originalData.linha || "";
+          if (!isAvulsa && updates.linha !== void 0) baseLinha = updates.linha;
+          let baseData = parseDateToISO(originalData.carimbo);
+          const matchingItems = items.filter(
+            (i) => String(i.fields.OP || "") === String(originalData.op || "") && String(i.fields.Recurso || "") === String(originalData.linha || "")
+          );
+          for (const m of matchingItems) {
+            await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete();
+            await new Promise((resolve) => setTimeout(resolve, 200));
           }
           if (Array.isArray(updates.paradas) && updates.paradas.length > 0) {
-            const pRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
-            const pRowCount = pRange.rowCount;
-            let pNextRow = pRange.rowIndex + pRowCount;
-            if (pRowCount === 1 && pRange.values[0][0] === "") pNextRow = 0;
-            const baseDate = !isAvulsa && updatedRow[0] || originalData.carimbo || (/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR");
-            const baseOp = !isAvulsa && updatedRow[1] || originalData.op || "";
-            const baseLitragem = !isAvulsa && updatedRow[4] || originalData.litragem || "";
-            const baseProduto = !isAvulsa && updatedRow[5] || originalData.produto || "";
-            const baseLinha = !isAvulsa && updatedRow[6] || originalData.linha || "";
-            const baseTurno = !isAvulsa && updatedRow[7] || originalData.turno || "";
-            const newValues = updates.paradas.map((p) => [
-              baseDate,
-              baseOp,
-              baseLitragem,
-              baseProduto,
-              baseLinha,
-              baseTurno,
-              p.seq || "",
-              p.tipologia || "",
-              p.horaInicio || "",
-              p.horaFim || ""
-            ]);
-            const startRow = pNextRow + 1;
-            const endRow = pNextRow + newValues.length;
-            const pAppendRangeStr = `A${startRow}:J${endRow}`;
-            await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${pAppendRangeStr}')`).patch({ values: newValues });
+            const baseLinha2 = updates.linha || originalData.linha || "";
+            const baseTurno = updates.turno || originalData.turno || "";
+            const baseOperador = updates.operador || originalData.operador || "";
+            const baseProduto = updates.produto || originalData.produto || "";
+            for (const p of updates.paradas) {
+              const paradaFields = {
+                Title: String(p.seq || ""),
+                Data: baseData,
+                _x00c1_rea: "Envase",
+                Recurso: baseLinha2,
+                Turno: baseTurno,
+                Produto: baseProduto,
+                Operador: baseOperador,
+                OP: baseOp,
+                Cod_Parada: p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : p.tipologia || String(p.seq || ""),
+                Tipo_Parada: p.tipologia || "",
+                Detalhe_Parada: p.observacao || "",
+                Hora_Inicio: p.horaInicio || "",
+                Hora_Fim: p.horaFim || "",
+                N_x00fa_meroO_x002e_S: p.numeroOS || "",
+                Observa_x00e7__x00e3_o: ""
+              };
+              await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
+                fields: paradaFields
+              });
+              await new Promise((resolve) => setTimeout(resolve, 200));
+            }
           }
         } catch (err) {
           console.warn("Could not update PARADAS sheet.", err.message);
@@ -29224,47 +29413,38 @@ app.post("/api/delete", async (req, res) => {
   try {
     const { op, linha, isAvulsa } = req.body;
     const client = getGraphClient();
-    const { driveId, itemId } = await resolveExcelFile(client);
-    const msSheetName = MS_SHEET_NAME;
-    let excelRowFound = -1;
+    let deletedAny = false;
     if (!isAvulsa) {
-      const usedRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/usedRange`).get();
-      let rowIndexFound = -1;
-      for (let i = usedRange.values.length - 1; i >= 0; i--) {
-        const row = usedRange.values[i];
-        const rowLinha = String(row[6] || "").trim().replace("Linha ", "");
-        const searchLinha = String(linha || "").trim().replace("Linha ", "");
-        if (String(row[1] || "").trim() === String(op || "").trim() && rowLinha === searchLinha) {
-          rowIndexFound = i;
-          excelRowFound = usedRange.rowIndex + i + 1;
-          break;
+      try {
+        const listItems = await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields`).get();
+        const items = listItems.value;
+        const matchingItems = items.filter(
+          (i) => i.fields.OP === op && i.fields.Linha === linha
+        );
+        if (matchingItems.length > 0) {
+          const itemIdToUpdate = matchingItems[matchingItems.length - 1].id;
+          await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).delete();
+          deletedAny = true;
         }
-      }
-      if (excelRowFound !== -1) {
-        const rowToDelete = `${excelRowFound}:${excelRowFound}`;
-        await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${msSheetName}')/range(address='${rowToDelete}')/delete`).post({ shift: "Up" });
+      } catch (err) {
+        console.warn("Could not delete from PRODUCAO", err);
       }
     }
     try {
-      const paradasSheetName = "PARADAS";
-      const paradasRange = await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/usedRange`).get();
-      const rowsToDelete = [];
-      for (let i = paradasRange.values.length - 1; i >= 0; i--) {
-        const row = paradasRange.values[i];
-        const rowLinha = String(row[4] || "").trim().replace("Linha ", "");
-        const searchLinha = String(linha || "").trim().replace("Linha ", "");
-        if (String(row[1] || "").trim() === String(op || "").trim() && rowLinha === searchLinha) {
-          rowsToDelete.push(paradasRange.rowIndex + i + 1);
-        }
-      }
-      for (const rowIdx of rowsToDelete) {
-        const rowToDelete = `${rowIdx}:${rowIdx}`;
-        await client.api(`/drives/${driveId}/items/${itemId}/workbook/worksheets('${paradasSheetName}')/range(address='${rowToDelete}')/delete`).post({ shift: "Up" });
+      const pListItems = await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`).get();
+      const items = pListItems.value;
+      const matchingItems = items.filter(
+        (i) => String(i.fields.OP || "") === String(op || "") && String(i.fields.Recurso || "") === String(linha || "")
+      );
+      for (const m of matchingItems) {
+        await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete();
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        deletedAny = true;
       }
     } catch (err) {
-      console.warn("Could not delete from PARADAS sheet. Is it created?", err.message);
+      console.warn("Could not delete from PARADAS sheet.", err.message);
     }
-    if (excelRowFound !== -1) {
+    if (deletedAny) {
       return res.status(200).json({ success: true, message: "Row and related paradas deleted" });
     } else {
       console.log("Row not found for delete:", req.body);
@@ -29375,7 +29555,7 @@ vary/index.js:
 @azure/msal-node/dist/client/ManagedIdentityApplication.mjs:
 @azure/msal-node/dist/cache/distributed/DistributedCachePlugin.mjs:
 @azure/msal-node/dist/index.mjs:
-  (*! @azure/msal-node v5.1.5 2026-04-28 *)
+  (*! @azure/msal-node v5.2.4 2026-06-10 *)
 
 @azure/msal-common/dist/utils/Constants.mjs:
 @azure/msal-common/dist/constants/AADServerParamKeys.mjs:
@@ -29438,5 +29618,5 @@ vary/index.js:
 @azure/msal-common/dist/error/AuthErrorCodes.mjs:
 @azure/msal-common/dist/telemetry/server/ServerTelemetryManager.mjs:
 @azure/msal-common/dist/index-node.mjs:
-  (*! @azure/msal-common v16.5.2 2026-04-28 *)
+  (*! @azure/msal-common v16.8.0 2026-06-10 *)
 */

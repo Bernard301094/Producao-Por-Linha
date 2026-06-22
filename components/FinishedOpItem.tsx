@@ -90,7 +90,7 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
         </div>
 
         {/* Stats */}
-        {op.quantidade && (
+        {!op.isAvulsa && op.quantidade && (
           <div className="flex items-stretch gap-2 xl:gap-3 mb-3 xl:mb-4">
             <div className="flex-1 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-800/50 rounded-xl xl:rounded-2xl px-3 xl:px-4 py-2 xl:py-3 flex flex-col">
               <span className="text-[8px] xl:text-[9px] font-bold text-emerald-600 dark:text-emerald-500/70 uppercase tracking-widest leading-none mb-1">Produzido</span>

@@ -124,8 +124,9 @@ function parseReportString(s: string, turno: string): FinishedOperation {
 }
 
 const startOpSchema = z.object({
-  opNumber: z.string().min(1, 'Obrigatório'),
-  produto: z.string().min(1, 'Obrigatório'),
+  isAvulsa: z.boolean().optional(),
+  opNumber: z.string().optional(),
+  produto: z.string().optional(),
   linha: z.string().min(1, 'Obrigatório'),
   turno: z.string().min(1, 'Obrigatório'),
   horaInicial: z.string().min(1, 'Obrigatório'),
@@ -688,6 +689,10 @@ export default function App() {
   // Login
   
   const handlePreStartOp = (data: StartOpFormValues) => {
+    if (!data.isAvulsa) {
+      if (!data.opNumber) { toast.error('Número de OP é obrigatório'); return; }
+      if (!data.produto) { toast.error('Produto é obrigatório'); return; }
+    }
     setStartFormData(data);
     setShowConfirmStart(true);
   };
@@ -726,7 +731,7 @@ export default function App() {
     const sameTurn = data.turno;
     const logicalToday = getLogicalDateStr(getServerTime());
 
-    if (operations.some(op => {
+    if (!data.isAvulsa && operations.some(op => {
       if (op.opNumber !== data.opNumber) return false;
       const turnMatch = op.turno === sameTurn;
       if (!op.carimboInicial) return turnMatch;

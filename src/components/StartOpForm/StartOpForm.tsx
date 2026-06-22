@@ -122,11 +122,33 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
           
           <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6 pb-28 lg:pb-7">
 
-            {/* Removed Mode Tab Switcher */}
+            <div className="flex bg-zinc-200/50 dark:bg-zinc-800/50 p-1.5 rounded-2xl mb-6">
+              <button
+                type="button"
+                onClick={() => setValue('isAvulsa', false, { shouldValidate: true })}
+                className={cn(
+                  "flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-xl transition-all",
+                  !watch('isAvulsa') ? "bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-50 shadow-sm" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+                )}
+              >
+                OP Normal
+              </button>
+              <button
+                type="button"
+                onClick={() => setValue('isAvulsa', true, { shouldValidate: true })}
+                className={cn(
+                  "flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-xl transition-all",
+                  watch('isAvulsa') ? "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200 shadow-sm" : "text-zinc-500 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-500"
+                )}
+              >
+                Parada Avulsa
+              </button>
+            </div>
 
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2 gap-5 sm:gap-6">
 
-               <div className="space-y-2.5 relative">
+              {!watch('isAvulsa') && (
+               <div className="space-y-2.5 relative animate-in fade-in zoom-in-95 duration-200">
                 <Label htmlFor="opNumber" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Número da OP</Label>
                 <div className="relative">
                   <Input id="opNumber" {...register('opNumber', { onChange: (e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }} onPaste={(e: React.ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, ''); const el = e.currentTarget; const s = el.selectionStart ?? 0; const en = el.selectionEnd ?? 0; const newVal = el.value.slice(0, s) + pasted + el.value.slice(en); setValue('opNumber', newVal, { shouldValidate: true }); }} className="w-full h-16 px-5 bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl text-lg sm:text-xl font-mono font-bold text-slate-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
@@ -134,6 +156,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 </div>
                 {errors.opNumber && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.opNumber.message as string}</p>}
               </div>
+              )}
 
               <div className="space-y-2.5 relative">
                 <Label htmlFor="operador" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Operador</Label>
@@ -155,7 +178,8 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.horaInicial.message as string}</p>}
               </div>
 
-              <div className="relative space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2" ref={novaOpRef}>
+              {!watch('isAvulsa') && (
+              <div className="relative space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2 animate-in fade-in zoom-in-95 duration-200" ref={novaOpRef}>
                 <Label htmlFor="produto" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Produto Fabricado</Label>
                 <input id="produto" {...register('produto')} onPointerDown={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} onClick={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} autoComplete="off" onFocus={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} placeholder="Digite para buscar..." className="flex h-16 w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-5 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 shadow-sm" />
                 {showProductSuggestions && (
@@ -183,6 +207,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 )}
                 {errors.produto && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.produto.message as string}</p>}
               </div>
+              )}
 
               <div className="space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2">
                 <Label className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Linha de Produção</Label>
