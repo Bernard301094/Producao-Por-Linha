@@ -26,13 +26,13 @@ const getGraphClient = () => {
   const clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
 
   if (!tenantId || !clientId || !clientSecret) {
-    throw new Error("Missing Microsoft Graph App credentials in environment variables");
+    throw new Error('Missing Microsoft Graph App credentials in environment variables');
   }
 
   const credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
   return Client.init({
     authProvider: (done) => {
-      credential.getToken("https://graph.microsoft.com/.default")
+      credential.getToken('https://graph.microsoft.com/.default')
         .then(token => done(null, token.token))
         .catch(error => done(error, null));
     }
@@ -44,9 +44,7 @@ const SITE_PATH = '/personal/maurilio_nascimento_tractgroup_com_br';
 const PRODUCAO_LIST = 'DB_Producao_Envase';
 const PARADAS_LIST = 'Registro_Paradas_Geral';
 
-const getSiteUrlPrefix = () => {
-  return `/sites/${SITE_HOSTNAME}:${SITE_PATH}:`;
-};
+const getSiteUrlPrefix = () => `/sites/${SITE_HOSTNAME}:${SITE_PATH}:`;
 
 const hasLocalCredentials = !!(
   process.env.MICROSOFT_TENANT_ID &&
@@ -54,7 +52,32 @@ const hasLocalCredentials = !!(
   process.env.MICROSOFT_CLIENT_SECRET
 );
 
-// Endpoint to check if configuration is set correctly and actually test connection
+// ---------------------------------------------------------------------------
+// Helper: expose the real internal field names of a SharePoint list.
+// GET /api/list-fields?list=DB_Producao_Envase
+// Use this endpoint once to verify the exact internal names for each column.
+// ---------------------------------------------------------------------------
+app.get('/api/list-fields', async (req, res) => {
+  if (!hasLocalCredentials) {
+    return res.status(503).json({ error: 'No MS credentials configured' });
+  }
+  const listName = (req.query.list as string) || PRODUCAO_LIST;
+  try {
+    const client = getGraphClient();
+    const result = await client
+      .api(`${getSiteUrlPrefix()}/lists/${listName}/fields`)
+      .select('displayName,internalName,typeAsString')
+      .get();
+    return res.json(result.value.map((f: any) => ({
+      display: f.displayName,
+      internal: f.internalName,
+      type: f.typeAsString
+    })));
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/config-check', async (req, res) => {
   const tenantId = process.env.MICROSOFT_TENANT_ID;
   const clientId = process.env.MICROSOFT_CLIENT_ID;
@@ -85,271 +108,316 @@ app.get('/api/config-check', async (req, res) => {
 
 const parseDateToISO = (dateStr: string) => {
   if (!dateStr) return new Date().toISOString();
-  let cleanStr = dateStr.replace(/^'/, '').trim();
+  const cleanStr = dateStr.replace(/^'/, '').trim();
   if (cleanStr.includes('/')) {
     const parts = cleanStr.split('/');
     if (parts.length === 3) {
-      const dt = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+      const dt = new Date(
+        parseInt(parts[2], 10),
+        parseInt(parts[1], 10) - 1,
+        parseInt(parts[0], 10)
+      );
       if (!isNaN(dt.getTime())) return dt.toISOString();
     }
   }
   return new Date().toISOString();
 };
 
-app.post('/api/append', async (req, res) => {
-  console.log("POST /api/append received (SharePoint Lists)", req.body);
-  if (!hasLocalCredentials) {
-    console.log("[Mock] MOCKING SUCCESS for /api/append because local MS credentials are missing.");
-    return res.status(200).json({ success: true, message: 'MOCKED Row added via SharePoint Lists' });
-  }
-  
-  try {
-    // NOTE: litragem is intentionally excluded — no such column exists in DB_Producao_Envase.
-    const {
-      carimbo, op, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, observacoes, paradas, isAvulsa
-    } = req.body;
+// ---------------------------------------------------------------------------
+// Field name constants — edit here if /api/list-fields reveals different names
+// ---------------------------------------------------------------------------
 
-    const baseDate = parseDateToISO(carimbo);
-    const numOp = parseFloat(String(op).replace(/[^\d.,]/g, '')) || 0;
-    const numQuantidade = parseFloat(String(quantidade).replace(/[^\d.,]/g, '')) || 0;
+// DB_Producao_Envase internal field names
+const F_PROD = {
+  Title:       'Title',
+  Data:        'Data',
+  OP:          'OP',
+  Linha:       'Linha',
+  Turno:       'Turno',
+  Operador:    'Operador',
+  HoraInicio:  'Hora_Inicio',
+  HoraFim:     'Hora_Fim',
+  Produto:     'Produto',
+  // "Quantidade Produzida" — space encoded as _x0020_
+  Quantidade:  'Quantidade_x0020_Produzida',
+  // "Observações" — ç=_x00e7_ õ=_x00f5_
+  Observacoes: 'Observa_x00e7_x00f5_es',
+};
+
+// Registro_Paradas_Geral internal field names
+const F_PAR = {
+  Title:        'Title',
+  Data:         'Data',
+  // "Área" — Á=_x00c1_
+  Area:         '_x00c1_rea',
+  Linha:        'Linha',
+  Reator:       'Reator',
+  Turno:        'Turno',
+  Produto:      'Produto',
+  Operador:     'Operador',
+  OP:           'OP',
+  TipoParada:   'Tipo_Parada',
+  CodParada:    'Cod_Parada',
+  DetalheParada:'Detalhe_Parada',
+  HoraInicio:   'Hora_Inicio',
+  HoraFim:      'Hora_Fim',
+  // "Número O.S" — ú=_x00fa_ space=_x0020_ .=_x002e_
+  NumeroOS:     'N_x00fa_mero_x0020_O_x002e_S_x002e_',
+  // "Observação" — ç=_x00e7_ ã=_x00e3_
+  Observacao:   'Observa_x00e7_x00e3_o',
+};
+
+// ---------------------------------------------------------------------------
+// /api/append  — create a new production record + its paradas
+// ---------------------------------------------------------------------------
+app.post('/api/append', async (req, res) => {
+  console.log('POST /api/append received', req.body);
+  if (!hasLocalCredentials) {
+    console.log('[Mock] MOCKING SUCCESS for /api/append');
+    return res.status(200).json({ success: true, message: 'MOCKED Row added' });
+  }
+
+  try {
+    // litragem is intentionally excluded — no such column in DB_Producao_Envase
+    const { carimbo, op, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, observacoes, paradas, isAvulsa } = req.body;
+
+    const baseDate    = parseDateToISO(carimbo);
+    const numOp       = parseFloat(String(op).replace(/[^\d.,]/g, '')) || 0;
+    const numQtd      = parseFloat(String(quantidade).replace(/[^\d.,]/g, '')) || 0;
 
     const producaoFields = {
-      Title: String(op || ''), 
-      Data: baseDate,
-      OP: numOp,
-      Linha: linha || '',
-      Turno: turno || '',
-      Operador: operador || '',
-      Hora_Inicio: horaInicial || '',
-      Hora_Fim: horaFinal || '',
-      Produto: produto || '',
-      QuantidadeProduzida: numQuantidade,
-      Observa_x00e7__x00f5_es: observacoes || ''
+      [F_PROD.Title]:      String(op || ''),
+      [F_PROD.Data]:       baseDate,
+      [F_PROD.OP]:         numOp,
+      [F_PROD.Linha]:      linha    || '',
+      [F_PROD.Turno]:      turno    || '',
+      [F_PROD.Operador]:   operador || '',
+      [F_PROD.HoraInicio]: horaInicial || '',
+      [F_PROD.HoraFim]:    horaFinal   || '',
+      [F_PROD.Produto]:    produto  || '',
+      [F_PROD.Quantidade]: numQtd,
+      [F_PROD.Observacoes]: observacoes || '',
     };
 
     const client = getGraphClient();
-    
-    try {
-      let updateRes = null;
+    let updateRes = null;
 
-      if (!isAvulsa) {
-        updateRes = await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items`).post({
-          fields: producaoFields
-        });
-      }
-      
-      // Sync paradas if provided
-      if (paradas && Array.isArray(paradas) && paradas.length > 0) {
-        try {
-          for (const p of paradas) {
-            const paradaFields = {
-              Title: String(p.seq || ''),
-              Data: baseDate,
-              _x00c1_rea: 'Envase',
-              Recurso: producaoFields.Linha,
-              Turno: producaoFields.Turno,
-              Produto: producaoFields.Produto,
-              Operador: producaoFields.Operador,
-              OP: String(op || ''),
-              Cod_Parada: p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
-              Tipo_Parada: p.tipologia || '',
-              Detalhe_Parada: p.observacao || '',
-              Hora_Inicio: p.horaInicio || '',
-              Hora_Fim: p.horaFim || '',
-              N_x00fa_meroO_x002e_S: p.numeroOS || '',
-              Observa_x00e7__x00e3_o: ''
-            };
-            
-            await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
-              fields: paradaFields
-            });
-            // Delay to prevent throttling
-            await new Promise(resolve => setTimeout(resolve, 200));
-          }
-          console.log("SharePoint Lists Append Paradas success");
-        } catch (err: any) {
-          console.warn("Could not handle PARADAS append.", err.message);
-          throw new Error(`OP salva, mas falha ao sincronizar paradas: ${err.message}`);
-        }
-      }
-
-      console.log("SharePoint Append success");
-      return res.status(200).json({ success: true, message: 'Row added via SharePoint Lists', data: updateRes });
-    } catch (e) {
-       throw e;
+    if (!isAvulsa) {
+      updateRes = await client
+        .api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items`)
+        .post({ fields: producaoFields });
     }
+
+    if (paradas && Array.isArray(paradas) && paradas.length > 0) {
+      try {
+        for (const p of paradas) {
+          const paradaFields = {
+            [F_PAR.Title]:         String(p.seq || ''),
+            [F_PAR.Data]:          baseDate,
+            [F_PAR.Area]:          'Envase',
+            [F_PAR.Linha]:         linha    || '',
+            [F_PAR.Reator]:        '',
+            [F_PAR.Turno]:         turno    || '',
+            [F_PAR.Produto]:       produto  || '',
+            [F_PAR.Operador]:      operador || '',
+            [F_PAR.OP]:            String(op || ''),
+            [F_PAR.TipoParada]:    p.tipologia || '',
+            [F_PAR.CodParada]:     p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
+            [F_PAR.DetalheParada]: p.observacao  || '',
+            [F_PAR.HoraInicio]:    p.horaInicio  || '',
+            [F_PAR.HoraFim]:       p.horaFim     || '',
+            [F_PAR.NumeroOS]:      p.numeroOS    || '',
+            [F_PAR.Observacao]:    '',
+          };
+          await client
+            .api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`)
+            .post({ fields: paradaFields });
+          await new Promise(r => setTimeout(r, 200));
+        }
+        console.log('SharePoint Paradas append success');
+      } catch (err: any) {
+        console.warn('Could not handle PARADAS append.', err.message);
+        throw new Error(`OP salva, mas falha ao sincronizar paradas: ${err.message}`);
+      }
+    }
+
+    console.log('SharePoint Append success');
+    return res.status(200).json({ success: true, message: 'Row added via SharePoint Lists', data: updateRes });
   } catch (error: any) {
-    console.error("Failed to append to SharePoint:", error?.message || error);
-    res.status(500).json({ 
-      success: false, 
+    console.error('Failed to append to SharePoint:', error?.message || error);
+    return res.status(500).json({
+      success: false,
       error: error?.message || String(error),
       details: error?.body || null
     });
   }
 });
 
+// ---------------------------------------------------------------------------
+// /api/append-paradas  — standalone paradas append
+// ---------------------------------------------------------------------------
 app.post('/api/append-paradas', async (req, res) => {
-  console.log("POST /api/append-paradas received", req.body);
+  console.log('POST /api/append-paradas received', req.body);
   if (!hasLocalCredentials) {
-    console.log("[Mock] MOCKING SUCCESS for /api/append-paradas because local MS credentials are missing.");
-    return res.status(200).json({ success: true, message: 'MOCKED Paradas added via SharePoint' });
+    console.log('[Mock] MOCKING SUCCESS for /api/append-paradas');
+    return res.status(200).json({ success: true, message: 'MOCKED Paradas added' });
   }
-  
+
   try {
-    // NOTE: litragem is intentionally excluded — no such column exists in Registro_Paradas_Geral.
-    const {
-      carimbo, op, produto, linha, turno, operador, paradas
-    } = req.body;
+    // litragem is intentionally excluded
+    const { carimbo, op, produto, linha, turno, operador, paradas } = req.body;
 
     if (!paradas || !Array.isArray(paradas) || paradas.length === 0) {
       return res.status(200).json({ success: true, message: 'No paradas to append' });
     }
 
     const baseDate = parseDateToISO(carimbo);
-    const client = getGraphClient();
-    
-    try {
-      for (const p of paradas) {
-        const paradaFields = {
-          Title: String(p.seq || ''),
-          Data: baseDate,
-          _x00c1_rea: 'Envase',
-          Recurso: linha || '',
-          Turno: turno || '',
-          Produto: produto || '',
-          Operador: operador || '',
-          OP: String(op || ''),
-          Cod_Parada: p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
-          Tipo_Parada: p.tipologia || '',
-          Detalhe_Parada: p.observacao || '',
-          Hora_Inicio: p.horaInicio || '',
-          Hora_Fim: p.horaFim || '',
-          N_x00fa_meroO_x002e_S: p.numeroOS || '',
-          Observa_x00e7__x00e3_o: ''
-        };
-        
-        await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
-          fields: paradaFields
-        });
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
+    const client   = getGraphClient();
 
-      console.log("SharePoint Append Paradas success");
-      return res.status(200).json({ success: true, message: 'Paradas added via SharePoint Lists' });
-    } catch (e) {
-       throw e;
+    for (const p of paradas) {
+      const paradaFields = {
+        [F_PAR.Title]:         String(p.seq || ''),
+        [F_PAR.Data]:          baseDate,
+        [F_PAR.Area]:          'Envase',
+        [F_PAR.Linha]:         linha    || '',
+        [F_PAR.Reator]:        '',
+        [F_PAR.Turno]:         turno    || '',
+        [F_PAR.Produto]:       produto  || '',
+        [F_PAR.Operador]:      operador || '',
+        [F_PAR.OP]:            String(op || ''),
+        [F_PAR.TipoParada]:    p.tipologia || '',
+        [F_PAR.CodParada]:     p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
+        [F_PAR.DetalheParada]: p.observacao  || '',
+        [F_PAR.HoraInicio]:    p.horaInicio  || '',
+        [F_PAR.HoraFim]:       p.horaFim     || '',
+        [F_PAR.NumeroOS]:      p.numeroOS    || '',
+        [F_PAR.Observacao]:    '',
+      };
+      await client
+        .api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`)
+        .post({ fields: paradaFields });
+      await new Promise(r => setTimeout(r, 200));
     }
+
+    console.log('SharePoint Append Paradas success');
+    return res.status(200).json({ success: true, message: 'Paradas added via SharePoint Lists' });
   } catch (error: any) {
-    console.error("Failed to append paradas to SharePoint:", error?.message || error);
-    res.status(500).json({ 
-      success: false, 
+    console.error('Failed to append paradas to SharePoint:', error?.message || error);
+    return res.status(500).json({
+      success: false,
       error: error?.message || String(error),
       details: error?.body || null
     });
   }
 });
 
+// ---------------------------------------------------------------------------
+// /api/update  — update existing production record + re-sync paradas
+// ---------------------------------------------------------------------------
 app.post('/api/update', async (req, res) => {
   if (!hasLocalCredentials) {
-    console.log("[Mock] MOCKING SUCCESS for /api/update because local MS credentials are missing.");
+    console.log('[Mock] MOCKING SUCCESS for /api/update');
     return res.status(200).json({ success: true, message: 'MOCKED Row updated' });
   }
 
   try {
     const { originalData, updates } = req.body;
     const isAvulsa = updates.isAvulsa || originalData.isAvulsa;
-    const client = getGraphClient();
+    const client   = getGraphClient();
 
-    let itemIdToUpdate = null;
+    let itemIdToUpdate: string | null = null;
 
     if (!isAvulsa) {
-      // Find the item in Producao list
       try {
-        const listItems = await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields`).get();
-        const items = listItems.value;
-        const matchingItems = items.filter((i: any) => 
-          i.fields.OP === originalData.op && i.fields.Linha === originalData.linha
+        const listItems = await client
+          .api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields`)
+          .get();
+        const matching = (listItems.value as any[]).filter(
+          i => i.fields.OP === originalData.op && i.fields.Linha === originalData.linha
         );
-        // Take the latest matching item
-        if (matchingItems.length > 0) {
-          itemIdToUpdate = matchingItems[matchingItems.length - 1].id;
+        if (matching.length > 0) {
+          itemIdToUpdate = matching[matching.length - 1].id;
         }
       } catch (err) {
-        console.warn("Could not find item to update", err);
+        console.warn('Could not find item to update', err);
       }
     }
 
     if (isAvulsa || itemIdToUpdate) {
       if (!isAvulsa && itemIdToUpdate) {
-        // NOTE: litragem is intentionally excluded — no such column exists in DB_Producao_Envase.
-        const updateFields: any = {};
-        if (updates.opNumber !== undefined) updateFields.OP = parseFloat(String(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
-        if (updates.horaInicial !== undefined) updateFields.Hora_Inicio = updates.horaInicial;
-        if (updates.horaFinal !== undefined) updateFields.Hora_Fim = updates.horaFinal;
-        if (updates.produto !== undefined) updateFields.Produto = updates.produto;
-        if (updates.linha !== undefined) updateFields.Linha = updates.linha;
-        if (updates.turno !== undefined) updateFields.Turno = updates.turno;
-        if (updates.operador !== undefined) updateFields.Operador = updates.operador;
-        if (updates.quantidade !== undefined) updateFields.QuantidadeProduzida = parseFloat(String(updates.quantidade).replace(/[^\d.,]/g, '')) || 0;
-        if (updates.observacoes !== undefined) updateFields.Observa_x00e7__x00f5_es = updates.observacoes;
+        // litragem intentionally excluded
+        const updateFields: Record<string, any> = {};
+        if (updates.opNumber   !== undefined) updateFields[F_PROD.OP]         = parseFloat(String(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
+        if (updates.horaInicial !== undefined) updateFields[F_PROD.HoraInicio] = updates.horaInicial;
+        if (updates.horaFinal   !== undefined) updateFields[F_PROD.HoraFim]    = updates.horaFinal;
+        if (updates.produto     !== undefined) updateFields[F_PROD.Produto]    = updates.produto;
+        if (updates.linha       !== undefined) updateFields[F_PROD.Linha]      = updates.linha;
+        if (updates.turno       !== undefined) updateFields[F_PROD.Turno]      = updates.turno;
+        if (updates.operador    !== undefined) updateFields[F_PROD.Operador]   = updates.operador;
+        if (updates.quantidade  !== undefined) updateFields[F_PROD.Quantidade] = parseFloat(String(updates.quantidade).replace(/[^\d.,]/g, '')) || 0;
+        if (updates.observacoes !== undefined) updateFields[F_PROD.Observacoes] = updates.observacoes;
 
-        await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).patch({
-          fields: updateFields
-        });
+        await client
+          .api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`)
+          .patch({ fields: updateFields });
       }
-      
-      // Update Paradas if provided
+
       if (updates.paradas !== undefined) {
         try {
-          const pListItems = await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`).get();
-          const items = pListItems.value;
-          
-          let baseOp = String(originalData.op || '');
+          const pListItems = await client
+            .api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`)
+            .get();
+
+          let baseOp   = String(originalData.op || '');
           if (!isAvulsa && updates.opNumber !== undefined) baseOp = String(updates.opNumber);
-          
-          let baseData = parseDateToISO(originalData.carimbo);
-          
-          const matchingItems = items.filter((i: any) => 
-            String(i.fields.OP || '') === String(originalData.op || '') && String(i.fields.Recurso || '') === String(originalData.linha || '')
+          const baseDate = parseDateToISO(originalData.carimbo);
+
+          // Delete old paradas matching this OP + Linha
+          const oldParadas = (pListItems.value as any[]).filter(
+            i =>
+              String(i.fields.OP    || '') === String(originalData.op    || '') &&
+              String(i.fields.Linha || '') === String(originalData.linha || '')
           );
-          
-          for (const m of matchingItems) {
-            await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete();
-            await new Promise(resolve => setTimeout(resolve, 200));
+          for (const m of oldParadas) {
+            await client
+              .api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`)
+              .delete();
+            await new Promise(r => setTimeout(r, 200));
           }
 
           if (Array.isArray(updates.paradas) && updates.paradas.length > 0) {
-            const baseLinha = updates.linha || originalData.linha || '';
-            const baseTurno = updates.turno || originalData.turno || '';
+            const baseLinha    = updates.linha    || originalData.linha    || '';
+            const baseTurno    = updates.turno    || originalData.turno    || '';
             const baseOperador = updates.operador || originalData.operador || '';
-            const baseProduto = updates.produto || originalData.produto || '';
+            const baseProduto  = updates.produto  || originalData.produto  || '';
 
             for (const p of updates.paradas) {
               const paradaFields = {
-                Title: String(p.seq || ''),
-                Data: baseData,
-                _x00c1_rea: 'Envase',
-                Recurso: baseLinha,
-                Turno: baseTurno,
-                Produto: baseProduto,
-                Operador: baseOperador,
-                OP: baseOp,
-                Cod_Parada: p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
-                Tipo_Parada: p.tipologia || '',
-                Detalhe_Parada: p.observacao || '',
-                Hora_Inicio: p.horaInicio || '',
-                Hora_Fim: p.horaFim || '',
-                N_x00fa_meroO_x002e_S: p.numeroOS || '',
-                Observa_x00e7__x00e3_o: ''
+                [F_PAR.Title]:         String(p.seq || ''),
+                [F_PAR.Data]:          baseDate,
+                [F_PAR.Area]:          'Envase',
+                [F_PAR.Linha]:         baseLinha,
+                [F_PAR.Reator]:        '',
+                [F_PAR.Turno]:         baseTurno,
+                [F_PAR.Produto]:       baseProduto,
+                [F_PAR.Operador]:      baseOperador,
+                [F_PAR.OP]:            baseOp,
+                [F_PAR.TipoParada]:    p.tipologia || '',
+                [F_PAR.CodParada]:     p.seq && p.tipologia ? `${p.seq} ${p.tipologia}` : (p.tipologia || String(p.seq || '')),
+                [F_PAR.DetalheParada]: p.observacao  || '',
+                [F_PAR.HoraInicio]:    p.horaInicio  || '',
+                [F_PAR.HoraFim]:       p.horaFim     || '',
+                [F_PAR.NumeroOS]:      p.numeroOS    || '',
+                [F_PAR.Observacao]:    '',
               };
-              await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`).post({
-                fields: paradaFields
-              });
-              await new Promise(resolve => setTimeout(resolve, 200));
+              await client
+                .api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items`)
+                .post({ fields: paradaFields });
+              await new Promise(r => setTimeout(r, 200));
             }
           }
         } catch (err: any) {
-          console.warn("Could not update PARADAS sheet.", err.message);
+          console.warn('Could not update PARADAS.', err.message);
         }
       }
 
@@ -359,56 +427,64 @@ app.post('/api/update', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Row not found in spreadsheet' });
     }
   } catch (error: any) {
-    console.error("Update error:", error?.message || error);
+    console.error('Update error:', error?.message || error);
     return res.status(500).json({ success: false, error: error?.message || String(error) });
   }
 });
 
+// ---------------------------------------------------------------------------
+// /api/delete  — remove production record + its paradas
+// ---------------------------------------------------------------------------
 app.post('/api/delete', async (req, res) => {
   if (!hasLocalCredentials) {
-    console.log("[Mock] MOCKING SUCCESS for /api/delete because local MS credentials are missing.");
+    console.log('[Mock] MOCKING SUCCESS for /api/delete');
     return res.status(200).json({ success: true, message: 'MOCKED Row deleted' });
   }
 
   try {
     const { op, linha, isAvulsa } = req.body;
     const client = getGraphClient();
-
     let deletedAny = false;
 
-    // 1. Delete from Producao List
+    // 1. Delete from Producao list
     if (!isAvulsa) {
       try {
-        const listItems = await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields`).get();
-        const items = listItems.value;
-        const matchingItems = items.filter((i: any) => 
-          i.fields.OP === op && i.fields.Linha === linha
+        const listItems = await client
+          .api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields`)
+          .get();
+        const matching = (listItems.value as any[]).filter(
+          i => i.fields.OP === op && i.fields.Linha === linha
         );
-        if (matchingItems.length > 0) {
-          const itemIdToUpdate = matchingItems[matchingItems.length - 1].id;
-          await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).delete();
+        if (matching.length > 0) {
+          await client
+            .api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${matching[matching.length - 1].id}`)
+            .delete();
           deletedAny = true;
         }
       } catch (err) {
-        console.warn("Could not delete from PRODUCAO", err);
+        console.warn('Could not delete from PRODUCAO', err);
       }
     }
 
-    // 2. Delete from Paradas List
+    // 2. Delete from Paradas list (filter by Linha, not Recurso)
     try {
-      const pListItems = await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`).get();
-      const items = pListItems.value;
-      const matchingItems = items.filter((i: any) => 
-        String(i.fields.OP || '') === String(op || '') && String(i.fields.Recurso || '') === String(linha || '')
+      const pListItems = await client
+        .api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`)
+        .get();
+      const matching = (pListItems.value as any[]).filter(
+        i =>
+          String(i.fields.OP    || '') === String(op    || '') &&
+          String(i.fields.Linha || '') === String(linha || '')
       );
-      
-      for (const m of matchingItems) {
-        await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete();
-        await new Promise(resolve => setTimeout(resolve, 200));
+      for (const m of matching) {
+        await client
+          .api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`)
+          .delete();
+        await new Promise(r => setTimeout(r, 200));
         deletedAny = true;
       }
     } catch (err: any) {
-      console.warn("Could not delete from PARADAS sheet.", err.message);
+      console.warn('Could not delete from PARADAS.', err.message);
     }
 
     if (deletedAny) {
@@ -418,7 +494,7 @@ app.post('/api/delete', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Row not found in spreadsheet' });
     }
   } catch (error: any) {
-    console.error("Delete error:", error?.message || error);
+    console.error('Delete error:', error?.message || error);
     return res.status(500).json({ success: false, error: error?.message || String(error) });
   }
 });
@@ -429,9 +505,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   const distPath = getDistPath();
   app.use(express.static(distPath));
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) {
-      return next();
-    }
+    if (req.path.startsWith('/api')) return next();
     res.sendFile(path.join(distPath, 'index.html'));
   });
 } else if (!process.env.VERCEL) {
