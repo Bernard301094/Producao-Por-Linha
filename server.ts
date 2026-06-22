@@ -101,22 +101,36 @@ const parseDateToISO = (dateStr: string) => {
   return new Date().toISOString();
 };
 
-// DB_Producao_Envase — confirmed working fields
+// DB_Producao_Envase — confirmed fields from SharePoint columns list
+// Display name -> internal name (SharePoint uses internal names in API)
+// Título -> Title
+// Linha -> Linha (Choice)
+// Turno -> Turno (Choice)
+// Operador -> Operador (Text)
+// Produto -> Produto (Choice)
+// Data -> Data (DateTime)
+// Quantidade Produzida -> QuantidadeProduzida (Number)
+// Enviado_CSV -> Enviado_CSV (Boolean)
+// Hora_Inicio -> Hora_Inicio (Text)
+// Hora_Fim -> Hora_Fim (Text)
+// Observações -> Observacoes (Note) — internal name without accent
+// OP -> OP (Number)
 const F_PROD = {
-  Title:      'Title',
-  Data:       'Data',
-  OP:         'OP',
-  Linha:      'Linha',
-  Turno:      'Turno',
-  Operador:   'Operador',
-  HoraInicio: 'Hora_Inicio',
-  HoraFim:    'Hora_Fim',
-  Produto:    'Produto',
-  Quantidade: 'QuantidadeProduzida',
+  Title:        'Title',
+  Data:         'Data',
+  OP:           'OP',
+  Linha:        'Linha',
+  Turno:        'Turno',
+  Operador:     'Operador',
+  HoraInicio:   'Hora_Inicio',
+  HoraFim:      'Hora_Fim',
+  Produto:      'Produto',
+  Quantidade:   'QuantidadeProduzida',
+  Observacoes:  'Observacoes',
 };
 
-// Registro_Paradas_Geral — only fields confirmed to exist
-// Removed: Area, Reator, Linha, Turno, Produto, Operador (not recognized)
+// Registro_Paradas_Geral — need to confirm fields via /api/list-fields?list=Registro_Paradas_Geral
+// Sending only safe minimal set for now
 const F_PAR = {
   Title:         'Title',
   Data:          'Data',
@@ -127,7 +141,6 @@ const F_PAR = {
   HoraInicio:    'Hora_Inicio',
   HoraFim:       'Hora_Fim',
   NumeroOS:      'NumeroOS',
-  Observacao:    'Observacao',
 };
 
 const buildParadaFields = (p: any, baseDate: string, op: string) => ({
@@ -140,7 +153,6 @@ const buildParadaFields = (p: any, baseDate: string, op: string) => ({
   [F_PAR.HoraInicio]:    p.horaInicio || '',
   [F_PAR.HoraFim]:       p.horaFim    || '',
   [F_PAR.NumeroOS]:      p.numeroOS   || '',
-  [F_PAR.Observacao]:    '',
 });
 
 app.post('/api/append', async (req, res) => {
@@ -154,7 +166,7 @@ app.post('/api/append', async (req, res) => {
     const numOp    = parseFloat(String(op).replace(/[^\d.,]/g, '')) || 0;
     const numQtd   = parseFloat(String(quantidade).replace(/[^\d.,]/g, '')) || 0;
 
-    const producaoFields = {
+    const producaoFields: Record<string, any> = {
       [F_PROD.Title]:      String(op || ''),
       [F_PROD.Data]:       baseDate,
       [F_PROD.OP]:         numOp,
@@ -251,8 +263,7 @@ app.post('/api/update', async (req, res) => {
           if (!isAvulsa && updates.opNumber !== undefined) baseOp = String(updates.opNumber);
           const baseDate = parseDateToISO(originalData.carimbo);
           const oldParadas = (pListItems.value as any[]).filter(i =>
-            String(i.fields.OP || '') === String(originalData.op || '') &&
-            String(i.fields.Linha || '') === String(originalData.linha || ''));
+            String(i.fields.OP || '') === String(originalData.op || ''));
           for (const m of oldParadas) { await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete(); await new Promise(r => setTimeout(r, 200)); }
           if (Array.isArray(updates.paradas) && updates.paradas.length > 0) {
             for (const p of updates.paradas) {
@@ -287,7 +298,7 @@ app.post('/api/delete', async (req, res) => {
     }
     try {
       const pListItems = await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items?$expand=fields`).get();
-      const matching = (pListItems.value as any[]).filter(i => String(i.fields.OP || '') === String(op || '') && String(i.fields.Linha || '') === String(linha || ''));
+      const matching = (pListItems.value as any[]).filter(i => String(i.fields.OP || '') === String(op || ''));
       for (const m of matching) { await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete(); await new Promise(r => setTimeout(r, 200)); deletedAny = true; }
     } catch (err: any) { console.warn('Could not delete from PARADAS.', err.message); }
     if (deletedAny) return res.status(200).json({ success: true, message: 'Row and related paradas deleted' });
