@@ -51,31 +51,22 @@ const hasLocalCredentials = !!(
 );
 
 // GET /api/list-fields?list=Registro_Paradas_Geral
-// Uses /columns endpoint (correct Graph API path for SharePoint list columns)
 app.get('/api/list-fields', async (req, res) => {
   if (!hasLocalCredentials) return res.status(503).json({ error: 'No MS credentials configured' });
   const listName = (req.query.list as string) || PRODUCAO_LIST;
   try {
     const client = getGraphClient();
     const sitePrefix = getSiteUrlPrefix();
-
-    // Step 1: resolve the list ID by name
     const listInfo = await client
       .api(`${sitePrefix}/lists/${encodeURIComponent(listName)}`)
       .select('id,displayName')
       .get();
-
-    // Step 2: fetch columns using the list ID (the /columns sub-resource is supported)
     const result = await client
       .api(`${sitePrefix}/lists/${listInfo.id}/columns`)
-      .select('displayName,name,description')
+      .select('displayName,name')
       .get();
-
     return res.json(
-      result.value.map((f: any) => ({
-        display:  f.displayName,
-        internal: f.name,
-      }))
+      result.value.map((f: any) => ({ display: f.displayName, internal: f.name }))
     );
   } catch (err: any) {
     return res.status(500).json({ error: err.message, details: err.body || null });
@@ -117,7 +108,7 @@ const parseDateToISO = (dateStr: string) => {
   return new Date().toISOString();
 };
 
-// DB_Producao_Envase — confirmed from screenshot
+// DB_Producao_Envase — verified via /api/list-fields
 const F_PROD = {
   Title:       'Title',
   Data:        'Data',
@@ -129,15 +120,16 @@ const F_PROD = {
   HoraFim:     'Hora_Fim',
   Produto:     'Produto',
   Quantidade:  'QuantidadeProduzida',
-  Observacoes: 'Observacoes',
+  Observacoes: 'Observa_x00e7__x00f5_es',
 };
 
-// Registro_Paradas_Geral
+// Registro_Paradas_Geral — verified via /api/list-fields
+// IMPORTANT: "Linha" display name maps to internal "Recurso"
 const F_PAR = {
   Title:        'Title',
   Data:         'Data',
   OP:           'OP',
-  Linha:        'Linha',
+  Linha:        'Recurso',                   // display="Linha" but internal="Recurso"
   Turno:        'Turno',
   Operador:     'Operador',
   Produto:      'Produto',
@@ -146,8 +138,8 @@ const F_PAR = {
   DetalheParada:'Detalhe_Parada',
   HoraInicio:   'Hora_Inicio',
   HoraFim:      'Hora_Fim',
-  Observacao:   'Observacao',
-  NumeroOS:     'N_mero_O_S',
+  Observacao:   'Observa_x00e7__x00e3_o',    // display="Observação"
+  NumeroOS:     'N_x00fa_meroO_x002e_S',     // display="Número O.S"
 };
 
 const buildParadaFields = (p: any, baseDate: string, linha: string, turno: string, produto: string, operador: string, op: string) => ({
@@ -160,7 +152,7 @@ const buildParadaFields = (p: any, baseDate: string, linha: string, turno: strin
   [F_PAR.Produto]:       produto,
   [F_PAR.TipoParada]:    p.tipologia   || '',
   [F_PAR.CodParada]:     p.tipologia   || '',
-  [F_PAR.DetalheParada]: p.observacao  || '',
+  [F_PAR.DetalheParada]: p.detalhamento || p.observacao || '',
   [F_PAR.HoraInicio]:    p.horaInicio  || '',
   [F_PAR.HoraFim]:       p.horaFim     || '',
   [F_PAR.Observacao]:    p.observacao  || '',
