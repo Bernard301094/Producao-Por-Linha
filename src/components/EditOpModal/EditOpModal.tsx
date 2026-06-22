@@ -115,12 +115,11 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
         </DialogHeader>
         {editingOp && (
           <form onSubmit={handleSubmitEdit(onEditOp)} className="space-y-6">
-            <div className={cn("grid gap-5", editingOp.isAvulsa ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
+            <div className={cn("grid gap-5", "grid-cols-1 sm:grid-cols-2")}>
               <div className="space-y-2">
                 <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Nº da OP</Label>
                 <Input type="text" inputMode="numeric" pattern="[0-9]*" {...registerEdit('opNumber', { onChange: (e: any) => e.target.value = e.target.value.replace(/[^0-9]/g, '') })} className="w-full h-14 px-4 bg-[#F9FAFB] dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-2xl text-base font-mono text-zinc-900 dark:text-zinc-100 focus-visible:ring-0 focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 transition-all shadow-sm focus:bg-white dark:focus:bg-zinc-950" />
               </div>
-              {!editingOp.isAvulsa && (
               <div className="space-y-2">
                 <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Inicial</Label>
                 <CustomTimePicker
@@ -131,13 +130,20 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                   inputClass="pl-9 pr-2 text-base w-full bg-transparent outline-none flex-1 font-bold"
                 />
               </div>
-              )}
             </div>
+
+            {watchEdit('isAvulsa') && (
+              <div className="flex justify-end -mt-2">
+                 <Button type="button" variant="outline" size="sm" onClick={() => { setValueEdit('isAvulsa', false); setValueEdit('opNumber', ''); setValueEdit('produto', ''); }} className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900 dark:hover:bg-emerald-900/30">
+                   Convertir a OP Normal
+                 </Button>
+              </div>
+            )}
             <div className="relative space-y-2" ref={editOpRef}>
               <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Produto</Label>
               <input id="edit-produto" {...registerEdit('produto')} onPointerDown={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} onClick={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} autoComplete="off" onFocus={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} className="flex h-14 w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] dark:bg-zinc-900 px-4 py-2 text-base text-zinc-900 dark:text-zinc-100 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus-visible:outline-none focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 shadow-sm focus:bg-white dark:focus:bg-zinc-950" />
               {showEditProductSuggestions && (
-                <div className="absolute z-50 w-full bottom-full mb-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl max-h-60 overflow-y-auto p-2 ring-1 ring-zinc-900/5">
+                <div className="fixed bottom-0 left-0 right-0 md:absolute md:bottom-full md:mb-2 z-[100] md:z-[50] md:w-full bg-white dark:bg-zinc-950 border-t md:border border-zinc-200 dark:border-zinc-800 rounded-t-2xl md:rounded-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.15)] md:shadow-xl max-h-[40dvh] md:max-h-60 overflow-y-auto p-2 ring-1 ring-zinc-900/5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                   {!isTypingEditProduct && (
                     <div onClick={(e) => { e.preventDefault(); setIsTypingEditProduct(true); setTimeout(() => document.getElementById('edit-produto')?.focus(), 50); }} className="hidden">
                     </div>

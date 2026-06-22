@@ -162,7 +162,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 {errors.operador && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.operador.message as string}</p>}
               </div>
 
-              {!watch('isAvulsa') && (
               <div className="space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2 animate-in fade-in zoom-in-95 duration-200">
                 <Label htmlFor="horaInicial" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Hora de Início</Label>
                 <input type="hidden" {...register('turno')} />
@@ -176,13 +175,12 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 />
                 {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.horaInicial.message as string}</p>}
               </div>
-              )}
 
               <div className="relative space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2" ref={novaOpRef}>
                 <Label htmlFor="produto" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Produto Fabricado</Label>
                 <input id="produto" {...register('produto')} onPointerDown={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} onClick={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} autoComplete="off" onFocus={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} placeholder="Digite para buscar..." className="flex h-16 w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-5 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 shadow-sm" />
                 {showProductSuggestions && (
-                  <div className="absolute z-[60] w-full bottom-full mb-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[1.5rem] shadow-2xl max-h-[min(18rem,50dvh)] overflow-y-auto p-2 ring-1 ring-zinc-900/5">
+                  <div className="fixed bottom-0 left-0 right-0 md:absolute md:bottom-full md:mb-2 z-[100] md:z-[60] md:w-full bg-white dark:bg-zinc-950 border-t md:border border-zinc-200 dark:border-zinc-800 rounded-t-[1.5rem] md:rounded-[1.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.15)] md:shadow-2xl max-h-[40dvh] md:max-h-[min(18rem,50dvh)] overflow-y-auto p-2 ring-1 ring-zinc-900/5 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
                     {!isTypingProduct && (
                       <div onClick={(e) => { e.preventDefault(); setIsTypingProduct(true); setTimeout(() => document.getElementById('produto')?.focus(), 50); }} className="hidden">
                       </div>

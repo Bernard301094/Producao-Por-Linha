@@ -398,7 +398,8 @@ export default function App() {
       horaInicial: op.horaInicial,
       quantidade: (op as FinishedOperation).quantidade || '',
       horaFinal: (op as FinishedOperation).horaFinal || '',
-      observacoes: (op as FinishedOperation).observacoes || ''
+      observacoes: (op as FinishedOperation).observacoes || '',
+      isAvulsa: op.isAvulsa
     });
   }, [resetEdit]);
 
@@ -436,6 +437,7 @@ export default function App() {
               horaFinal: normalizeTime(data.horaFinal),
               observacoes: data.observacoes,
               paradas: editParadas,
+              isAvulsa: data.isAvulsa
             },
             turno
           );
@@ -449,6 +451,7 @@ export default function App() {
             turno: data.turno,
             horaInicial: normalizeTime(data.horaInicial),
             paradas: editParadas,
+            isAvulsa: data.isAvulsa
           });
           toast.success('OP actualizada.');
         }
@@ -689,11 +692,14 @@ export default function App() {
   // Login
   
   const handlePreStartOp = (data: StartOpFormValues) => {
-    if (!data.opNumber) { toast.error('Número de OP é obrigatório'); return; }
-    if (!data.produto) { toast.error('Produto é obrigatório'); return; }
     if (!data.isAvulsa) {
-      if (!data.horaInicial) { toast.error('Hora de Início é obrigatória'); return; }
+      if (!data.opNumber) { toast.error('Número de OP é obrigatório'); return; }
+      if (!data.produto) { toast.error('Produto é obrigatório'); return; }
+    } else {
+      if (!data.opNumber) data.opNumber = 'Parada Avulsa';
+      if (!data.produto) data.produto = 'N/A';
     }
+    if (!data.horaInicial) { toast.error('Hora de Início é obrigatória'); return; }
     setStartFormData(data);
     setShowConfirmStart(true);
   };
@@ -774,76 +780,6 @@ export default function App() {
         operador: data.operador
       });
       setShowConfirmStart(false);
-    } catch (err: any) {
-      toast.error('Erro: ' + err.message);
-    } finally {
-      setLoadingNewOp(false);
-    }
-  };
-
-  const handleParadaOnly = async (data: StartOpFormValues, paradas: ParadaRecord[]) => {
-    if (loginProfile) {
-      const shiftCheck = isShiftAllowed(`Turno ${currentTurnForView}`);
-      if (!shiftCheck.allowed) {
-        logAudit({
-          userProfile: loginProfile,
-          action: 'FINISH_OP',
-          expectedShift: loginProfile,
-          activeShift: shiftCheck.activeTurno,
-          serverTimestamp: getServerTimeISO(),
-          result: 'BLOCKED',
-          reason: shiftCheck.reason,
-          opReference: data.opNumber
-        });
-        toast.error(shiftCheck.reason);
-        return;
-      }
-    }
-
-    if (paradas.length === 0) {
-      toast.error('Adicione ao menos uma parada.');
-      return;
-    }
-
-    setLoadingNewOp(true);
-    try {
-      const matchedProduct = availableProducts.find(p => (p.produto || '').trim().toUpperCase() === (data.produto || '').trim().toUpperCase());
-      const derivedLitragem = matchedProduct?.litragem || extractLitragem(data.produto || '');
-      const sameTurn = data.turno;
-
-      // Sort paradas by time to find the latest end time
-      const sortedParadas = [...paradas].sort((a, b) => a.horaFim.localeCompare(b.horaFim));
-      const lastParadaEnd = sortedParadas[sortedParadas.length - 1].horaFim;
-
-      // Synthetic OP (Direct to Finished)
-      const syntheticOp: Operation = {
-        id: Date.now().toString(36) + Math.random().toString(36).substring(2),
-        carimboInicial: new Date().toISOString(),
-        ...data,
-        opNumber: data.opNumber || '',
-        produto: data.produto || '',
-        horaInicial: sortedParadas[0].horaInicio.length === 5 ? `${sortedParadas[0].horaInicio}:00` : sortedParadas[0].horaInicio,
-        litragem: derivedLitragem,
-        turno: sameTurn,
-        isAvulsa: true
-      };
-
-      await markOperationFinished(
-        syntheticOp,
-        '0',
-        lastParadaEnd.length === 5 ? `${lastParadaEnd}:00` : lastParadaEnd,
-        '',
-        paradas,
-        (success, error) => {
-          if (success) {
-            toast.success('Paradas registradas e sincronizadas!');
-          } else {
-            toast.warning(`Paradas salvas no log, mas erro na planilha: ${error}`);
-          }
-        }
-      );
-
-      reset({ opNumber: '', produto: '', linha: '', turno: data.turno, horaInicial: format(new Date(), 'HH:mm') });
     } catch (err: any) {
       toast.error('Erro: ' + err.message);
     } finally {
@@ -957,7 +893,6 @@ export default function App() {
 
   const myPendingOps = useMemo(() => {
     return operations.filter(op => {
-      if (op.isAvulsa) return false;
       if (!op.carimboInicial) return true;
       return getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
     });
@@ -1059,7 +994,6 @@ export default function App() {
   const linhaHistoryMap = useMemo(() => {
     const map: Record<string, (FinishedOperation | Operation)[]> = {};
     const getKey = (op: any) => {
-      if (op.isAvulsa) return null;
       const linha = normalizeLinha(op.linha);
       const date = op.carimboInicial ? op.carimboInicial.substring(0, 10) : '';
       return `${linha}|${op.turno}|${date}`;
