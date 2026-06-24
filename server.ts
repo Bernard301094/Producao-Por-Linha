@@ -120,7 +120,7 @@ const F_PROD = {
   HoraFim:     'Hora_Fim',
   Produto:     'Produto',
   Quantidade:  'QuantidadeProduzida',
-  Observacoes: 'Observa_x00e7__x00f5_es',
+  Observacoes: 'Observa_x00e7__x00f5_es', // display="Observações"
 };
 
 // Registro_Paradas_Geral — verified via /api/list-fields
