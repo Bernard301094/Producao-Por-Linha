@@ -364,7 +364,9 @@ export default function App() {
   const editOpRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent | TouchEvent) {
+    let lastOpenedAt = 0;
+    function handleClickOutside(event: MouseEvent | PointerEvent) {
+      if (Date.now() - lastOpenedAt < 300) return;
       if (novaOpRef.current && !novaOpRef.current.contains(event.target as Node)) {
         setShowProductSuggestions(false);
         setIsTypingProduct(false);
@@ -374,11 +376,14 @@ export default function App() {
         setIsTypingEditProduct(false);
       }
     }
+    const onOpen = () => { lastOpenedAt = Date.now(); };
     document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('pointerdown', handleClickOutside);
+    window.addEventListener('focus', onOpen, true);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('pointerdown', handleClickOutside);
+      window.removeEventListener('focus', onOpen, true);
     };
   }, []);
 
@@ -1496,7 +1501,7 @@ export default function App() {
       </div>
 
       <Dialog open={isNovaSheetOpen} onOpenChange={setIsNovaSheetOpen}>
-        <DialogContent showCloseButton={false} className="w-full max-w-full rounded-t-[2rem] p-0 border-0 gap-0 top-auto bottom-0 translate-y-0 max-h-[94dvh] overflow-hidden flex flex-col bg-white dark:bg-zinc-950 shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.25)]">
+        <DialogContent showCloseButton={false} className="w-full max-w-full rounded-t-[2rem] p-0 border-0 gap-0 top-auto bottom-0 translate-y-0 max-h-[90vh] overflow-hidden flex flex-col bg-white dark:bg-zinc-950 shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.25)]">
           {/* Drag handle */}
           <div className="flex-shrink-0 flex flex-col items-center pt-3 pb-1 cursor-pointer" onClick={() => setIsNovaSheetOpen(false)}>
             <div className="w-10 h-1 rounded-full bg-zinc-200 dark:bg-zinc-700" />

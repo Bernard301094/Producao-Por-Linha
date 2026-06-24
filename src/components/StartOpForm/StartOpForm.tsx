@@ -77,20 +77,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
 }) => {
   const novaOpRef = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    function handleClickOutside(event: MouseEvent | TouchEvent) {
-      if (novaOpRef.current && !novaOpRef.current.contains(event.target as Node)) {
-        setShowProductSuggestions(false);
-        setIsTypingProduct(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [setIsTypingProduct, setShowProductSuggestions]);
 
   return (
     <Card className="bg-white dark:bg-zinc-950 sm:rounded-3xl shadow-lg sm:ring-1 ring-zinc-200 dark:ring-zinc-800/50 flex flex-col overflow-hidden border-none sm:border-y-0 w-full min-h-full lg:h-full relative">
