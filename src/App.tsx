@@ -511,7 +511,6 @@ export default function App() {
   useEffect(() => {
     if (watchLinha) {
       localStorage.setItem('v-ops-default-linha', watchLinha);
-      updateSelectedLinha(watchLinha, false);
     }
   }, [watchLinha]);
 
@@ -756,7 +755,6 @@ export default function App() {
       toast.success('Operação iniciada!');
       localStorage.setItem('v-ops-default-linha', data.linha);
       localStorage.setItem('v-ops-default-operador', data.operador);
-      updateSelectedLinha(data.linha, false);
       reset({
         opNumber: '',
         produto: '',
@@ -1544,7 +1542,6 @@ export default function App() {
             onStartOp={async (data: any) => {
               await onStartOp(data);
               setIsNovaSheetOpen(false);
-              setMobileTab('pendentes');
             }}
             availableParadas={availableParadas}
             setAvailableParadas={setAvailableParadas}
