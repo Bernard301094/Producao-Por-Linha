@@ -264,10 +264,11 @@ app.post('/api/update', async (req, res) => {
           `${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields&$top=500`;
         while (nextLink && !itemIdToUpdate) {
           const page: any = await client.api(nextLink).get();
-          // FIX: comparar como string para evitar number !== string
+          const targetOp = s(originalData.op);
+          const targetLinha = formatLinha(originalData.linha);
           const matching = (page.value as any[]).filter(i =>
-            opMatch(i.fields.OP, originalData.op) &&
-            s(i.fields.Linha).trim() === s(originalData.linha).trim()
+            (opMatch(i.fields.Title, targetOp) || opMatch(i.fields.OP, targetOp)) &&
+            s(i.fields.Linha).trim() === targetLinha.trim()
           );
           if (matching.length > 0) {
             itemIdToUpdate = matching[matching.length - 1].id;
@@ -310,9 +311,10 @@ app.post('/api/update', async (req, res) => {
           if (!isAvulsa && updates.opNumber !== undefined) baseOp = s(updates.opNumber);
           const baseDate = parseDateToISO(originalData.carimbo);
 
+          const targetOpParada = s(originalData.op);
           // FIX: comparar como string
           const oldParadas = allParadaItems.filter(i =>
-            opMatch(i.fields.OP, originalData.op)
+            opMatch(i.fields.Title, targetOpParada) || opMatch(i.fields.OP, targetOpParada)
           );
           for (const m of oldParadas) {
             await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete();
@@ -362,10 +364,12 @@ app.post('/api/delete', async (req, res) => {
           allItems.push(...page.value);
           nextLink = page['@odata.nextLink'] || null;
         }
+        const targetOpDelete = s(op);
+        const targetLinhaDelete = formatLinha(linha);
         // FIX: comparar como string
         const matching = allItems.filter(i =>
-          opMatch(i.fields.OP, op) &&
-          s(i.fields.Linha).trim() === s(linha).trim()
+          (opMatch(i.fields.Title, targetOpDelete) || opMatch(i.fields.OP, targetOpDelete)) &&
+          s(i.fields.Linha).trim() === targetLinhaDelete.trim()
         );
         if (matching.length > 0) {
           await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${matching[matching.length - 1].id}`).delete();
@@ -385,8 +389,9 @@ app.post('/api/delete', async (req, res) => {
         allParadas.push(...page.value);
         nextLink = page['@odata.nextLink'] || null;
       }
+      const targetOpDeleteParada = s(op);
       // FIX: comparar como string
-      const matching = allParadas.filter(i => opMatch(i.fields.OP, op));
+      const matching = allParadas.filter(i => opMatch(i.fields.Title, targetOpDeleteParada) || opMatch(i.fields.OP, targetOpDeleteParada));
       for (const m of matching) {
         await client.api(`${getSiteUrlPrefix()}/lists/${PARADAS_LIST}/items/${m.id}`).delete();
         await new Promise(r => setTimeout(r, 200));
