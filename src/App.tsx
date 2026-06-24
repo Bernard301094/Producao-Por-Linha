@@ -360,32 +360,7 @@ export default function App() {
   const { register: registerEdit, handleSubmit: handleSubmitEdit, reset: resetEdit, setValue: setValueEdit, watch: watchEdit } = useForm<StartOpFormValues & { quantidade?: string; horaFinal?: string; observacoes?: string }>({});
   const watchEditProduto = watchEdit('produto');
 
-  const novaOpRef = useRef<HTMLDivElement>(null);
-  const editOpRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    let lastOpenedAt = 0;
-    function handleClickOutside(event: MouseEvent | PointerEvent) {
-      if (Date.now() - lastOpenedAt < 300) return;
-      if (novaOpRef.current && !novaOpRef.current.contains(event.target as Node)) {
-        setShowProductSuggestions(false);
-        setIsTypingProduct(false);
-      }
-      if (editOpRef.current && !editOpRef.current.contains(event.target as Node)) {
-        setShowEditProductSuggestions(false);
-        setIsTypingEditProduct(false);
-      }
-    }
-    const onOpen = () => { lastOpenedAt = Date.now(); };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('pointerdown', handleClickOutside);
-    window.addEventListener('focus', onOpen, true);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('pointerdown', handleClickOutside);
-      window.removeEventListener('focus', onOpen, true);
-    };
-  }, []);
 
   const openEdit = useCallback((op: Operation | FinishedOperation) => {
     setEditingOp(op);
@@ -404,7 +379,7 @@ export default function App() {
       quantidade: (op as FinishedOperation).quantidade || '',
       horaFinal: (op as FinishedOperation).horaFinal || '',
       observacoes: (op as FinishedOperation).observacoes || '',
-      isAvulsa: op.isAvulsa
+      isAvulsa: op.isAvulsa ?? false
     });
   }, [resetEdit]);
 
@@ -442,7 +417,7 @@ export default function App() {
               horaFinal: normalizeTime(data.horaFinal),
               observacoes: data.observacoes,
               paradas: editParadas,
-              isAvulsa: data.isAvulsa
+              isAvulsa: data.isAvulsa ?? false
             },
             turno
           );
@@ -456,18 +431,19 @@ export default function App() {
             turno: data.turno,
             horaInicial: normalizeTime(data.horaInicial),
             paradas: editParadas,
-            isAvulsa: data.isAvulsa
+            isAvulsa: data.isAvulsa ?? false
           });
           toast.success('OP actualizada.');
         }
         
+        const shiftCheck = isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN');
         logAudit({
           userProfile: currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN',
           action: 'EDIT_OP',
           expectedShift: currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN',
-          activeShift: isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').activeTurno,
+          activeShift: shiftCheck.activeTurno,
           serverTimestamp: getServerTimeISO(),
-          result: isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').allowed ? (isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
+          result: shiftCheck.allowed ? (shiftCheck.toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
           opReference: data.opNumber,
           reason: undefined
         });
@@ -629,7 +605,7 @@ export default function App() {
     }
   }, [watchHoraInicial, setValue]);
 
-  const currentTurnForView = getSuggestedShift(new Date(), format(new Date(), 'HH:mm'));
+  const currentTurnForView = useMemo(() => getSuggestedShift(new Date(), format(new Date(), 'HH:mm')), []);
   const loginProfile = `Turno ${currentTurnForView}`;
 
   const refreshData = async () => {
@@ -671,9 +647,14 @@ export default function App() {
   }, [operatingMode, selectedLinha]);
 
   // Background Auto-Retry for Failed Syncs
+  const finishedOpsRef = useRef(finishedOps);
+  useEffect(() => {
+    finishedOpsRef.current = finishedOps;
+  }, [finishedOps]);
+
   useEffect(() => {
     const interval = setInterval(async () => {
-      const failedOps = finishedOps.filter(op => op.syncStatus === 'error');
+      const failedOps = finishedOpsRef.current.filter(op => op.syncStatus === 'error');
       for (const op of failedOps) {
         try {
           console.log(`Auto-retrying sync for OP ${op.opNumber}...`);
@@ -685,7 +666,7 @@ export default function App() {
     }, 3 * 60 * 1000); // 3 minutes
 
     return () => clearInterval(interval);
-  }, [finishedOps]);
+  }, []);
 
   useEffect(() => {
     refreshData();
@@ -854,13 +835,14 @@ export default function App() {
       try {
         await moveFinishedToPending(revertingOp.id, revertingOp.turno || currentTurnForView);
         
+        const shiftCheck = isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN');
         logAudit({
           userProfile: currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN',
           action: 'REVERT_OP',
           expectedShift: currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN',
-          activeShift: isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').activeTurno,
+          activeShift: shiftCheck.activeTurno,
           serverTimestamp: getServerTimeISO(),
-          result: isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').allowed ? (isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
+          result: shiftCheck.allowed ? (shiftCheck.toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
           opReference: revertingOp.opNumber,
           reason: undefined
         });
@@ -886,7 +868,7 @@ export default function App() {
   };
 
   // Override Supervisor States removed
-  const logicalToday = getLogicalDateStr(getServerTime());
+  const logicalToday = useMemo(() => getLogicalDateStr(getServerTime()), []);
 
   const myFinishedOps = useMemo(() => {
     return finishedOps.filter(op => {
@@ -965,8 +947,8 @@ export default function App() {
     return matchesSearch(op, searchFinished);
   }), [myFinishedOps, searchFinished, selectedLinha]);
 
-  const totalUnidades = myFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0);
-  const visibleTotalUnidades = visibleFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0);
+  const totalUnidades = useMemo(() => myFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0), [myFinishedOps]);
+  const visibleTotalUnidades = useMemo(() => visibleFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0), [visibleFinishedOps]);
 
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
   const rawDisplayPendingOps = tourActive ? TOUR_MOCK_OPS : visiblePendingOps;
@@ -1038,13 +1020,14 @@ export default function App() {
           toast.message('Operação removida.');
         }
         
+        const shiftCheck = isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN');
         logAudit({
           userProfile: currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN',
           action: 'DELETE_OP',
           expectedShift: currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN',
-          activeShift: isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').activeTurno,
+          activeShift: shiftCheck.activeTurno,
           serverTimestamp: getServerTimeISO(),
-          result: isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').allowed ? (isShiftAllowed(currentTurnForView ? `Turno ${currentTurnForView}` : 'UNKNOWN').toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
+          result: shiftCheck.allowed ? (shiftCheck.toleranceApplied ? 'TOLERANCE' : 'ALLOWED') : 'OVERRIDE',
           opReference: deletingOp.opNumber,
           reason: undefined
         });
@@ -1068,7 +1051,19 @@ export default function App() {
     doDelete();
   };
 
-    const today = format(new Date(), 'dd/MM/yyyy');
+    const today = useMemo(() => format(new Date(), 'dd/MM/yyyy'), []);
+
+    const handleAddForgottenParada = useCallback(async (finOp: FinishedOperation, parada: ParadaRecord) => {
+      const updated = [...(finOp.paradas || []), parada];
+      await updateFinishedOperation(finOp.id, { paradas: updated }, finOp.turno);
+    }, []);
+  
+    const handleConvertToOp = useCallback(async (finOp: FinishedOperation, data: { horaInicial: string; horaFinal: string; quantidade: string }) => {
+      await convertAvulsaToOp(
+        finOp.id, data.horaInicial, data.horaFinal, data.quantidade,
+        (ok, err) => { if (!ok) toast.warning(`Salvo, mas erro na planilha: ${err}`); }
+      );
+    }, []);
 
   return (
     <>
@@ -1340,7 +1335,7 @@ export default function App() {
                     setDeletingOp={setDeletingOp} 
                     availableParadas={availableParadas}
                     linhaHistory={
-                      linhaHistoryMap[`${normalizeLinha(op.linha)}|${op.turno}|${op.carimboInicial ? op.carimboInicial.substring(0, 10) : ''}`] || []
+                      linhaHistoryMap[`${normalizeLinha(op.linha)}|${op.turno}|${op.carimboInicial?.substring(0, 10) ?? ''}`] ?? []
                     }
                   />
                 ))}
@@ -1481,16 +1476,8 @@ export default function App() {
                     setRevertingOp={setRevertingOp}
                     onSyncRetry={handleSyncRetry}
                     availableParadas={availableParadas}
-                    onAddForgottenParada={async (finOp: FinishedOperation, parada: ParadaRecord) => {
-                      const updated = [...(finOp.paradas || []), parada];
-                      await updateFinishedOperation(finOp.id, { paradas: updated }, finOp.turno);
-                    }}
-                    onConvertToOp={async (finOp: FinishedOperation, data: { horaInicial: string; horaFinal: string; quantidade: string }) => {
-                      await convertAvulsaToOp(
-                        finOp.id, data.horaInicial, data.horaFinal, data.quantidade,
-                        (ok, err) => { if (!ok) toast.warning(`Salvo, mas erro na planilha: ${err}`); }
-                      );
-                    }}
+                    onAddForgottenParada={handleAddForgottenParada}
+                    onConvertToOp={handleConvertToOp}
                   />
                 ))}
               </div>
@@ -1527,6 +1514,7 @@ export default function App() {
           <div className="h-px bg-zinc-100 dark:bg-zinc-800 flex-shrink-0" />
           {/* Form — overflow scroll */}
           <div className="flex-1 overflow-y-auto">
+          {isNovaSheetOpen && (
           <StartOpForm
             hideHeader
             operatingMode={operatingMode}
@@ -1561,6 +1549,7 @@ export default function App() {
             availableParadas={availableParadas}
             setAvailableParadas={setAvailableParadas}
           />
+          )}
           </div>
         </DialogContent>
       </Dialog>
