@@ -140,6 +140,7 @@ const F_PAR = {
   HoraFim:      'Hora_Fim',
   Observacao:   'Observa_x00e7__x00e3_o',    // display="Observação"
   NumeroOS:     'N_x00fa_meroO_x002e_S',     // display="Número O.S"
+  Area:         '_x00c1_rea',
 };
 
 // Normaliza qualquer valor para string segura (nunca undefined/null)
@@ -164,7 +165,8 @@ const buildParadaFields = (p: any, baseDate: string, linha: string, turno: strin
   [F_PAR.Turno]:         formatTurno(turno),
   [F_PAR.Operador]:      s(operador),
   [F_PAR.Produto]:       s(produto),
-  [F_PAR.TipoParada]:    s(p.tipologia),
+  [F_PAR.TipoParada]:    (p.flag === 1 || String(p.flag) === '1' || p.flag === true) ? 'Programada' : 'Não Programada',
+  [F_PAR.Area]:          'Envase',
   [F_PAR.CodParada]:     `${s(p.seq)} ${s(p.tipologia).toUpperCase()}`,
   [F_PAR.DetalheParada]: s(p.detalhamento || p.observacao),
   [F_PAR.HoraInicio]:    formatTime(p.horaInicio),
