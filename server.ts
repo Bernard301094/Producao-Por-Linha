@@ -157,6 +157,55 @@ const formatTime = (t: any): string => {
 const formatLinha = (l: any): string => s(l).replace(/Linha 0+(\d+)/, 'Linha $1');
 const formatTurno = (t: any): string => s(t).replace('Turno ', '');
 
+const SP_COD_PARADAS = [
+  "1 ACIDENTE / SEGURANÇA",
+  "2 AGUARDANDO ANÁLISE DO MANIPULADO",
+  "3 AGUARDANDO LIBERAÇÃO DO PRODUTO ACABADO",
+  "4 AGUARDANDO MANIPULAÇÃO DE PRODUTO",
+  "5 FALTA DE AR",
+  "6 FALTA DE ENEGIA",
+  "7 FALTA DE GÁS",
+  "8 FALTA DE INSUMOS",
+  "9 FALTA DE PALETE",
+  "10 INICIO DE TURNO",
+  "11 LIMPEZA / 5S",
+  "12 MANUTENÇÃO AUTÔNOMA",
+  "13 MANUTENÇÃO CORRETIVA",
+  "14 MANUTENÇÃO PREVENTIVA",
+  "15 PARADA PROGRAMADA",
+  "16 REAJUSTE DE PRODUTO",
+  "17 REFEIÇÃO",
+  "18 REPROCESSO/RETRABALHO",
+  "19 REUNIÃO/TREINAMENTO",
+  "20 SEM PROGRAMAÇÃO (PCP)",
+  "21 SETUP",
+  "22 TROCA DE ROTULO",
+  "23 INSPEÇÃO DE LINHA"
+];
+
+const formatCodParada = (tipologia: any, seq: any): string => {
+  const t = s(tipologia).toUpperCase().trim();
+  
+  // 1. Try exact match ignoring the number
+  for (const spCod of SP_COD_PARADAS) {
+    const spText = spCod.replace(/^\d+\s+/, '').trim();
+    if (t === spText) return spCod;
+  }
+  
+  // 2. Try handling known typos (e.g., ENERGIA vs ENEGIA)
+  if (t.includes('ENERGIA')) return "6 FALTA DE ENEGIA";
+  if (t.includes('ANALISE')) return "2 AGUARDANDO ANÁLISE DO MANIPULADO";
+  
+  // 3. Try contains match
+  for (const spCod of SP_COD_PARADAS) {
+    const spText = spCod.replace(/^\d+\s+/, '').trim();
+    if (t.includes(spText) || spText.includes(t)) return spCod;
+  }
+  
+  // 4. Fallback to just building what we can, hoping SP accepts it
+  return `${s(seq)} ${t}`;
+};
+
 const buildParadaFields = (p: any, baseDate: string, linha: string, turno: string, produto: string, operador: string, op: string) => ({
   [F_PAR.Title]:         s(p.seq),
   [F_PAR.Data]:          baseDate,
@@ -167,7 +216,7 @@ const buildParadaFields = (p: any, baseDate: string, linha: string, turno: strin
   [F_PAR.Produto]:       s(produto),
   [F_PAR.TipoParada]:    (p.flag === 1 || String(p.flag) === '1' || p.flag === true) ? 'Programada' : 'Não Programada',
   [F_PAR.Area]:          'Envase',
-  [F_PAR.CodParada]:     `${s(p.seq)} ${s(p.tipologia).toUpperCase()}`,
+  [F_PAR.CodParada]:     formatCodParada(p.tipologia, p.seq),
   [F_PAR.DetalheParada]: s(p.detalhamento || p.observacao),
   [F_PAR.HoraInicio]:    formatTime(p.horaInicio),
   [F_PAR.HoraFim]:       formatTime(p.horaFim),
