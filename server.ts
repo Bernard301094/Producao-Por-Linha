@@ -148,19 +148,27 @@ const s = (v: any): string => (v == null ? '' : String(v));
 // Compara dois valores de OP ignorando tipo (number vs string)
 const opMatch = (a: any, b: any): boolean => s(a).trim() === s(b).trim();
 
+// Formatadores para padronizar os dados com a planilha original
+const formatTime = (t: any): string => {
+  const str = s(t);
+  return str.length === 8 && str.split(':').length === 3 ? str.substring(0, 5) : str;
+};
+const formatLinha = (l: any): string => s(l).replace(/Linha 0+(\d+)/, 'Linha $1');
+const formatTurno = (t: any): string => s(t).replace('Turno ', '');
+
 const buildParadaFields = (p: any, baseDate: string, linha: string, turno: string, produto: string, operador: string, op: string) => ({
   [F_PAR.Title]:         s(p.seq),
   [F_PAR.Data]:          baseDate,
   [F_PAR.OP]:            s(op),
-  [F_PAR.Linha]:         s(linha),
-  [F_PAR.Turno]:         s(turno),
+  [F_PAR.Linha]:         formatLinha(linha),
+  [F_PAR.Turno]:         formatTurno(turno),
   [F_PAR.Operador]:      s(operador),
   [F_PAR.Produto]:       s(produto),
   [F_PAR.TipoParada]:    s(p.tipologia),
   [F_PAR.CodParada]:     s(p.tipologia),
   [F_PAR.DetalheParada]: s(p.detalhamento || p.observacao),
-  [F_PAR.HoraInicio]:    s(p.horaInicio),
-  [F_PAR.HoraFim]:       s(p.horaFim),
+  [F_PAR.HoraInicio]:    formatTime(p.horaInicio),
+  [F_PAR.HoraFim]:       formatTime(p.horaFim),
   [F_PAR.Observacao]:    s(p.observacao),
   [F_PAR.NumeroOS]:      s(p.numeroOS),
 });
@@ -181,11 +189,11 @@ app.post('/api/append', async (req, res) => {
       [F_PROD.Title]:      s(op),
       [F_PROD.Data]:       baseDate,
       [F_PROD.OP]:         numOp,
-      [F_PROD.Linha]:      s(linha),
-      [F_PROD.Turno]:      s(turno),
+      [F_PROD.Linha]:      formatLinha(linha),
+      [F_PROD.Turno]:      formatTurno(turno),
       [F_PROD.Operador]:   s(operador),
-      [F_PROD.HoraInicio]: s(horaInicial),
-      [F_PROD.HoraFim]:    s(horaFinal),
+      [F_PROD.HoraInicio]: formatTime(horaInicial),
+      [F_PROD.HoraFim]:    formatTime(horaFinal),
       [F_PROD.Produto]:    s(produto),
       [F_PROD.Quantidade]: numQtd,
     };
@@ -276,12 +284,12 @@ app.post('/api/update', async (req, res) => {
       if (!isAvulsa && itemIdToUpdate) {
         const uf: Record<string, any> = {};
         if (updates.opNumber    !== undefined) uf[F_PROD.OP]         = parseFloat(s(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
-        if (updates.horaInicial !== undefined) uf[F_PROD.HoraInicio] = s(updates.horaInicial);
-        if (updates.horaFinal   !== undefined) uf[F_PROD.HoraFim]    = s(updates.horaFinal);
         if (updates.produto     !== undefined) uf[F_PROD.Produto]    = s(updates.produto);
-        if (updates.linha       !== undefined) uf[F_PROD.Linha]      = s(updates.linha);
-        if (updates.turno       !== undefined) uf[F_PROD.Turno]      = s(updates.turno);
+        if (updates.linha       !== undefined) uf[F_PROD.Linha]      = formatLinha(updates.linha);
+        if (updates.turno       !== undefined) uf[F_PROD.Turno]      = formatTurno(updates.turno);
         if (updates.operador    !== undefined) uf[F_PROD.Operador]   = s(updates.operador);
+        if (updates.horaInicial !== undefined) uf[F_PROD.HoraInicio] = formatTime(updates.horaInicial);
+        if (updates.horaFinal   !== undefined) uf[F_PROD.HoraFim]    = formatTime(updates.horaFinal);
         if (updates.quantidade  !== undefined) uf[F_PROD.Quantidade] = parseFloat(s(updates.quantidade).replace(/[^\d.,]/g, '')) || 0;
         console.log('Fields being patched to SP (Producao):', JSON.stringify(uf));
         await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).patch({ fields: uf });
