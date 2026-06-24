@@ -165,7 +165,7 @@ const buildParadaFields = (p: any, baseDate: string, linha: string, turno: strin
   [F_PAR.Operador]:      s(operador),
   [F_PAR.Produto]:       s(produto),
   [F_PAR.TipoParada]:    s(p.tipologia),
-  [F_PAR.CodParada]:     s(p.seq),
+  [F_PAR.CodParada]:     `${s(p.seq)} ${s(p.tipologia).toUpperCase()}`,
   [F_PAR.DetalheParada]: s(p.detalhamento || p.observacao),
   [F_PAR.HoraInicio]:    formatTime(p.horaInicio),
   [F_PAR.HoraFim]:       formatTime(p.horaFim),
