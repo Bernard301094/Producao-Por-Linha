@@ -143,7 +143,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
               <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Produto</Label>
               <input id="edit-produto" {...registerEdit('produto')} onPointerDown={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} onClick={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} autoComplete="off" onFocus={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} className="flex h-14 w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] dark:bg-zinc-900 px-4 py-2 text-base text-zinc-900 dark:text-zinc-100 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus-visible:outline-none focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 shadow-sm focus:bg-white dark:focus:bg-zinc-950" />
               {showEditProductSuggestions && (
-                <div className="absolute top-[calc(100%+0.5rem)] z-[100] w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl max-h-[min(16rem,40dvh)] overflow-y-auto p-2 ring-1 ring-zinc-900/5">
+                <div className="mt-2 w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm max-h-[min(16rem,40dvh)] overflow-y-auto p-2 ring-1 ring-zinc-900/5">
                   {!isTypingEditProduct && (
                     <div onClick={(e) => { e.preventDefault(); setIsTypingEditProduct(true); setTimeout(() => document.getElementById('edit-produto')?.focus(), 50); }} className="hidden">
                     </div>
