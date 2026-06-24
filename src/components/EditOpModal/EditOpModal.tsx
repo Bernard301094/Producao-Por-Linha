@@ -86,23 +86,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
   setEditParadaObs,
   addEditParada
 }) => {
-  const editOpRef = useRef<HTMLDivElement>(null);
   const [searchParadaText, setSearchParadaText] = useState('');
-
-  React.useEffect(() => {
-    function handleClickOutside(event: MouseEvent | TouchEvent) {
-      if (editOpRef.current && !editOpRef.current.contains(event.target as Node)) {
-        setShowEditProductSuggestions(false);
-        setIsTypingEditProduct(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [setIsTypingEditProduct, setShowEditProductSuggestions]);
 
   return (
     <Dialog open={!!editingOp} onOpenChange={(o) => { if (!o) setEditingOp(null); }}>
@@ -139,31 +123,54 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                  </Button>
               </div>
             )}
-            <div className="relative space-y-2" ref={editOpRef}>
+            <div className="space-y-2">
               <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Produto</Label>
-              <input id="edit-produto" {...registerEdit('produto')} onPointerDown={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} onClick={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} autoComplete="off" onFocus={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} className="flex h-14 w-full rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] dark:bg-zinc-900 px-4 py-2 text-base text-zinc-900 dark:text-zinc-100 transition-all placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus-visible:outline-none focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 shadow-sm focus:bg-white dark:focus:bg-zinc-950" />
-              {showEditProductSuggestions && (
-                <div className="mt-2 w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm max-h-56 overflow-y-auto p-2 ring-1 ring-zinc-900/5">
-                  {!isTypingEditProduct && (
-                    <div onClick={(e) => { e.preventDefault(); setIsTypingEditProduct(true); setTimeout(() => document.getElementById('edit-produto')?.focus(), 50); }} className="hidden">
+              <Dialog open={showEditProductSuggestions} onOpenChange={setShowEditProductSuggestions}>
+                <button 
+                  type="button" 
+                  onClick={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} 
+                  className={cn("flex h-14 w-full items-center justify-between rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] dark:bg-zinc-900 px-4 py-2 text-base text-zinc-900 dark:text-zinc-100 transition-all focus:outline-none focus:border-zinc-950 dark:focus:border-zinc-700 shadow-sm focus:bg-white dark:focus:bg-zinc-950", watchEdit('produto') ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400")}
+                >
+                  <span className="truncate">
+                    {watchEdit('produto') || "Selecione o produto..."}
+                  </span>
+                  <Search className="w-5 h-5 text-zinc-400 shrink-0 ml-2" />
+                </button>
+
+                <DialogContent className="w-[95vw] max-w-lg p-0 gap-0 overflow-hidden rounded-[1.5rem] bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col max-h-[85vh] z-[10005]">
+                  <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-col gap-3 shrink-0">
+                    <DialogTitle className="text-lg font-black text-slate-900 dark:text-zinc-50 uppercase tracking-widest pl-1">
+                      Selecionar Produto
+                    </DialogTitle>
+                    <div className="relative">
+                      <input 
+                        {...registerEdit('produto')} 
+                        autoComplete="off" 
+                        placeholder="Digite para buscar..." 
+                        className="flex h-14 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 pl-11 pr-4 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 shadow-sm" 
+                      />
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                     </div>
-                  )}
-                  {filteredEditProducts.length > 0 ? filteredEditProducts.map(p => (
-                    <div key={`${p.produto}-${p.litragem}`} onPointerDown={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }} className="cursor-pointer px-4 py-3 min-h-[48px] text-sm text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] hover:text-zinc-950 dark:text-zinc-50 rounded-xl flex items-center justify-between gap-3 font-medium transition-colors">
-                       <span className="truncate">{p.produto}</span>
-                       {p.litragem && <span className="text-[10px] text-zinc-400 font-mono tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md">{p.litragem}</span>}
-                    </div>
-                  )) : watchEdit('produto') ? (
-                       <div className="px-4 py-3 min-h-[48px] text-sm text-zinc-500 dark:text-zinc-400 font-medium cursor-pointer hover:bg-zinc-50 dark:bg-zinc-900/50 rounded-xl transition-colors flex items-center" onPointerDown={() => { setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }}>
-                          Adicionar produto "{watchEdit('produto')}"
-                       </div>
-                  ) : (
-                       <div className="px-4 py-3 text-sm text-zinc-400 font-medium text-center h-12 flex items-center justify-center">
-                          Digite na busca...
-                       </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                  <div className="overflow-y-auto p-2 scrollbar-none touch-pan-y flex-1 min-h-[40vh] bg-white dark:bg-zinc-950">
+                    {filteredEditProducts.length > 0 ? filteredEditProducts.map(p => (
+                      <div key={`${p.produto}-${p.litragem}`} onPointerDown={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }} className="cursor-pointer px-5 py-4 mb-1 last:mb-0 text-base text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] dark:hover:bg-zinc-900 hover:text-zinc-950 dark:text-zinc-50 rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800/80">
+                         <span className="truncate group-hover/item:text-black dark:group-hover/item:text-white">{p.produto}</span>
+                         {p.litragem && <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-mono tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md">{p.litragem}</span>}
+                      </div>
+                    )) : watchEdit('produto') ? (
+                         <div className="px-5 py-4 text-base text-blue-600 font-bold cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-[1.25rem] transition-colors flex items-center border border-transparent hover:border-blue-100" onPointerDown={() => { setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }}>
+                            <Plus className="w-5 h-5 mr-2" />
+                            Cadastrar: "{watchEdit('produto')}"
+                         </div>
+                    ) : (
+                         <div className="px-5 text-base text-zinc-400 font-medium text-center py-10 flex items-center justify-center">
+                            Nenhum produto encontrado.
+                         </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             <div className="space-y-2">
               <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Linha de Produção</Label>

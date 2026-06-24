@@ -103,7 +103,7 @@ function parseReportString(s: string, turno: string): FinishedOperation {
     return {
       id: String(s),
       opNumber: '', linha: '', produto: '', litragem: '', quantidade: '', horaInicial: '', horaFinal: '',
-      turno, carimboInicial: '', reportString: ''
+      turno, operador: '', carimboInicial: '', reportString: ''
     };
   }
   const [opNumber, linha, produto, litragem, quantidade, horaInicial, horaFinal, observacoes] = s.split('|');
@@ -118,6 +118,7 @@ function parseReportString(s: string, turno: string): FinishedOperation {
     horaFinal: horaFinal || '',
     observacoes: observacoes || '',
     turno,
+    operador: '',
     carimboInicial: '',
     reportString: s,
   };
@@ -188,19 +189,19 @@ function ToleranceCountdown({ profile, onExpire }: { profile: string | null; onE
 const TOUR_MOCK_OPS: Operation[] = [
   {
     id: '__tour_p1', opNumber: '47923', produto: 'V-FLOC 1.5L', linha: '05',
-    turno: 'Turno B', horaInicial: '08:00',
+    turno: 'Turno B', horaInicial: '08:00', operador: 'Operador Teste',
     carimboInicial: new Date(Date.now() - 9840000).toISOString(), // ~2h 44m
     litragem: '1.5L', paradas: [], isAvulsa: false,
   },
   {
     id: '__tour_p2', opNumber: '47924', produto: 'LAVA AUTOS PREMIUM 2L', linha: '08',
-    turno: 'Turno B', horaInicial: '10:15',
+    turno: 'Turno B', horaInicial: '10:15', operador: 'Operador Teste',
     carimboInicial: new Date(Date.now() - 3600000).toISOString(), // ~1h
     litragem: '2L', paradas: [], isAvulsa: false,
   },
   {
     id: '__tour_p3', opNumber: '47925', produto: 'SUPER CLEAN 5L', linha: '02',
-    turno: 'Turno B', horaInicial: '09:00',
+    turno: 'Turno B', horaInicial: '09:00', operador: 'Operador Teste',
     carimboInicial: new Date(Date.now() - 5400000).toISOString(), // ~1h 30m
     litragem: '5L',
     paradas: [{ seq: 1, tipologia: 'Falta de Material', horaInicio: '09:45', horaFim: '10:10', detalhamento: 'Aguardando embalagem' }],
@@ -210,14 +211,14 @@ const TOUR_MOCK_OPS: Operation[] = [
 const TOUR_MOCK_FINISHED: FinishedOperation[] = [
   {
     id: '__tour_f1', opNumber: '47920', produto: 'V-FLOC 1.5L', linha: '05',
-    turno: 'Turno B', horaInicial: '06:00', horaFinal: '08:00',
+    turno: 'Turno B', horaInicial: '06:00', horaFinal: '08:00', operador: 'Operador Teste',
     quantidade: '850', observacoes: '0',
     carimboInicial: new Date(Date.now() - 18000000).toISOString(),
     litragem: '1.5L', paradas: [], syncStatus: 'success', isAvulsa: false,
   },
   {
     id: '__tour_f2', opNumber: '47921', produto: 'CLEAN CAR 500ML', linha: '03',
-    turno: 'Turno B', horaInicial: '06:15', horaFinal: '07:45',
+    turno: 'Turno B', horaInicial: '06:15', horaFinal: '07:45', operador: 'Operador Teste',
     quantidade: '1200', observacoes: '50',
     carimboInicial: new Date(Date.now() - 14400000).toISOString(),
     litragem: '500ML',
@@ -226,7 +227,7 @@ const TOUR_MOCK_FINISHED: FinishedOperation[] = [
   },
   {
     id: '__tour_f3', opNumber: '47922', produto: 'DESENGRAXANTE IBC', linha: '01',
-    turno: 'Turno B', horaInicial: '06:00', horaFinal: '09:30',
+    turno: 'Turno B', horaInicial: '06:00', horaFinal: '09:30', operador: 'Operador Teste',
     quantidade: '2400', observacoes: '120',
     carimboInicial: new Date(Date.now() - 21600000).toISOString(),
     litragem: 'IBC',
@@ -286,7 +287,8 @@ export default function App() {
   const [openLineFilterFinished, setOpenLineFilterFinished] = useState(false);
   const [searchPending, setSearchPending] = useState('');
   const [searchFinished, setSearchFinished] = useState('');
-  const [selectedLinha, setSelectedLinha] = useState(() => localStorage.getItem('v-ops-default-linha') || 'Todas');
+  const [selectedLinhaPending, setSelectedLinhaPending] = useState(() => localStorage.getItem('v-ops-default-linha-pending') || localStorage.getItem('v-ops-default-linha') || 'Todas');
+  const [selectedLinhaFinished, setSelectedLinhaFinished] = useState(() => localStorage.getItem('v-ops-default-linha-finished') || localStorage.getItem('v-ops-default-linha') || 'Todas');
   const [operatingMode, setOperatingMode] = useState<'global' | 'dedicated'>(() => {
     return (localStorage.getItem('v-ops-operating-mode') as 'global' | 'dedicated') || 'global';
   });
@@ -628,22 +630,6 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    const subLinha = operatingMode === 'dedicated' ? selectedLinha : null;
-
-    const unsubOps = subscribeToOperations(subLinha, (ops) => {
-      setOperations(ops);
-    });
-    
-    const unsubFinished = subscribeToFinishedOps(subLinha, (ops) => {
-      setFinishedOps(ops);
-    });
-
-    return () => {
-      unsubOps();
-      unsubFinished();
-    };
-  }, [operatingMode, selectedLinha]);
 
   // Background Auto-Retry for Failed Syncs
   const finishedOpsRef = useRef(finishedOps);
@@ -897,19 +883,29 @@ export default function App() {
     return `Linha ${num < 10 ? '0' + num : num}`;
   };
 
-  const updateSelectedLinha = (line: string, toggle = false) => {
+  const updateSelectedLinhaPending = (line: string, toggle = false) => {
     const normalized = line.trim().toLowerCase() === 'todas' ? 'Todas' : normalizeLinha(line);
-    setSelectedLinha(prev => {
+    setSelectedLinhaPending(prev => {
       if (toggle) {
         const next = normalized === prev ? 'Todas' : normalized;
-        if (next !== 'Todas') {
-          localStorage.setItem('v-ops-default-linha', next);
-        }
+        if (next !== 'Todas') localStorage.setItem('v-ops-default-linha-pending', next);
         return next;
       } else {
-        if (normalized !== 'Todas') {
-          localStorage.setItem('v-ops-default-linha', normalized);
-        }
+        if (normalized !== 'Todas') localStorage.setItem('v-ops-default-linha-pending', normalized);
+        return normalized;
+      }
+    });
+  };
+
+  const updateSelectedLinhaFinished = (line: string, toggle = false) => {
+    const normalized = line.trim().toLowerCase() === 'todas' ? 'Todas' : normalizeLinha(line);
+    setSelectedLinhaFinished(prev => {
+      if (toggle) {
+        const next = normalized === prev ? 'Todas' : normalized;
+        if (next !== 'Todas') localStorage.setItem('v-ops-default-linha-finished', next);
+        return next;
+      } else {
+        if (normalized !== 'Todas') localStorage.setItem('v-ops-default-linha-finished', normalized);
         return normalized;
       }
     });
@@ -935,15 +931,23 @@ export default function App() {
     })];
   }, [myFinishedOps]);
 
-  const visiblePendingOps = useMemo(() => myPendingOps.filter(op => {
-    if (selectedLinha !== 'Todas' && normalizeLinha(op.linha) !== selectedLinha) return false;
-    return matchesSearch(op, searchPending);
-  }), [myPendingOps, searchPending, selectedLinha]);
+  const visiblePendingOps = useMemo(() => {
+    return myPendingOps.filter(op => {
+      if (selectedLinhaPending !== 'Todas' && normalizeLinha(op.linha) !== selectedLinhaPending) return false;
+      if (!searchPending) return true;
+      const q = searchPending.toLowerCase();
+      return op.produto.toLowerCase().includes(q) || op.opNumber.toLowerCase().includes(q);
+    }).sort((a, b) => (b.carimboInicial || '').localeCompare(a.carimboInicial || ''));
+  }, [myPendingOps, searchPending, selectedLinhaPending]);
 
-  const visibleFinishedOps = useMemo(() => myFinishedOps.filter(op => {
-    if (selectedLinha !== 'Todas' && normalizeLinha(op.linha) !== selectedLinha) return false;
-    return matchesSearch(op, searchFinished);
-  }), [myFinishedOps, searchFinished, selectedLinha]);
+  const visibleFinishedOps = useMemo(() => {
+    return myFinishedOps.filter(op => {
+      if (selectedLinhaFinished !== 'Todas' && normalizeLinha(op.linha) !== selectedLinhaFinished) return false;
+      if (!searchFinished) return true;
+      const q = searchFinished.toLowerCase();
+      return op.produto.toLowerCase().includes(q) || op.opNumber.toLowerCase().includes(q);
+    }).sort((a, b) => b.horaInicial.localeCompare(a.horaInicial));
+  }, [myFinishedOps, searchFinished, selectedLinhaFinished]);
 
   const totalUnidades = useMemo(() => myFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0), [myFinishedOps]);
   const visibleTotalUnidades = useMemo(() => visibleFinishedOps.reduce((acc, op) => acc + (parseInt(op.quantidade) || 0), 0), [visibleFinishedOps]);
@@ -1268,14 +1272,14 @@ export default function App() {
                             role="combobox"
                             className={cn(
                               "w-full h-11 justify-between px-4 rounded-xl text-sm font-bold border-2 transition-all shadow-sm focus:ring-2 focus:ring-zinc-900/20",
-                              selectedLinha !== 'Todas'
+                              selectedLinhaPending !== 'Todas'
                                 ? "bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-800"
                                 : "bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300"
                             )}
                           >
                             <div className="flex items-center gap-2">
                               <span className="opacity-60">Linha:</span>
-                              <span>{formatLinhaDisplay(selectedLinha)}</span>
+                              <span>{formatLinhaDisplay(selectedLinhaPending)}</span>
                             </div>
                             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-40" />
                           </Button>
@@ -1293,7 +1297,7 @@ export default function App() {
                                     key={linha}
                                     value={linha}
                                     onSelect={(currentValue) => {
-                                      updateSelectedLinha(currentValue, true);
+                                      updateSelectedLinhaPending(currentValue, true);
                                       setOpenLineFilterPending(false);
                                     }}
                                     className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] dark:aria-selected:bg-zinc-800/50 aria-selected:text-zinc-950 dark:text-zinc-50 dark:aria-selected:text-white transition-colors font-bold text-xs mb-0.5 last:mb-0"
@@ -1302,7 +1306,7 @@ export default function App() {
                                       <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300 dark:bg-zinc-600" : "bg-amber-400")} />
                                       {formatLinhaDisplay(linha)}
                                     </div>
-                                    {selectedLinha === linha && <Check className="h-3 w-3 text-zinc-900 dark:text-zinc-100" />}
+                                    {selectedLinhaPending === linha && <Check className="h-3 w-3 text-zinc-900 dark:text-zinc-100" />}
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
@@ -1344,7 +1348,7 @@ export default function App() {
             <div className="hidden lg:flex flex-col lg:col-span-4 xl:col-span-3 2xl:col-span-3 lg:order-1 lg:h-[calc(100dvh-11rem)] tour-nova-op">
               <StartOpForm
                 operatingMode={operatingMode}
-                selectedLinha={selectedLinha}
+                selectedLinha={selectedLinhaPending}
                 currentTurnForView={currentTurnForView}
                 handleSubmit={handleSubmit}
                 handlePreStartOp={handlePreStartOp}
@@ -1409,14 +1413,14 @@ export default function App() {
                             role="combobox"
                             className={cn(
                               "w-full h-11 justify-between px-4 rounded-xl text-sm font-bold border-2 transition-all shadow-sm focus:ring-2 focus:ring-emerald-900/20",
-                              selectedLinha !== 'Todas'
+                              selectedLinhaFinished !== 'Todas'
                                 ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700"
                                 : "bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300"
                             )}
                           >
                             <div className="flex items-center gap-2">
                               <span className="opacity-60">Linha:</span>
-                              <span>{formatLinhaDisplay(selectedLinha)}</span>
+                              <span>{formatLinhaDisplay(selectedLinhaFinished)}</span>
                             </div>
                             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-40" />
                           </Button>
@@ -1434,7 +1438,7 @@ export default function App() {
                                     key={linha}
                                     value={linha}
                                     onSelect={(currentValue) => {
-                                      updateSelectedLinha(currentValue, true);
+                                      updateSelectedLinhaFinished(currentValue, true);
                                       setOpenLineFilterFinished(false);
                                     }}
                                     className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] dark:aria-selected:bg-zinc-800/50 aria-selected:text-zinc-950 dark:text-zinc-50 dark:aria-selected:text-white transition-colors font-bold text-xs mb-0.5 last:mb-0"
@@ -1443,7 +1447,7 @@ export default function App() {
                                       <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300 dark:bg-zinc-600" : "bg-emerald-500")} />
                                       {formatLinhaDisplay(linha)}
                                     </div>
-                                    {selectedLinha === linha && <Check className="h-3 w-3 text-zinc-900 dark:text-zinc-100" />}
+                                    {selectedLinhaFinished === linha && <Check className="h-3 w-3 text-zinc-900 dark:text-zinc-100" />}
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
@@ -1513,10 +1517,10 @@ export default function App() {
           {/* Form — overflow scroll */}
           <div className="flex-1 overflow-y-auto">
           {isNovaSheetOpen && (
-          <StartOpForm
-            hideHeader
-            operatingMode={operatingMode}
-            selectedLinha={selectedLinha}
+            <StartOpForm
+              hideHeader
+              operatingMode={operatingMode}
+              selectedLinha={selectedLinhaPending}
             currentTurnForView={currentTurnForView}
             handleSubmit={handleSubmit}
             handlePreStartOp={handlePreStartOp}
@@ -1709,12 +1713,15 @@ export default function App() {
                       type="button"
                       onClick={() => {
                         const normalized = normalizeLinha(l);
-                        setSelectedLinha(normalized);
+                        setSelectedLinhaPending(normalized);
+                        setSelectedLinhaFinished(normalized);
+                        localStorage.setItem('v-ops-default-linha-pending', normalized);
+                        localStorage.setItem('v-ops-default-linha-finished', normalized);
                         localStorage.setItem('v-ops-default-linha', normalized);
                       }}
                       className={cn(
                         "h-10 rounded-lg text-xs font-bold border transition-all",
-                        selectedLinha === normalizeLinha(l) ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:!text-zinc-900 border-zinc-900 dark:border-zinc-100" : "bg-white dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                        selectedLinhaPending === normalizeLinha(l) ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:!text-zinc-900 border-zinc-900 dark:border-zinc-100" : "bg-white dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                       )}
                     >
                       {l.replace('Linha ', '')}

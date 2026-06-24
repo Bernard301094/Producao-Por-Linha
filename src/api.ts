@@ -394,11 +394,13 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
     await updateDoc(opDocRef, { syncStatus: 'error', syncError: e.message });
   });
 
-  await updateDoc(opDocRef, { ...data, syncStatus: 'pending' });
+  const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
+  await updateDoc(opDocRef, { ...cleanData, syncStatus: 'pending' });
 };
 
 export const updateOperation = async (id: string, data: Partial<Operation>) => {
-  await updateDoc(doc(db, 'operations', id), data);
+  const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
+  await updateDoc(doc(db, 'operations', id), cleanData);
 };
 
 export const convertAvulsaToOp = async (

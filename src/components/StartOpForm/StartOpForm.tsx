@@ -75,7 +75,7 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
   availableParadas,
   setAvailableParadas
 }) => {
-  const novaOpRef = useRef<HTMLDivElement>(null);
+
 
 
   return (
@@ -162,32 +162,54 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                 {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.horaInicial.message as string}</p>}
               </div>
 
-              <div className="relative space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2" ref={novaOpRef}>
+              <div className="relative space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2">
                 <Label htmlFor="produto" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Produto Fabricado</Label>
-                <input id="produto" {...register('produto')} onPointerDown={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} onClick={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} autoComplete="off" onFocus={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} placeholder="Digite para buscar..." className="flex h-16 w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-5 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 shadow-sm" />
-                {showProductSuggestions && (
-                  <div className="mt-2 w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-[1.5rem] shadow-sm max-h-56 overflow-y-auto p-2 ring-1 ring-zinc-900/5">
-                    {!isTypingProduct && (
-                      <div onClick={(e) => { e.preventDefault(); setIsTypingProduct(true); setTimeout(() => document.getElementById('produto')?.focus(), 50); }} className="hidden">
+                <button 
+                  type="button" 
+                  onClick={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} 
+                  className="flex h-16 w-full items-center justify-between rounded-2xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-5 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-sm"
+                >
+                  <span className={watch('produto') ? "truncate" : "text-slate-400 font-medium truncate"}>
+                    {watch('produto') || "Selecione o produto..."}
+                  </span>
+                  <Search className="w-5 h-5 text-slate-400 shrink-0 ml-2" />
+                </button>
+
+                <Dialog open={showProductSuggestions} onOpenChange={setShowProductSuggestions}>
+                  <DialogContent className="w-[95vw] max-w-lg p-0 gap-0 overflow-hidden rounded-[1.5rem] bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col max-h-[85vh] z-[9999]">
+                    <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-col gap-3 shrink-0">
+                      <DialogTitle className="text-lg font-black text-slate-900 dark:text-zinc-50 uppercase tracking-widest pl-1">
+                        Selecionar Produto
+                      </DialogTitle>
+                      <div className="relative">
+                        <input 
+                          {...register('produto')} 
+                          autoComplete="off" 
+                          placeholder="Digite para buscar..." 
+                          className="flex h-14 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 pl-11 pr-4 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 shadow-sm" 
+                        />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                       </div>
-                    )}
-                    {filteredProducts.length > 0 ? filteredProducts.map(p => (
-                      <div key={`${p.produto}-${p.litragem}`} onPointerDown={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); setIsTypingProduct(false); }} className="group/item cursor-pointer px-5 py-3 mb-1 last:mb-0 min-h-[64px] text-base text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] hover:text-zinc-950 dark:text-zinc-50 rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200 dark:border-zinc-800/60">
-                        <span className="truncate group-hover/item:text-black">{p.produto}</span>
-                        {p.litragem && <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-mono font-black tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800/60 px-2 py-1 rounded-md">{p.litragem}</span>}
-                      </div>
-                    )) : watch('produto') ? (
-                       <div className="px-5 py-3 min-h-[64px] text-base text-blue-600 font-bold cursor-pointer hover:bg-blue-50 dark:bg-blue-950/30 rounded-[1.25rem] transition-colors flex items-center border border-transparent hover:border-blue-100" onPointerDown={() => { setShowProductSuggestions(false); setIsTypingProduct(false); }}>
-                          <Plus className="w-5 h-5 mr-2" />
-                          Cadastrar como novo: "{watch('produto')}"
-                       </div>
-                    ) : (
-                       <div className="px-5 text-base text-zinc-400 font-medium text-center min-h-[64px] flex items-center justify-center">
-                          Nenhum produto correspondente.
-                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                    <div className="overflow-y-auto p-2 scrollbar-none touch-pan-y flex-1 min-h-[40vh] bg-white dark:bg-zinc-950">
+                      {filteredProducts.length > 0 ? filteredProducts.map(p => (
+                        <div key={`${p.produto}-${p.litragem}`} onPointerDown={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); setIsTypingProduct(false); }} className="group/item cursor-pointer px-5 py-4 mb-1 last:mb-0 text-base text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] dark:hover:bg-zinc-900 hover:text-zinc-950 dark:text-zinc-50 rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800/80">
+                          <span className="truncate group-hover/item:text-black dark:group-hover/item:text-white">{p.produto}</span>
+                          {p.litragem && <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-mono font-black tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800/60 px-2 py-1 rounded-md">{p.litragem}</span>}
+                        </div>
+                      )) : watch('produto') ? (
+                         <div className="px-5 py-4 text-base text-blue-600 font-bold cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-[1.25rem] transition-colors flex items-center border border-transparent hover:border-blue-100" onPointerDown={() => { setShowProductSuggestions(false); setIsTypingProduct(false); }}>
+                            <Plus className="w-5 h-5 mr-2" />
+                            Cadastrar: "{watch('produto')}"
+                         </div>
+                      ) : (
+                         <div className="px-5 text-base text-zinc-400 font-medium text-center py-10 flex items-center justify-center">
+                            Nenhum produto encontrado.
+                         </div>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 {errors.produto && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.produto.message as string}</p>}
               </div>
 

@@ -4,7 +4,7 @@ import { motion, useAnimation, useMotionValue, useTransform } from 'motion/react
 import { CheckCircle2, Clock, Pencil, Trash2, Plus, Loader2, Search, History, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
-import { cn } from '../src/lib/utils';
+import { cn, formatLinhaName, getLinhaColors } from '../src/lib/utils';
 import { ParadaRecord, updateOperation } from '../src/api';
 import { CustomTimePicker } from './CustomTimePicker';
 import { QuickCounter } from './QuickCounter';
@@ -218,7 +218,18 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               <span className={cn("text-xs font-bold tracking-widest px-2.5 py-1 rounded-lg border shadow-sm", op.isAvulsa ? "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50" : "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50")}>
                 {op.isAvulsa ? 'PARADA AVULSA' : `OP ${op.opNumber}`}
               </span>
-              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-zinc-950 px-2 py-1 rounded-lg border border-slate-200 dark:border-zinc-800">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
+              {(() => {
+                const lName = formatLinhaName(op.linha);
+                const colors = getLinhaColors(lName);
+                return (
+                  <span
+                    className="text-[10px] font-bold tracking-widest px-2.5 py-1 rounded-lg border shadow-sm"
+                    style={{ backgroundColor: colors.bg, color: colors.text, borderColor: colors.border }}
+                  >
+                    {lName.toUpperCase()}
+                  </span>
+                );
+              })()}
               <span className="text-[10px] font-bold tracking-widest text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-lg border border-indigo-200/60 dark:border-indigo-800/60 shadow-sm">{op.turno?.startsWith('Turno') ? op.turno : `Turno ${op.turno}`}</span>
               {!op.isAvulsa && op.litragem && <span className="text-[10px] font-semibold text-slate-400">{op.litragem}</span>}
             </div>
@@ -455,7 +466,9 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                       <span className="text-xl font-black text-white leading-none truncate">{op.produto}</span>
                       <div className="flex items-center gap-2 mt-1.5">
                         <span className="text-[10px] font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md">OP {op.opNumber}</span>
-                        <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">{op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}</span>
+                        <span className="text-[10px] font-bold tracking-widest px-2 py-1 rounded-md border shadow-sm" style={{ backgroundColor: getLinhaColors(op.linha).bg, color: getLinhaColors(op.linha).text, borderColor: getLinhaColors(op.linha).border }}>
+                          {formatLinhaName(op.linha).toUpperCase()}
+                        </span>
                       </div>
                     </div>
                     <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400/20 flex items-center justify-center shrink-0">

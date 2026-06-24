@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { CustomTimePicker } from './CustomTimePicker';
-import { cn } from '../src/lib/utils';
+import { cn, formatLinhaName, getLinhaColors } from '../src/lib/utils';
 import { toast } from 'sonner';
 
 export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setRevertingOp, onSyncRetry, availableParadas = [], onAddForgottenParada, onConvertToOp }: any) => {
@@ -68,9 +68,18 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
               <span className="text-[10px] xl:text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 px-2 xl:px-2.5 py-0.5 xl:py-1 rounded-lg">
                 OP {op.opNumber}
               </span>
-              <span className="text-[10px] xl:text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 px-2 xl:px-2.5 py-0.5 xl:py-1 rounded-lg">
-                {op.linha.startsWith('Linha') ? op.linha : `L${op.linha}`}
-              </span>
+              {(() => {
+                const lName = formatLinhaName(op.linha);
+                const colors = getLinhaColors(lName);
+                return (
+                  <span
+                    className="text-[10px] xl:text-xs font-bold tracking-widest px-2 xl:px-2.5 py-0.5 xl:py-1 rounded-lg border shadow-sm"
+                    style={{ backgroundColor: colors.bg, color: colors.text, borderColor: colors.border }}
+                  >
+                    {lName.toUpperCase()}
+                  </span>
+                );
+              })()}
               {op.litragem && (
                 <span className="text-[10px] xl:text-xs font-semibold text-slate-400">{op.litragem}</span>
               )}

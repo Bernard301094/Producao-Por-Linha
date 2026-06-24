@@ -50,14 +50,39 @@ export function useAutoIncrement(action: () => void, delay = 700, intervalSpeed 
       isTouchRef.current = false;
     },
     onMouseUp: (e: React.MouseEvent) => {
-      if (!isTouchRef.current) {
-        savedAction.current();
-      }
+      if (e.button !== 0 || isTouchRef.current) return;
+      savedAction.current();
     },
     onMouseLeave: stop,
     // Touch on mobile/tablet: hold-to-repeat behavior
     onTouchStart: startTouch,
     onTouchEnd: stop,
     onTouchCancel: stop,
+  };
+}
+
+export function formatLinhaName(linha: string): string {
+  if (!linha) return '';
+  const match = linha.match(/\d+/);
+  if (!match) return linha;
+  const num = parseInt(match[0], 10);
+  return `Linha ${num < 10 ? '0' + num : num}`;
+}
+
+export function getLinhaColors(linhaStr: string) {
+  let hash = 0;
+  const str = formatLinhaName(linhaStr).toLowerCase();
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  // Base hue based on string hash
+  const h = Math.abs(hash) % 360;
+  // Dynamic but readable colors:
+  // Background: pastel and distinct
+  // Text: darker shade of the same hue for contrast
+  return {
+    bg: `hsl(${h}, 85%, 90%)`,
+    text: `hsl(${h}, 90%, 25%)`,
+    border: `hsl(${h}, 80%, 75%)`
   };
 }
