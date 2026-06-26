@@ -101,7 +101,8 @@ const parseDateToISO = (dateStr: string) => {
   if (cleanStr.includes('/')) {
     const parts = cleanStr.split('/');
     if (parts.length === 3) {
-      const dt = new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+      // Set time to 12:00 UTC so it doesn't shift to the previous day in GMT-3 (SharePoint)
+      const dt = new Date(Date.UTC(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10), 12, 0, 0));
       if (!isNaN(dt.getTime())) return dt.toISOString();
     }
   }

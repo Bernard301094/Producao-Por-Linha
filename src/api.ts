@@ -188,20 +188,23 @@ export const markOperationFinished = async (
     observacoes: observacoes || ''
   };
 
-  authedFetch(`${API_BASE}/api/append`, JSON.stringify(payload)).then(async res => {
+  try {
+    const res = await authedFetch(`${API_BASE}/api/append`, JSON.stringify(payload));
     if (!res.ok) {
       const errText = await res.text();
       await updateDoc(doc(db, 'operations', op.id), { syncStatus: 'error', syncError: errText });
       onOneDriveSync?.(false, errText);
+      throw new Error(errText);
     } else {
       await updateDoc(doc(db, 'operations', op.id), { syncStatus: 'success', syncError: '' });
       onOneDriveSync?.(true);
     }
-  }).catch(async error => {
+  } catch (error: any) {
     console.error("SharePoint sync failed", error);
     await updateDoc(doc(db, 'operations', op.id), { syncStatus: 'error', syncError: error.message });
     onOneDriveSync?.(false, error.message);
-  });
+    throw error;
+  }
 };
 
 export const getProducts = async (): Promise<{produto: string, litragem: string}[]> => {
@@ -351,17 +354,22 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
   const original = docSnap.data() as FinishedOperation;
   const mergedOp = { ...original, ...data } as FinishedOperation;
 
-  authedFetch(`${API_BASE}/api/update`, JSON.stringify({
-    originalData: {
-      op:       original.opNumber,
-      linha:    original.linha,
-      produto:  original.produto,
-      carimbo:  original.carimbo,
-      turno:    original.turno,
-      operador: original.operador || ''
-    },
-    updates: { ...data, operador: (data.operador ?? original.operador) || '' }
-  })).then(async (resp) => {
+  const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
+  await updateDoc(opDocRef, { ...cleanData, syncStatus: 'pending' });
+
+  try {
+    const resp = await authedFetch(`${API_BASE}/api/update`, JSON.stringify({
+      originalData: {
+        op:       original.opNumber,
+        linha:    original.linha,
+        produto:  original.produto,
+        carimbo:  original.carimbo,
+        turno:    original.turno,
+        operador: original.operador || ''
+      },
+      updates: { ...data, operador: (data.operador ?? original.operador) || '' }
+    }));
+
     if (resp.status === 404) {
       const appendResp = await authedFetch(`${API_BASE}/api/append`, JSON.stringify({
         carimbo:     `'${mergedOp.carimbo}`,
@@ -377,22 +385,24 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
         observacoes: mergedOp.observacoes || ''
       }));
       if (!appendResp.ok) {
-        await updateDoc(opDocRef, { syncStatus: 'error', syncError: await appendResp.text() });
+        const errText = await appendResp.text();
+        await updateDoc(opDocRef, { syncStatus: 'error', syncError: errText });
+        throw new Error(errText);
       } else {
         await updateDoc(opDocRef, { syncStatus: 'success', syncError: '' });
       }
     } else if (!resp.ok) {
-      await updateDoc(opDocRef, { syncStatus: 'error', syncError: await resp.text() });
+      const errText = await resp.text();
+      await updateDoc(opDocRef, { syncStatus: 'error', syncError: errText });
+      throw new Error(errText);
     } else {
       await updateDoc(opDocRef, { syncStatus: 'success', syncError: '' });
     }
-  }).catch(async (e) => {
+  } catch (e: any) {
     console.error('Update API error', e);
     await updateDoc(opDocRef, { syncStatus: 'error', syncError: e.message });
-  });
-
-  const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
-  await updateDoc(opDocRef, { ...cleanData, syncStatus: 'pending' });
+    throw e;
+  }
 };
 
 export const updateOperation = async (id: string, data: Partial<Operation>) => {
