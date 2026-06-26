@@ -230,7 +230,7 @@ app.post('/api/append', async (req, res) => {
     return res.status(200).json({ success: true, message: 'MOCKED Row added' });
   }
   try {
-    const { carimbo, op, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, paradas, isAvulsa } = req.body;
+    const { carimbo, op, produto, linha, turno, operador, quantidade, horaInicial, horaFinal, paradas } = req.body;
     const baseDate = parseDateToISO(carimbo);
     // OP: tenta número, senão guarda como string no Title
     const numOp  = parseFloat(s(op).replace(/[^\d.,]/g, '')) || 0;
@@ -254,11 +254,9 @@ app.post('/api/append', async (req, res) => {
     const client = getGraphClient();
     let updateRes = null;
 
-    if (!isAvulsa) {
-      updateRes = await client
-        .api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items`)
-        .post({ fields: producaoFields });
-    }
+    updateRes = await client
+      .api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items`)
+      .post({ fields: producaoFields });
 
     if (paradas && Array.isArray(paradas) && paradas.length > 0) {
       try {
@@ -304,12 +302,10 @@ app.post('/api/update', async (req, res) => {
   if (!hasLocalCredentials) return res.status(200).json({ success: true, message: 'MOCKED Row updated' });
   try {
     const { originalData, updates } = req.body;
-    const isAvulsa = updates.isAvulsa || originalData.isAvulsa;
     const client   = getGraphClient();
     let itemIdToUpdate: string | null = null;
 
-    if (!isAvulsa) {
-      try {
+    try {
         // Paginar para buscar todos os itens (SharePoint limita 100 por default)
         let nextLink: string | null =
           `${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields&$top=500`;
@@ -330,22 +326,19 @@ app.post('/api/update', async (req, res) => {
       } catch (err) {
         console.warn('Could not find item to update', err);
       }
-    }
 
-    if (isAvulsa || itemIdToUpdate) {
-      if (!isAvulsa && itemIdToUpdate) {
-        const uf: Record<string, any> = {};
-        if (updates.opNumber    !== undefined) uf[F_PROD.OP]         = parseFloat(s(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
-        if (updates.produto     !== undefined) uf[F_PROD.Produto]    = s(updates.produto);
-        if (updates.linha       !== undefined) uf[F_PROD.Linha]      = formatLinha(updates.linha);
-        if (updates.turno       !== undefined) uf[F_PROD.Turno]      = formatTurno(updates.turno);
-        if (updates.operador    !== undefined) uf[F_PROD.Operador]   = s(updates.operador);
-        if (updates.horaInicial !== undefined) uf[F_PROD.HoraInicio] = formatTime(updates.horaInicial);
-        if (updates.horaFinal   !== undefined) uf[F_PROD.HoraFim]    = formatTime(updates.horaFinal);
-        if (updates.quantidade  !== undefined) uf[F_PROD.Quantidade] = parseFloat(s(updates.quantidade).replace(/[^\d.,]/g, '')) || 0;
-        console.log('Fields being patched to SP (Producao):', JSON.stringify(uf));
-        await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).patch({ fields: uf });
-      }
+    if (itemIdToUpdate) {
+      const uf: Record<string, any> = {};
+      if (updates.opNumber    !== undefined) uf[F_PROD.OP]         = parseFloat(s(updates.opNumber).replace(/[^\d.,]/g, '')) || 0;
+      if (updates.produto     !== undefined) uf[F_PROD.Produto]    = s(updates.produto);
+      if (updates.linha       !== undefined) uf[F_PROD.Linha]      = formatLinha(updates.linha);
+      if (updates.turno       !== undefined) uf[F_PROD.Turno]      = formatTurno(updates.turno);
+      if (updates.operador    !== undefined) uf[F_PROD.Operador]   = s(updates.operador);
+      if (updates.horaInicial !== undefined) uf[F_PROD.HoraInicio] = formatTime(updates.horaInicial);
+      if (updates.horaFinal   !== undefined) uf[F_PROD.HoraFim]    = formatTime(updates.horaFinal);
+      if (updates.quantidade  !== undefined) uf[F_PROD.Quantidade] = parseFloat(s(updates.quantidade).replace(/[^\d.,]/g, '')) || 0;
+      console.log('Fields being patched to SP (Producao):', JSON.stringify(uf));
+      await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${itemIdToUpdate}`).patch({ fields: uf });
 
       if (updates.paradas !== undefined) {
         try {
@@ -359,7 +352,7 @@ app.post('/api/update', async (req, res) => {
           }
 
           let baseOp = s(originalData.op);
-          if (!isAvulsa && updates.opNumber !== undefined) baseOp = s(updates.opNumber);
+          if (updates.opNumber !== undefined) baseOp = s(updates.opNumber);
           const baseDate = parseDateToISO(originalData.carimbo);
 
           const targetOpParada = s(originalData.op);
@@ -401,34 +394,32 @@ app.post('/api/update', async (req, res) => {
 app.post('/api/delete', async (req, res) => {
   if (!hasLocalCredentials) return res.status(200).json({ success: true, message: 'MOCKED Row deleted' });
   try {
-    const { op, linha, isAvulsa } = req.body;
+    const { op, linha } = req.body;
     const client = getGraphClient();
     let deletedAny = false;
 
-    if (!isAvulsa) {
-      try {
-        let nextLink: string | null =
-          `${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields&$top=500`;
-        const allItems: any[] = [];
-        while (nextLink) {
-          const page: any = await client.api(nextLink).get();
-          allItems.push(...page.value);
-          nextLink = page['@odata.nextLink'] || null;
-        }
-        const targetOpDelete = s(op);
-        const targetLinhaDelete = formatLinha(linha);
-        // FIX: comparar como string
-        const matching = allItems.filter(i =>
-          (opMatch(i.fields.Title, targetOpDelete) || opMatch(i.fields.OP, targetOpDelete)) &&
-          s(i.fields.Linha).trim() === targetLinhaDelete.trim()
-        );
-        if (matching.length > 0) {
-          await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${matching[matching.length - 1].id}`).delete();
-          deletedAny = true;
-        }
-      } catch (err) {
-        console.warn('Could not delete from PRODUCAO', err);
+    try {
+      let nextLink: string | null =
+        `${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items?$expand=fields&$top=500`;
+      const allItems: any[] = [];
+      while (nextLink) {
+        const page: any = await client.api(nextLink).get();
+        allItems.push(...page.value);
+        nextLink = page['@odata.nextLink'] || null;
       }
+      const targetOpDelete = s(op);
+      const targetLinhaDelete = formatLinha(linha);
+      // FIX: comparar como string
+      const matching = allItems.filter(i =>
+        (opMatch(i.fields.Title, targetOpDelete) || opMatch(i.fields.OP, targetOpDelete)) &&
+        s(i.fields.Linha).trim() === targetLinhaDelete.trim()
+      );
+      if (matching.length > 0) {
+        await client.api(`${getSiteUrlPrefix()}/lists/${PRODUCAO_LIST}/items/${matching[matching.length - 1].id}`).delete();
+        deletedAny = true;
+      }
+    } catch (err) {
+      console.warn('Could not delete from PRODUCAO', err);
     }
 
     try {
