@@ -124,7 +124,13 @@
     }
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/10 selection:text-primary;
-    }
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  input, textarea, [contenteditable] {
+    user-select: auto;
+    -webkit-user-select: auto;
+  }
   html {
     @apply font-sans;
     }

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, updateProduct, removeProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord, getLinhas, getProfiles, syncFinishedOperation, invalidateCaches, convertAvulsaToOp, } from './api';
+import { getOperations, addOperation, removeOperation, markOperationFinished, FinishedOperation, Operation, getProducts, addProduct, updateProduct, removeProduct, removeFinishedOperation, getReportForDateAndShift, getAuthProfile, updateAuthProfile, moveFinishedToPending, updateFinishedOperation, updateOperation, subscribeToOperations, subscribeToFinishedOps, getParadas, Parada, ParadaRecord, getLinhas, getProfiles, syncFinishedOperation, invalidateCaches, convertAvulsaToOp, cleanSyncedRecords } from './api';
 
 // Componentes UI e Ícones
 import { Button } from '../components/ui/button';
@@ -125,7 +125,6 @@ function parseReportString(s: string, turno: string): FinishedOperation {
 }
 
 const startOpSchema = z.object({
-  isAvulsa: z.boolean().optional(),
   opNumber: z.string().optional(),
   produto: z.string().optional(),
   linha: z.string().min(1, 'Obrigatório'),
@@ -191,13 +190,13 @@ const TOUR_MOCK_OPS: Operation[] = [
     id: '__tour_p1', opNumber: '47923', produto: 'V-FLOC 1.5L', linha: '05',
     turno: 'Turno B', horaInicial: '08:00', operador: 'Operador Teste',
     carimboInicial: new Date(Date.now() - 9840000).toISOString(), // ~2h 44m
-    litragem: '1.5L', paradas: [], isAvulsa: false,
+    litragem: '1.5L', paradas: [],
   },
   {
     id: '__tour_p2', opNumber: '47924', produto: 'LAVA AUTOS PREMIUM 2L', linha: '08',
     turno: 'Turno B', horaInicial: '10:15', operador: 'Operador Teste',
     carimboInicial: new Date(Date.now() - 3600000).toISOString(), // ~1h
-    litragem: '2L', paradas: [], isAvulsa: false,
+    litragem: '2L', paradas: [],
   },
   {
     id: '__tour_p3', opNumber: '47925', produto: 'SUPER CLEAN 5L', linha: '02',
@@ -214,7 +213,7 @@ const TOUR_MOCK_FINISHED: FinishedOperation[] = [
     turno: 'Turno B', horaInicial: '06:00', horaFinal: '08:00', operador: 'Operador Teste',
     quantidade: '850', observacoes: '0',
     carimboInicial: new Date(Date.now() - 18000000).toISOString(),
-    litragem: '1.5L', paradas: [], syncStatus: 'success', isAvulsa: false,
+    litragem: '1.5L', paradas: [], syncStatus: 'success',
   },
   {
     id: '__tour_f2', opNumber: '47921', produto: 'CLEAN CAR 500ML', linha: '03',
@@ -223,7 +222,7 @@ const TOUR_MOCK_FINISHED: FinishedOperation[] = [
     carimboInicial: new Date(Date.now() - 14400000).toISOString(),
     litragem: '500ML',
     paradas: [{ seq: 1, tipologia: 'Troca de Produto', horaInicio: '07:00', horaFim: '07:15' }],
-    syncStatus: 'success', isAvulsa: false,
+    syncStatus: 'success',
   },
   {
     id: '__tour_f3', opNumber: '47922', produto: 'DESENGRAXANTE IBC', linha: '01',
@@ -235,7 +234,7 @@ const TOUR_MOCK_FINISHED: FinishedOperation[] = [
       { seq: 1, tipologia: 'Manutenção Corretiva', horaInicio: '07:30', horaFim: '08:00', detalhamento: 'Vedação da bomba' },
       { seq: 2, tipologia: 'Troca de Produto', horaInicio: '08:45', horaFim: '09:00' },
     ],
-    syncStatus: 'success', isAvulsa: false,
+    syncStatus: 'success',
   },
 ];
 // ─────────────────────────────────────────────────────────────────────────────
@@ -289,6 +288,7 @@ export default function App() {
   const [searchFinished, setSearchFinished] = useState('');
   const [selectedLinhaPending, setSelectedLinhaPending] = useState(() => localStorage.getItem('v-ops-default-linha-pending') || localStorage.getItem('v-ops-default-linha') || 'Todas');
   const [selectedLinhaFinished, setSelectedLinhaFinished] = useState(() => localStorage.getItem('v-ops-default-linha-finished') || localStorage.getItem('v-ops-default-linha') || 'Todas');
+  const [selectedTurnoOverride, setSelectedTurnoOverride] = useState<string | null>(null);
   const [operatingMode, setOperatingMode] = useState<'global' | 'dedicated'>(() => {
     return (localStorage.getItem('v-ops-operating-mode') as 'global' | 'dedicated') || 'global';
   });
@@ -381,7 +381,6 @@ export default function App() {
       quantidade: (op as FinishedOperation).quantidade || '',
       horaFinal: (op as FinishedOperation).horaFinal || '',
       observacoes: (op as FinishedOperation).observacoes || '',
-      isAvulsa: op.isAvulsa ?? false
     });
   }, [resetEdit]);
 
@@ -405,6 +404,12 @@ export default function App() {
           : editingOp.linha;
 
         if ('quantidade' in editingOp) {
+          const hasOpenParada = editParadas.some(p => !p.horaFim);
+          if (hasOpenParada) {
+            toast.error('Existem paradas em curso. Preencha a hora final de todas as paradas antes de salvar a OP concluída.');
+            setLoadingEdit(false);
+            return;
+          }
           const turno = editingOp.turno || currentTurnForView;
           await updateFinishedOperation(
             editingOp.id,
@@ -419,7 +424,6 @@ export default function App() {
               horaFinal: normalizeTime(data.horaFinal),
               observacoes: data.observacoes,
               paradas: editParadas,
-              isAvulsa: data.isAvulsa ?? false
             },
             turno
           );
@@ -433,7 +437,6 @@ export default function App() {
             turno: data.turno,
             horaInicial: normalizeTime(data.horaInicial),
             paradas: editParadas,
-            isAvulsa: data.isAvulsa ?? false
           });
           toast.success('OP actualizada.');
         }
@@ -470,8 +473,8 @@ export default function App() {
   };
 
   const addEditParada = () => {
-    if (!editParadaSelectedCode || !editParadaStart || !editParadaEnd) {
-      toast.error('Preencha o motivo da parada e os horários de início e término.');
+    if (!editParadaSelectedCode || !editParadaStart) {
+      toast.error('Preencha o motivo da parada e o horário de início.');
       return;
     }
     const selected = availableParadas.find((p: any) => p.seq.toString() === editParadaSelectedCode);
@@ -557,32 +560,11 @@ export default function App() {
     }
   };
 
-  const checkAndClearProfileShift = async (profile: string) => {
-    const shiftCheck = isShiftAllowed(profile);
-    if (shiftCheck.allowed && shiftCheck.shiftCycleId) {
-       const r = await import('./api');
-       const profileData = await r.getAuthProfile(profile);
-       if (profileData && profileData.lastClearedShiftId !== shiftCheck.shiftCycleId) {
-          console.log(`Clearing records for ${profile} at cycle ${shiftCheck.shiftCycleId}`);
-          await r.clearTurnoRecords(profile.replace('Turno ', ''));
-          await r.updateAuthProfile(profile, { ...profileData, lastClearedShiftId: shiftCheck.shiftCycleId });
-       }
-    }
-  };
-
+  // Auto-clear disabled: records are preserved across shifts to avoid data loss
+  // when operators haven't finished their operations before shift end.
+  // Instead, we run cleanSyncedRecords once on mount to remove old synced records.
   useEffect(() => {
-    if (loginProfile) {
-      checkAndClearProfileShift(loginProfile);
-    }
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (loginProfile) {
-        checkAndClearProfileShift(loginProfile);
-      }
-    }, 60000);
-    return () => clearInterval(interval);
+    cleanSyncedRecords().catch(e => console.error("Error cleaning synced records:", e));
   }, []);
 
   const watchHoraInicial = watch('horaInicial');
@@ -607,6 +589,7 @@ export default function App() {
   }, [watchHoraInicial, setValue]);
 
   const currentTurnForView = useMemo(() => getSuggestedShift(new Date(), format(new Date(), 'HH:mm')), []);
+  const effectiveTurno = selectedTurnoOverride || currentTurnForView;
   const loginProfile = `Turno ${currentTurnForView}`;
 
   const refreshData = async () => {
@@ -656,20 +639,27 @@ export default function App() {
   useEffect(() => {
     refreshData();
     setValue('horaInicial', format(new Date(), 'HH:mm'));
-
-    
   }, [setValue]);
+
+  // Real-time subscriptions to Firestore
+  useEffect(() => {
+    const unsubPending = subscribeToOperations(null, (ops) => {
+      setOperations(ops);
+    });
+    const unsubFinished = subscribeToFinishedOps(null, (ops) => {
+      setFinishedOps(ops);
+    });
+    return () => {
+      unsubPending();
+      unsubFinished();
+    };
+  }, []);
 
   // Login
   
   const handlePreStartOp = (data: StartOpFormValues) => {
-    if (!data.isAvulsa) {
-      if (!data.opNumber) { toast.error('Número de OP é obrigatório'); return; }
-      if (!data.produto) { toast.error('Produto é obrigatório'); return; }
-    } else {
-      if (!data.opNumber) data.opNumber = 'Parada Avulsa';
-      if (!data.produto) data.produto = 'N/A';
-    }
+    if (!data.opNumber) { toast.error('Número de OP é obrigatório'); return; }
+    if (!data.produto) { toast.error('Produto é obrigatório'); return; }
     if (!data.horaInicial) { toast.error('Hora de Início é obrigatória'); return; }
     setStartFormData(data);
     setShowConfirmStart(true);
@@ -709,7 +699,7 @@ export default function App() {
     const sameTurn = data.turno;
     const logicalToday = getLogicalDateStr(getServerTime());
 
-    if (!data.isAvulsa && operations.some(op => {
+    if (operations.some(op => {
       if (op.opNumber !== data.opNumber) return false;
       const turnMatch = op.turno === sameTurn;
       if (!op.carimboInicial) return turnMatch;
@@ -856,18 +846,24 @@ export default function App() {
 
   const myFinishedOps = useMemo(() => {
     return finishedOps.filter(op => {
-      const sameTurn = op.turno === currentTurnForView;
+      // turno in Firestore is "Turno A", effectiveTurno is just "A"
+      const opTurno = op.turno || '';
+      const sameTurn = opTurno === effectiveTurno || opTurno === `Turno ${effectiveTurno}`;
       if (!op.carimboInicial) return sameTurn;
       return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
     });
-  }, [finishedOps, currentTurnForView, logicalToday]);
+  }, [finishedOps, effectiveTurno, logicalToday]);
 
   const myPendingOps = useMemo(() => {
     return operations.filter(op => {
+      // Filter by effective turno as well
+      const opTurno = op.turno || '';
+      const sameTurn = opTurno === effectiveTurno || opTurno === `Turno ${effectiveTurno}`;
+      if (!sameTurn) return false;
       if (!op.carimboInicial) return true;
       return getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
     });
-  }, [operations, currentTurnForView, logicalToday]);
+  }, [operations, effectiveTurno, logicalToday]);
 
   // Normalize linha names: 'Linha 05', '05', 'Linha 5', '5' all become '5'
   const normalizeLinha = (l: string) => {
@@ -1074,22 +1070,22 @@ export default function App() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 dark:from-zinc-950 via-white dark:via-zinc-900 to-slate-100 dark:to-zinc-950 overflow-x-hidden">
         {/* Header - Distribución Profesional */}
         <header className="bg-white dark:bg-zinc-950/80 backdrop-blur-xl border-b border-slate-200 dark:border-zinc-800/60 shadow-sm sticky top-0 z-30 pt-[max(0px,env(safe-area-inset-top))]">
-          <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 2xl:px-8 py-3 sm:py-0 min-h-[4.25rem] sm:h-20 flex items-center justify-between gap-3">
+          <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 2xl:px-8 py-4 sm:py-0 sm:h-20 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-4">
             
             {/* SECCIÓN IZQUIERDA: Logo y Contexto */}
-            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+            <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto sm:flex-1">
               {/* Contenedor del logo más estilizado */}
-              <div className="bg-white dark:bg-zinc-950 p-1.5 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800/60 shrink-0 flex items-center justify-center">
-                 <img src="/icon.svg" className="w-7 h-7 sm:w-10 sm:h-10 object-contain drop-shadow-sm" alt="Vonixx" />
+              <div className="bg-white dark:bg-zinc-950 p-2 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800/60 shrink-0 flex items-center justify-center">
+                 <img src="/icon.svg" className="w-10 h-10 sm:w-10 sm:h-10 object-contain drop-shadow-sm" alt="Vonixx" />
               </div>
               
               {/* Textos y Etiquetas */}
-              <div className="flex flex-col min-w-0 justify-center">
-                <h1 className="text-[15px] sm:text-lg font-black text-zinc-950 dark:text-zinc-50 tracking-tight leading-none truncate mb-1.5">
+              <div className="flex flex-col min-w-0 justify-center flex-1">
+                <h1 className="text-xl sm:text-2xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight leading-none truncate mb-1">
                   Diário de Bordo
                 </h1>
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mt-1">
-                  <span>{today}</span>
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mt-0.5">
+                  <span className="shrink-0">{today}</span>
                   <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-600 shrink-0"></span>
                   <span className="truncate">{loginProfile}</span>
                 </div>
@@ -1097,40 +1093,66 @@ export default function App() {
             </div>
 
             {/* SECCIÓN DERECHA: Botones (Desktop y Mobile) */}
-            <div className="flex items-center gap-2 shrink-0 tour-header-actions">
+            <div className="flex items-center justify-between w-full sm:w-auto gap-2 shrink-0 tour-header-actions overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
               
-              <button 
-                onClick={() => setShowProductManager(true)}
-                className="flex items-center justify-center sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800/50 rounded-lg transition-colors shadow-sm"
-                title="Gerenciar Produtos"
-              >
-                <Pencil className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> 
-                <span className="hidden sm:inline">Produtos</span>
-              </button>
+              {/* Turno Selector (Mobile & Desktop) - Now styled with premium rounded-xl buttons */}
+              <div className="flex items-center gap-1.5 bg-zinc-100/80 dark:bg-zinc-900/80 rounded-xl p-1.5 border border-zinc-200 dark:border-zinc-800 shadow-sm shrink-0 w-full sm:w-auto overflow-x-auto hide-scrollbar">
+                {['A', 'B', 'C', 'D'].map(t => {
+                  const isActiveByClock = t === currentTurnForView;
+                  const isSelected = t === effectiveTurno;
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setSelectedTurnoOverride(t === currentTurnForView ? null : t)}
+                      className={cn(
+                        "flex-1 sm:flex-none px-4 sm:px-4 py-2 sm:py-1.5 text-sm sm:text-xs font-black uppercase tracking-widest rounded-lg transition-all",
+                        isSelected && !isActiveByClock ? "bg-blue-600 text-white shadow-md scale-[1.02]" : 
+                        isSelected && isActiveByClock ? "bg-emerald-600 text-white shadow-md scale-[1.02]" : 
+                        isActiveByClock ? "bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-zinc-200 dark:border-zinc-700" :
+                        "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800"
+                      )}
+                      title={`Ver Turno ${t}`}
+                    >
+                      {t}
+                    </button>
+                  );
+                })}
+              </div>
               
-              <button 
-                onClick={() => setTourActive(true)}
-                className="flex items-center justify-center sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800/50 rounded-lg transition-colors shadow-sm"
-                title="Iniciar Tour"
-              >
-                <HelpCircle className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> 
-                <span className="hidden sm:inline">Tour</span>
-              </button>
-
-              {/* Dashboard Toggle for Global Mode */}
-              {operatingMode === 'global' && (
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button 
-                  onClick={() => setShowDashboard(!showDashboard)}
-                  className={cn(
-                    "flex items-center justify-center sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold rounded-lg transition-colors shadow-sm ml-1",
-                    showDashboard ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50" : "text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800"
-                  )}
-                  title="Dashboard"
+                  onClick={() => setShowProductManager(true)}
+                  className="flex items-center justify-center sm:px-3 sm:py-1.5 w-9 h-9 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800/50 rounded-lg transition-colors shadow-sm"
+                  title="Gerenciar Produtos"
                 >
-                  <PieChartIcon className="w-4 h-4 sm:w-3.5 sm:h-3.5" /> 
-                  <span className="hidden sm:inline">Dashboard</span>
+                  <Pencil className="w-4 h-4" /> 
+                  <span className="hidden sm:inline">Produtos</span>
                 </button>
-              )}
+                
+                <button 
+                  onClick={() => setTourActive(true)}
+                  className="flex items-center justify-center sm:px-3 sm:py-1.5 w-9 h-9 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800/50 rounded-lg transition-colors shadow-sm"
+                  title="Iniciar Tour"
+                >
+                  <HelpCircle className="w-4 h-4" /> 
+                  <span className="hidden sm:inline">Tour</span>
+                </button>
+
+                {/* Dashboard Toggle for Global Mode */}
+                {operatingMode === 'global' && (
+                  <button 
+                    onClick={() => setShowDashboard(!showDashboard)}
+                    className={cn(
+                      "flex items-center justify-center sm:px-3 sm:py-1.5 w-9 h-9 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold rounded-lg transition-colors shadow-sm",
+                      showDashboard ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50" : "text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800"
+                    )}
+                    title="Dashboard"
+                  >
+                    <PieChartIcon className="w-4 h-4" /> 
+                    <span className="hidden sm:inline">Dashboard</span>
+                  </button>
+                )}
+              </div>
 
               {/* Settings (Solo visible en Desktop porque en mobile está abajo) */}
               <div className="hidden lg:flex items-center gap-2 ml-1">

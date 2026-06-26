@@ -108,29 +108,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
           
           <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6 pb-28 lg:pb-7">
 
-            <div className="flex bg-zinc-200/50 dark:bg-zinc-800/50 p-1.5 rounded-2xl mb-6">
-              <button
-                type="button"
-                onClick={() => setValue('isAvulsa', false, { shouldValidate: true })}
-                className={cn(
-                  "flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-xl transition-all",
-                  !watch('isAvulsa') ? "bg-white dark:bg-zinc-900 text-slate-900 dark:text-zinc-50 shadow-sm" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
-                )}
-              >
-                OP Normal
-              </button>
-              <button
-                type="button"
-                onClick={() => setValue('isAvulsa', true, { shouldValidate: true })}
-                className={cn(
-                  "flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-xl transition-all",
-                  watch('isAvulsa') ? "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200 shadow-sm" : "text-zinc-500 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-500"
-                )}
-              >
-                Parada Avulsa
-              </button>
-            </div>
-
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2 gap-5 sm:gap-6">
 
               <div className="space-y-2.5 relative">

@@ -1,5 +1,9 @@
 import React, { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell, AreaChart, Area, ComposedChart, Line
+} from 'recharts';
+import { Activity, Clock, AlertTriangle, ArrowUpRight } from 'lucide-react';
 import { FinishedOperation, Operation } from '../../api';
 
 interface DashboardProps {
@@ -21,11 +25,33 @@ const getDurationMinutes = (start: string, end: string) => {
   return e >= s ? e - s : (e + 24 * 60) - s;
 };
 
-// Colors
-const LINE_COLORS = ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0'];
+// Colors (Tailwind compatible)
+const LINE_COLORS = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#d1fae5'];
 const PROD_COLORS = ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe'];
 const UPTIME_COLORS = ['#10b981', '#ef4444']; // Good, Bad
-const REWORK_COLORS = ['#3b82f6', '#f59e0b']; // Good, Rework
+
+// Custom Tooltip Component
+const CustomTooltip = ({ active, payload, label, unit = '' }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800/80 p-4 rounded-[1.25rem] shadow-2xl">
+        {label && <p className="font-black text-sm text-zinc-800 dark:text-zinc-100 mb-3 border-b border-zinc-100 dark:border-zinc-800/60 pb-2">{label}</p>}
+        {!label && payload[0]?.payload?.name && <p className="font-black text-sm text-zinc-800 dark:text-zinc-100 mb-3 border-b border-zinc-100 dark:border-zinc-800/60 pb-2">{payload[0].payload.name}</p>}
+        
+        <div className="flex flex-col gap-2.5">
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center gap-3 text-sm font-semibold">
+              <div className="w-2.5 h-2.5 rounded-full ring-2 ring-offset-1 dark:ring-offset-zinc-950" style={{ backgroundColor: entry.color || entry.fill, ringColor: entry.color || entry.fill }} />
+              <span className="text-zinc-500 dark:text-zinc-400 flex-1">{entry.name}:</span>
+              <span className="text-zinc-900 dark:text-zinc-50 font-black text-base">{entry.value} {unit}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 export function Dashboard({ finishedOps, operations }: DashboardProps) {
   // 1. Availability (Producing vs Downtime)
@@ -42,48 +68,69 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
 
     const upMin = Math.max(0, totalMin - downMin);
     return [
-      { name: 'Produzindo', value: upMin },
-      { name: 'Parado', value: downMin }
+      { name: 'Tempo Produzindo', value: upMin },
+      { name: 'Tempo Parado', value: downMin }
     ];
   }, [finishedOps]);
 
   const totalTime = uptimeDowntime[0].value + uptimeDowntime[1].value;
   const uptimePercent = totalTime > 0 ? ((uptimeDowntime[0].value / totalTime) * 100).toFixed(1) : '0.0';
 
-
-  // 3. Top Paradas por Tempo (Minutos)
-  const paradasTime = useMemo(() => {
+  // 2. Production by Hour (Timeline)
+  const productionByHour = useMemo(() => {
     const map: Record<string, number> = {};
+    finishedOps.forEach(op => {
+      if (!op.horaFinal) return;
+      const hour = op.horaFinal.split(':')[0] + ':00';
+      const qtd = parseInt(op.quantidade, 10) || 0;
+      if (!map[hour]) map[hour] = 0;
+      map[hour] += qtd;
+    });
+    
+    return Object.keys(map)
+      .sort((a, b) => a.localeCompare(b))
+      .map(hour => ({ hour, quantidade: map[hour] }));
+  }, [finishedOps]);
+
+  // 3. Analysis of Paradas (Impact vs Frequency)
+  const paradasAnalysis = useMemo(() => {
+    const map: Record<string, { minutos: number; ocorrencias: number }> = {};
     finishedOps.forEach(op => {
       op.paradas?.forEach(p => {
         const dur = getDurationMinutes(p.horaInicio, p.horaFim);
-        if (!map[p.tipologia]) map[p.tipologia] = 0;
-        map[p.tipologia] += dur;
+        if (!map[p.tipologia]) map[p.tipologia] = { minutos: 0, ocorrencias: 0 };
+        map[p.tipologia].minutos += dur;
+        map[p.tipologia].ocorrencias += 1;
       });
     });
 
     return Object.keys(map)
-      .map(name => ({ name, value: map[name] }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5); // Top 5
+      .map(name => ({ name, Minutos: map[name].minutos, Ocorrencias: map[name].ocorrencias }))
+      .sort((a, b) => b.Minutos - a.Minutos)
+      .slice(0, 5); // Top 5 by lost time
   }, [finishedOps]);
 
-  // 4. Top Produção por Linha
+  // 4. Top Production by Line
   const productionByLinha = useMemo(() => {
-    const map: Record<string, number> = {};
+    const map: Record<string, { quantidade: number; ops: number }> = {};
     finishedOps.forEach(op => {
       const qtd = parseInt(op.quantidade, 10) || 0;
-      if (!map[op.linha]) map[op.linha] = 0;
-      map[op.linha] += qtd;
+      if (!map[op.linha]) map[op.linha] = { quantidade: 0, ops: 0 };
+      map[op.linha].quantidade += qtd;
+      map[op.linha].ops += 1;
     });
     
     return Object.keys(map)
-      .map(linha => ({ linha: linha.replace('Linha ', ''), quantidade: map[linha] }))
+      .map(linha => ({ 
+        linha: linha.replace('Linha ', ''), 
+        quantidade: map[linha].quantidade,
+        eficiencia: Math.round(map[linha].quantidade / map[linha].ops) // Avg per OP
+      }))
       .sort((a, b) => b.quantidade - a.quantidade)
       .slice(0, 10);
   }, [finishedOps]);
 
-  // 5. Top Produtos
+  // 5. Top Products
   const topProducts = useMemo(() => {
     const map: Record<string, number> = {};
     finishedOps.forEach(op => {
@@ -99,41 +146,38 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
       .slice(0, 5);
   }, [finishedOps]);
 
-  // Shared Tooltip styles
-  const tooltipStyle = {
-    borderRadius: '12px',
-    border: '1px solid #3f3f46',
-    backgroundColor: '#18181b',
-    color: '#f4f4f5',
-    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.5)'
-  };
-
   return (
-    <div className="flex flex-col gap-6 p-4 pb-24 lg:pb-4 max-w-7xl mx-auto">
+    <div className="flex flex-col gap-6 p-4 pb-24 lg:pb-6 max-w-7xl mx-auto">
       
-      {/* Row 1: KPI Donuts (Availability) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Overview Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Disponibilidade */}
-        <div className="bg-white dark:bg-zinc-900 p-5 rounded-3xl shadow-sm border border-zinc-200 dark:border-zinc-800 flex items-center col-span-2">
-          <div className="flex-1">
-            <h3 className="text-sm font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Disponibilidade (OEE)</h3>
-            <p className="text-3xl font-black text-zinc-900 dark:text-zinc-50 mb-2">{uptimePercent}%</p>
-            <p className="text-xs font-semibold text-zinc-400">Tempo Produzindo vs Parado</p>
+        {/* Disponibilidade (OEE) */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-sm border border-zinc-200 dark:border-zinc-800/80 flex items-center lg:col-span-1 relative overflow-hidden group">
+          <div className="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl transition-opacity opacity-0 group-hover:opacity-100" />
+          <div className="flex-1 z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="w-5 h-5 text-emerald-500" />
+              <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Disponibilidade (OEE)</h3>
+            </div>
+            <p className="text-5xl font-black text-zinc-900 dark:text-zinc-50 mb-1 tracking-tighter">{uptimePercent}%</p>
+            <p className="text-xs font-bold text-zinc-400 flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" /> Tempo Produzindo vs Parado
+            </p>
           </div>
-          <div className="w-32 h-32 shrink-0 relative">
+          <div className="w-32 h-32 shrink-0 relative z-10">
             {totalTime > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={uptimeDowntime}
-                    cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" stroke="none"
+                    cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value" stroke="none" cornerRadius={8}
                   >
                     {uptimeDowntime.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={UPTIME_COLORS[index % UPTIME_COLORS.length]} />
                     ))}
                   </Pie>
-                  <RechartsTooltip contentStyle={tooltipStyle} formatter={(value) => `${value} min`} />
+                  <RechartsTooltip content={<CustomTooltip unit="min" />} cursor={false} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -142,49 +186,80 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
           </div>
         </div>
 
-
-
-      </div>
-
-      {/* Row 2: Top Products & Lines */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Top Products */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-zinc-800">
-          <h3 className="text-lg font-black text-zinc-800 dark:text-zinc-100 mb-6">Top Produtos Fabricados (UN)</h3>
-          {topProducts.length > 0 ? (
-            <div className="h-64 w-full">
+        {/* Produção por Hora (Area Chart) */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-sm border border-zinc-200 dark:border-zinc-800/80 lg:col-span-2">
+          <div className="flex items-center gap-2 mb-6">
+            <ArrowUpRight className="w-5 h-5 text-blue-500" />
+            <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 uppercase tracking-widest">Curva de Produção (Por Hora)</h3>
+          </div>
+          {productionByHour.length > 0 ? (
+            <div className="h-40 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topProducts} layout="vertical" margin={{ top: 0, right: 20, left: 40, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#3f3f46" opacity={0.2} />
-                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} />
-                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#a1a1aa' }} width={120} />
-                  <RechartsTooltip cursor={{ fill: '#3f3f46', opacity: 0.1 }} contentStyle={tooltipStyle} />
-                  <Bar dataKey="quantidade" fill="#3b82f6" radius={[0, 6, 6, 0]}>
-                    {topProducts.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={PROD_COLORS[index % PROD_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
+                <AreaChart data={productionByHour} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3f3f46" opacity={0.15} />
+                  <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a', fontWeight: 600 }} dy={10} />
+                  <YAxis hide domain={['dataMin', 'dataMax + 100']} />
+                  <RechartsTooltip content={<CustomTooltip unit="UN" />} cursor={{ stroke: '#3f3f46', strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }} />
+                  <Area type="monotone" dataKey="quantidade" name="Fabricado" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorProd)" />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-zinc-400 font-bold">Nenhuma produção registrada</div>
+            <div className="h-40 flex items-center justify-center text-zinc-400 font-bold">Nenhuma produção registrada</div>
+          )}
+        </div>
+
+      </div>
+
+      {/* Analytics Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Paradas Impact vs Frequency */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-sm border border-zinc-200 dark:border-zinc-800/80">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 uppercase tracking-widest">Análise de Paradas</h3>
+          </div>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 font-bold">Minutos Perdidos vs Frecuencia de Ocurrencia</p>
+          
+          {paradasAnalysis.length > 0 ? (
+            <div className="h-[280px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={paradasAnalysis} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3f3f46" opacity={0.15} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a', fontWeight: 600 }} tickFormatter={(val) => val.length > 10 ? val.substring(0, 10) + '...' : val} dy={10} />
+                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#71717a' }} />
+                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#71717a' }} hide />
+                  <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: '#3f3f46', opacity: 0.05 }} />
+                  <Bar yAxisId="left" dataKey="Minutos" fill="#ef4444" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                  <Line yAxisId="right" type="monotone" dataKey="Ocorrencias" stroke="#f59e0b" strokeWidth={4} dot={{ r: 5, fill: '#f59e0b', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 7 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-[280px] flex items-center justify-center text-zinc-400 font-bold">Nenhuma parada registrada</div>
           )}
         </div>
 
         {/* Produção por Linha Chart */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-zinc-800">
-          <h3 className="text-lg font-black text-zinc-800 dark:text-zinc-100 mb-6">Produção por Linha (UN)</h3>
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-sm border border-zinc-200 dark:border-zinc-800/80 flex flex-col">
+          <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 uppercase tracking-widest mb-2">Produção por Linha (UN)</h3>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 font-bold">Volumen total por máquina</p>
           {productionByLinha.length > 0 ? (
-            <div className="h-64 w-full">
+            <div className="h-[280px] w-full flex-1">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={productionByLinha} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3f3f46" opacity={0.2} />
-                  <XAxis dataKey="linha" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} />
-                  <RechartsTooltip cursor={{ fill: '#3f3f46', opacity: 0.1 }} contentStyle={tooltipStyle} />
-                  <Bar dataKey="quantidade" fill="#10b981" radius={[6, 6, 0, 0]}>
+                <BarChart data={productionByLinha} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3f3f46" opacity={0.15} />
+                  <XAxis dataKey="linha" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a', fontWeight: 600 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#71717a' }} />
+                  <RechartsTooltip content={<CustomTooltip unit="UN" />} cursor={{ fill: '#3f3f46', opacity: 0.05 }} />
+                  <Bar dataKey="quantidade" name="Fabricado" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={50}>
                     {productionByLinha.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={LINE_COLORS[index % LINE_COLORS.length]} />
                     ))}
@@ -193,32 +268,34 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-zinc-400 font-bold">Nenhuma produção registrada</div>
+            <div className="h-[280px] flex items-center justify-center text-zinc-400 font-bold">Nenhuma produção registrada</div>
           )}
         </div>
 
-      </div>
+        {/* Top Products */}
+        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-sm border border-zinc-200 dark:border-zinc-800/80 lg:col-span-2">
+          <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 uppercase tracking-widest mb-6">Top Produtos Fabricados</h3>
+          {topProducts.length > 0 ? (
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topProducts} layout="vertical" margin={{ top: 0, right: 30, left: 60, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#3f3f46" opacity={0.15} />
+                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#71717a' }} />
+                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#71717a', fontWeight: 600 }} width={120} dx={-10} />
+                  <RechartsTooltip content={<CustomTooltip unit="UN" />} cursor={{ fill: '#3f3f46', opacity: 0.05 }} />
+                  <Bar dataKey="quantidade" name="Fabricado" fill="#3b82f6" radius={[0, 6, 6, 0]} maxBarSize={30}>
+                    {topProducts.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={PROD_COLORS[index % PROD_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-[250px] flex items-center justify-center text-zinc-400 font-bold">Nenhuma producción registrada</div>
+          )}
+        </div>
 
-      {/* Row 3: Paradas Impact */}
-      <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl shadow-sm border border-zinc-200 dark:border-zinc-800">
-        <h3 className="text-lg font-black text-zinc-800 dark:text-zinc-100 mb-2">Impacto Real das Paradas</h3>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6 font-medium">Minutos perdidos por cada motivo de parada</p>
-        
-        {paradasTime.length > 0 ? (
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={paradasTime} layout="vertical" margin={{ top: 0, right: 30, left: 20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#3f3f46" opacity={0.2} />
-                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} />
-                <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#a1a1aa', width: 140 }} width={140} />
-                <RechartsTooltip cursor={{ fill: '#3f3f46', opacity: 0.1 }} contentStyle={tooltipStyle} formatter={(value) => `${value} min`} />
-                <Bar dataKey="value" name="Minutos Perdidos" fill="#ef4444" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <div className="h-[300px] flex items-center justify-center text-zinc-400 font-bold">Nenhuma parada registrada</div>
-        )}
       </div>
 
     </div>

@@ -12,7 +12,7 @@ export interface Parada {
 
 export interface ParadaRecord extends Parada {
   horaInicio: string;
-  horaFim: string;
+  horaFim?: string;
   numeroOS?: string;
   observacao?: string;
 }
@@ -42,7 +42,6 @@ export interface FinishedOperation extends Operation {
   paradas?: ParadaRecord[];
   syncStatus?: 'success' | 'error' | 'pending';
   syncError?: string;
-  isAvulsa?: boolean;
 }
 
 export const subscribeToOperations = (linha: string | null, callback: (ops: Operation[]) => void) => {
@@ -167,8 +166,7 @@ export const markOperationFinished = async (
   try {
     await setDoc(doc(db, 'operations', op.id), { 
       ...finishedOp, 
-      status: 'finished',
-      isAvulsa: op.isAvulsa ?? false
+      status: 'finished'
     }, { merge: true });
   } catch (firebaseErr: any) {
     console.error("Firebase updateDoc failed", firebaseErr);
@@ -187,7 +185,7 @@ export const markOperationFinished = async (
     horaInicial: op.horaInicial,
     horaFinal,
     paradas:     paradasFinais,
-    isAvulsa:    op.isAvulsa ?? false
+    observacoes: observacoes || ''
   };
 
   authedFetch(`${API_BASE}/api/append`, JSON.stringify(payload)).then(async res => {
@@ -251,7 +249,7 @@ export const removeFinishedOperation = async (id: string, _turno: string) => {
   
   if (docSnap.exists()) {
     const data = docSnap.data();
-    authedFetch(`${API_BASE}/api/delete`, JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto, isAvulsa: data.isAvulsa })).catch(e => console.error('Delete API error', e));
+    authedFetch(`${API_BASE}/api/delete`, JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })).catch(e => console.error('Delete API error', e));
   }
   
   try {
@@ -268,7 +266,7 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
   if (docSnap.exists()) {
     const data = docSnap.data() as FinishedOperation;
     
-    authedFetch(`${API_BASE}/api/delete`, JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto, isAvulsa: data.isAvulsa })).catch(e => console.error('API delete error in revert', e));
+    authedFetch(`${API_BASE}/api/delete`, JSON.stringify({ op: data.opNumber, linha: data.linha, produto: data.produto })).catch(e => console.error('API delete error in revert', e));
     
     const newOp: Operation = {
       id,
@@ -309,7 +307,7 @@ export const syncFinishedOperation = async (opId: string) => {
       operador:    data.operador || '',
       quantidade:  data.quantidade,
       paradas:     data.paradas || [],
-      isAvulsa:    data.isAvulsa
+      observacoes: data.observacoes || ''
     }
   };
 
@@ -328,7 +326,7 @@ export const syncFinishedOperation = async (opId: string) => {
         horaInicial: data.horaInicial,
         horaFinal:   data.horaFinal,
         paradas:     data.paradas || [],
-        isAvulsa:    data.isAvulsa
+        observacoes: data.observacoes || ''
       };
       
       const appendResp = await authedFetch(`${API_BASE}/api/append`, JSON.stringify(appendPayload));
@@ -358,14 +356,13 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
       op:       original.opNumber,
       linha:    original.linha,
       produto:  original.produto,
-      isAvulsa: original.isAvulsa ?? false,
       carimbo:  original.carimbo,
       turno:    original.turno,
       operador: original.operador || ''
     },
-    updates: { ...data, operador: (data.operador ?? original.operador) || '', isAvulsa: original.isAvulsa ?? false }
+    updates: { ...data, operador: (data.operador ?? original.operador) || '' }
   })).then(async (resp) => {
-    if (resp.status === 404 && !original.isAvulsa) {
+    if (resp.status === 404) {
       const appendResp = await authedFetch(`${API_BASE}/api/append`, JSON.stringify({
         carimbo:     `'${mergedOp.carimbo}`,
         op:          mergedOp.opNumber,
@@ -377,7 +374,7 @@ export const updateFinishedOperation = async (oldId: string, data: Partial<Finis
         horaInicial: mergedOp.horaInicial,
         horaFinal:   mergedOp.horaFinal,
         paradas:     mergedOp.paradas || [],
-        isAvulsa:    false
+        observacoes: mergedOp.observacoes || ''
       }));
       if (!appendResp.ok) {
         await updateDoc(opDocRef, { syncStatus: 'error', syncError: await appendResp.text() });
@@ -420,7 +417,6 @@ export const convertAvulsaToOp = async (
     horaInicial,
     horaFinal,
     quantidade,
-    isAvulsa:   false,
     syncStatus: 'pending',
     syncError:  ''
   });
@@ -465,19 +461,26 @@ export const getReportForDateAndShift = async (date: string, shift: string) => {
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as FinishedOperation));
 };
 
-export const clearTurnoRecords = async (turno: string) => {
+export const cleanSyncedRecords = async () => {
+  // Find finished records that were successfully synced and are older than 48h
   const q = query(
     collection(db, 'operations'), 
-    where('turno', '==', turno)
+    where('status', '==', 'finished'),
+    where('syncStatus', '==', 'success')
   );
   const snap = await getDocs(q);
+  const now = new Date().getTime();
+  const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
+
   for (const item of snap.docs) {
     const data = item.data();
-    if (data.status === 'finished' && data.syncStatus !== 'success') {
-      console.log(`Preserving unsynced record ${item.id} during clearTurnoRecords`);
-      continue;
+    if (data.carimboInicial) {
+      const createdTime = new Date(data.carimboInicial).getTime();
+      if (now - createdTime > FORTY_EIGHT_HOURS) {
+        console.log(`Cleaning old synced record: ${item.id}`);
+        await deleteDoc(doc(db, 'operations', item.id));
+      }
     }
-    await deleteDoc(doc(db, 'operations', item.id));
   }
 };
 

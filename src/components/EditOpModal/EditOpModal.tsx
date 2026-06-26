@@ -116,13 +116,6 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
               </div>
             </div>
 
-            {watchEdit('isAvulsa') && (
-              <div className="flex justify-end -mt-2">
-                 <Button type="button" variant="outline" size="sm" onClick={() => { setValueEdit('isAvulsa', false); setValueEdit('opNumber', ''); setValueEdit('produto', ''); }} className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900 dark:hover:bg-emerald-900/30">
-                   Convertir a OP Normal
-                 </Button>
-              </div>
-            )}
             <div className="space-y-2">
               <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Produto</Label>
               <Dialog open={showEditProductSuggestions} onOpenChange={setShowEditProductSuggestions}>
@@ -224,15 +217,15 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
             <input type="hidden" {...registerEdit('turno')} />
             {'quantidade' in editingOp && (
               <div className="space-y-6 pt-2">
-                 <div className={cn("grid gap-5 items-start", editingOp.isAvulsa ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-1")}>
-                    {!editingOp.isAvulsa && (
+                 <div className={cn("grid gap-5 items-start", "grid-cols-1 sm:grid-cols-2 lg:grid-cols-1")}>
+                    <div className="space-y-2">
                       <QuickCounter 
                         label="Quantidade (UN)"
                         value={watchEdit('quantidade') || ''}
                         onChange={(val: string) => setValueEdit('quantidade', val, { shouldValidate: true })}
                       />
-                    )}
-                    <div className={cn("space-y-2", !editingOp.isAvulsa ? "sm:col-span-2 lg:col-span-1" : "")}>
+                    </div>
+                    <div className={cn("space-y-2", "sm:col-span-2 lg:col-span-1")}>
                      <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Final</Label>
                      <CustomTimePicker
                        value={watchEdit('horaFinal')}
