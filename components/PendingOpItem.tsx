@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { motion, useAnimation, useMotionValue, useTransform } from 'motion/react';
-import { CheckCircle2, Clock, Pencil, Trash2, Plus, Loader2, Search, History, ArrowRight, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, Clock, Pencil, Trash2, Plus, Loader2, Search, History, ArrowRight, ArrowLeft, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { cn, formatLinhaName, getLinhaColors } from '../src/lib/utils';
@@ -90,8 +90,8 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   }, [linhaHistory]);
 
   const addParada = () => {
-    if (!finishParadaSelectedCode || !finishParadaStart || !finishParadaEnd) {
-      toast.error('Preencha o motivo da parada e os horários de início e término.');
+    if (!finishParadaSelectedCode || !finishParadaStart) {
+      toast.error('Preencha o motivo e a hora de início da parada.');
       return;
     }
     const paradaBase = availableParadas.find((p: any) => p.seq.toString() === finishParadaSelectedCode);
@@ -103,7 +103,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
     const newParada: ParadaRecord = {
       ...paradaBase,
       horaInicio: finishParadaStart,
-      horaFim: finishParadaEnd,
+      ...(finishParadaEnd ? { horaFim: finishParadaEnd } : {}),
       numeroOS: finishParadaOS,
       observacao: finishParadaObs,
     };
@@ -135,7 +135,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
   };
 
   const onConfirm = async () => {
-    if (!op.isAvulsa && (!finishQtd || !finishTime)) {
+    if (!finishQtd || !finishTime) {
       toast.error('Preencha a quantidade e hora final.');
       return;
     }
@@ -215,8 +215,8 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
         <div className="pl-3 flex items-start justify-between gap-3">
           <div className="flex flex-col flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-              <span className={cn("text-xs font-bold tracking-widest px-2.5 py-1 rounded-lg border shadow-sm", op.isAvulsa ? "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50" : "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50")}>
-                {op.isAvulsa ? 'PARADA AVULSA' : `OP ${op.opNumber}`}
+              <span className={cn("text-xs font-bold tracking-widest px-2.5 py-1 rounded-lg border shadow-sm", "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50")}>
+                {`OP ${op.opNumber}`}
               </span>
               {(() => {
                 const lName = formatLinhaName(op.linha);
@@ -231,11 +231,9 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                 );
               })()}
               <span className="text-[10px] font-bold tracking-widest text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-lg border border-indigo-200/60 dark:border-indigo-800/60 shadow-sm">{op.turno?.startsWith('Turno') ? op.turno : `Turno ${op.turno}`}</span>
-              {!op.isAvulsa && op.litragem && <span className="text-[10px] font-semibold text-slate-400">{op.litragem}</span>}
+              {op.litragem && <span className="text-[10px] font-semibold text-slate-400">{op.litragem}</span>}
             </div>
-            {!op.isAvulsa && (
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-1 mb-1">{op.produto}</h3>
-            )}
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-1 mb-1">{op.produto}</h3>
             <div className="flex items-center gap-1.5">
               <Clock className="w-3 h-3 text-zinc-400" />
               <span className="text-[10px] font-semibold text-zinc-400">Início {op.horaInicial}</span>
@@ -251,6 +249,16 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
 
         {showParadas && (
           <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="sticky top-[100px] z-10 flex items-center justify-between py-2 -mt-2 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm">
+              <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded-lg border border-amber-200/50 dark:border-amber-800/50">Menu de Paradas</span>
+              <button 
+                type="button"
+                onClick={() => setShowParadas(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
             {finishParadas.length > 0 && (
               <div className="space-y-1.5">
                 {finishParadas.map((parada, idx) => (
@@ -268,7 +276,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                         </div>
                       )}
                     </div>
-                    <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 tabular-nums shrink-0">{parada.horaInicio}–{parada.horaFim}</span>
+                    <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 tabular-nums shrink-0">{parada.horaInicio}–{parada.horaFim || <span className="text-amber-500 uppercase tracking-widest text-[8px]">Pendente</span>}</span>
                     <button
                       type="button"
                       onClick={() => editParada(idx)}
@@ -347,11 +355,11 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 pl-0.5">Fim</label>
+                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 pl-0.5">Fim (Opcional)</label>
                   <CustomTimePicker
                     value={finishParadaEnd}
                     onChange={setFinishParadaEnd}
-                    placeholder="00:00"
+                    placeholder="--:--"
                     clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
                     wrapperClass="h-12 bg-white dark:bg-zinc-950 rounded-xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors shadow-sm"
                     inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0"
@@ -385,7 +393,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               <Button
                 type="button"
                 onClick={addParada}
-                disabled={!finishParadaSelectedCode || !finishParadaStart || !finishParadaEnd}
+                disabled={!finishParadaSelectedCode || !finishParadaStart}
                 className="w-full h-12 bg-zinc-950 hover:bg-zinc-800 disabled:bg-zinc-200 dark:bg-zinc-700 disabled:text-zinc-400 text-white font-black text-sm rounded-xl shadow-sm transition-all"
               >
                 <Plus className="w-4 h-4 mr-1.5" /> Registrar Parada
@@ -396,6 +404,16 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
 
         {showHistory && (
           <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="sticky top-[100px] z-10 flex items-center justify-between py-2 -mt-2 mb-1 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm">
+              <span className="text-[10px] font-black uppercase tracking-widest text-blue-500 bg-blue-50 dark:bg-blue-950/30 px-2 py-1 rounded-lg border border-blue-200/50 dark:border-blue-800/50">Histórico da Linha</span>
+              <button 
+                type="button"
+                onClick={() => setShowHistory(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
             {allHistoryParadas.length === 0 ? (
               <div className="flex items-center justify-center py-5 text-zinc-400">
                 <p className="text-sm font-medium">Nenhuma parada registrada nesta linha</p>
@@ -412,7 +430,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                       </div>
                       <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200 leading-tight truncate">{item.parada.seq} – {item.parada.tipologia}</span>
                     </div>
-                    <span className="text-xs font-black text-zinc-500 dark:text-zinc-400 shrink-0 tabular-nums">{item.parada.horaInicio}–{item.parada.horaFim}</span>
+                    <span className="text-xs font-black text-zinc-500 dark:text-zinc-400 shrink-0 tabular-nums">{item.parada.horaInicio}–{item.parada.horaFim || <span className="text-amber-500 uppercase tracking-widest text-[9px]">Pendente</span>}</span>
                   </div>
                 ))}
               </div>
@@ -422,21 +440,19 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
 
         {isFinishing && (
           <div className="border-t border-emerald-200 dark:border-emerald-800/50 pt-4 space-y-4 bg-emerald-50 dark:bg-emerald-950/30 -mx-4 sm:-mx-5 px-4 sm:px-5 pb-1 mt-1">
-            {!op.isAvulsa && (
-              <div className="grid gap-3 items-end grid-cols-2">
-                <QuickCounter label="Quantidade (UN)" value={finishQtd} onChange={setFinishQtd} className="w-full" />
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Final</label>
-                  <CustomTimePicker
-                    value={finishTime}
-                    onChange={setFinishTime}
-                    clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
-                    wrapperClass="h-[46px] bg-white dark:bg-zinc-950 rounded-xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors shadow-sm"
-                    inputClass="pl-9 pr-4 text-sm font-bold bg-transparent focus:ring-0 w-full h-full"
-                  />
-                </div>
+            <div className="grid gap-3 items-end grid-cols-2">
+              <QuickCounter label="Quantidade (UN)" value={finishQtd} onChange={setFinishQtd} className="w-full" />
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Final</label>
+                <CustomTimePicker
+                  value={finishTime}
+                  onChange={setFinishTime}
+                  clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
+                  wrapperClass="h-[46px] bg-white dark:bg-zinc-950 rounded-xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors shadow-sm"
+                  inputClass="pl-9 pr-4 text-sm font-bold bg-transparent focus:ring-0 w-full h-full"
+                />
               </div>
-            )}
+            </div>
             <div className="space-y-1.5">
               <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Observação da OP (Opcional)</label>
               <input
@@ -511,7 +527,7 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                           <div key={i} className="flex items-center gap-2 bg-white dark:bg-zinc-950 px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800/60">
                             <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-1.5 py-0.5 rounded-md shrink-0">{p.seq}</span>
                             <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 flex-1 truncate">{p.tipologia}</span>
-                            <span className="text-[10px] font-black text-zinc-400 tabular-nums shrink-0">{p.horaInicio}–{p.horaFim}</span>
+                            <span className="text-[10px] font-black text-zinc-400 tabular-nums shrink-0">{p.horaInicio}–{p.horaFim || <span className="text-amber-500 uppercase tracking-widest text-[8px]">Pendente</span>}</span>
                           </div>
                         ))}
                       </div>

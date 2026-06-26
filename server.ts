@@ -44,7 +44,7 @@ const PARADAS_LIST = 'Registro_Paradas_Geral';
 
 const getSiteUrlPrefix = () => `/sites/${SITE_HOSTNAME}:${SITE_PATH}:`;
 
-const hasLocalCredentials = !!(
+const hasLocalCredentials = () => !!(
   process.env.MICROSOFT_TENANT_ID &&
   process.env.MICROSOFT_CLIENT_ID &&
   process.env.MICROSOFT_CLIENT_SECRET
@@ -52,7 +52,7 @@ const hasLocalCredentials = !!(
 
 // GET /api/list-fields?list=Registro_Paradas_Geral
 app.get('/api/list-fields', async (req, res) => {
-  if (!hasLocalCredentials) return res.status(503).json({ error: 'No MS credentials configured' });
+  if (!hasLocalCredentials()) return res.status(503).json({ error: 'No MS credentials configured' });
   const listName = (req.query.list as string) || PRODUCAO_LIST;
   try {
     const client = getGraphClient();
@@ -226,7 +226,7 @@ const buildParadaFields = (p: any, baseDate: string, linha: string, turno: strin
 
 app.post('/api/append', async (req, res) => {
   console.log('POST /api/append received', JSON.stringify(req.body));
-  if (!hasLocalCredentials) {
+  if (!hasLocalCredentials()) {
     return res.status(200).json({ success: true, message: 'MOCKED Row added' });
   }
   try {
@@ -279,7 +279,7 @@ app.post('/api/append', async (req, res) => {
 });
 
 app.post('/api/append-paradas', async (req, res) => {
-  if (!hasLocalCredentials) return res.status(200).json({ success: true, message: 'MOCKED Paradas added' });
+  if (!hasLocalCredentials()) return res.status(200).json({ success: true, message: 'MOCKED Paradas added' });
   try {
     const { carimbo, op, produto, linha, turno, operador, paradas } = req.body;
     if (!paradas || !Array.isArray(paradas) || paradas.length === 0)
@@ -299,7 +299,7 @@ app.post('/api/append-paradas', async (req, res) => {
 
 app.post('/api/update', async (req, res) => {
   console.log('POST /api/update received', JSON.stringify(req.body));
-  if (!hasLocalCredentials) return res.status(200).json({ success: true, message: 'MOCKED Row updated' });
+  if (!hasLocalCredentials()) return res.status(200).json({ success: true, message: 'MOCKED Row updated' });
   try {
     const { originalData, updates } = req.body;
     const client   = getGraphClient();
@@ -392,7 +392,7 @@ app.post('/api/update', async (req, res) => {
 });
 
 app.post('/api/delete', async (req, res) => {
-  if (!hasLocalCredentials) return res.status(200).json({ success: true, message: 'MOCKED Row deleted' });
+  if (!hasLocalCredentials()) return res.status(200).json({ success: true, message: 'MOCKED Row deleted' });
   try {
     const { op, linha } = req.body;
     const client = getGraphClient();
