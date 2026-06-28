@@ -73,13 +73,13 @@ function buildSteps(isDesktop: boolean): TourStep[] {
       {
         id: 'header-actions',
         selector: '.tour-header-actions',
-        title: 'Ações Rápidas & Configurações',
-        body: 'No canto superior direito você encontra atalhos importantes:\n\n• Produtos — gerencie e cadastre os produtos e litragens da fábrica.\n• Configurações (⚙️) — ajuste a linha da tablet, altere sua senha e faça logout.\n\nPronto — agora você conhece todos os painéis do Diário de Bordo. Bom turno!',
+        title: 'Ações Rápidas & Turnos',
+        body: 'No topo você pode alternar entre os turnos e acessar atalhos importantes:\n\n• Produtos — gerencie os produtos da fábrica.\n• Dashboard — visualize gráficos e indicadores.\n• Configurações (⚙️) — ajuste a linha e a sua conta.\n\nPronto — agora você conhece todos os painéis. Bom turno!',
       },
     ];
   }
 
-  // Mobile flow: Welcome → Pendentes → Items → Concluídas → Barra inferior
+  // Mobile flow: Welcome → Pendentes → Items → Concluídas → Header Actions → Barra inferior
   return [
     ...common,
     {
@@ -90,10 +90,16 @@ function buildSteps(isDesktop: boolean): TourStep[] {
       mobileTab: 'concluidas',
     },
     {
+      id: 'header-actions',
+      selector: '.tour-header-actions',
+      title: 'Ações e Turnos',
+      body: 'No topo da tela, você encontra os seletores de turno (A, B, C, D) e atalhos rápidos como Editar Produtos e o Dashboard (Gráficos).',
+    },
+    {
       id: 'tab-bar',
       selector: '.tour-tab-bar',
       title: 'Barra Inferior',
-      body: 'Esta barra flutuante concentra tudo que você precisa:\n\n• Esquerda — exibe o seu Turno ativo\n• Centro — botão Nova OP para criar uma ordem\n• Direita — Configurações (⚙️) para ajustar a linha ou sair da conta.\n\nPronto — agora você conhece tudo! Bom turno!',
+      body: 'Esta barra flutuante concentra tudo que você precisa:\n\n• Esquerda — exibe o seu Turno ativo\n• Centro — botão Nova OP para criar uma ordem\n• Direita — Configurações (⚙️) para ajustar a linha ou sair.\n\nPronto — agora você conhece tudo! Bom turno!',
     },
   ];
 }
@@ -220,7 +226,7 @@ function SwipeHintCard({ rect }: { rect: SpotRect }) {
 
       {/* Skeleton card that physically drags */}
       <motion.div
-        className="absolute inset-0 rounded-2xl bg-white dark:bg-zinc-950 shadow-lg ring-1 ring-zinc-100 flex items-center px-4 gap-3"
+        className="absolute inset-0 rounded-2xl bg-card shadow-lg ring-1 ring-zinc-100 flex items-center px-4 gap-3"
         style={{ x }}
       >
         <div className="w-1.5 h-9 rounded-full bg-amber-400 shrink-0" />
@@ -249,7 +255,7 @@ function TourCard({
   handleNext: () => void;
 }) {
   return (
-    <div className="bg-white dark:bg-zinc-950 rounded-3xl shadow-2xl ring-1 ring-zinc-200 dark:ring-zinc-800/60 p-5 flex flex-col gap-4 overflow-hidden max-h-[85dvh]">
+    <div className="bg-card rounded-3xl shadow-2xl ring-1 ring-border p-5 flex flex-col gap-4 overflow-hidden max-h-[85dvh]">
 
       {/* Header — shrink-0 so it never collapses */}
       <div className="flex items-start justify-between gap-2 shrink-0">
@@ -257,7 +263,7 @@ function TourCard({
           <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 whitespace-nowrap">
             Passo {step + 1} de {steps.length}
           </p>
-          <h3 className="text-sm sm:text-base font-black text-zinc-950 dark:text-zinc-50 leading-snug break-words">
+          <h3 className="text-sm sm:text-base font-black text-foreground leading-snug break-words">
             {current.title}
           </h3>
         </div>
@@ -272,7 +278,7 @@ function TourCard({
       {/* Progress bar — shrink-0 */}
       <div className="h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden shrink-0">
         <motion.div
-          className="h-full bg-zinc-950 rounded-full"
+          className="h-full bg-foreground rounded-full"
           initial={{ width: `${(step / steps.length) * 100}%` }}
           animate={{ width: `${((step + 1) / steps.length) * 100}%` }}
           transition={{ duration: 0.4 }}
@@ -280,7 +286,7 @@ function TourCard({
       </div>
 
       {/* Body text — flex-1 + min-h-0 forces scroll BEFORE pushing buttons out */}
-      <p className="flex-1 min-h-0 overflow-y-auto text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed break-words whitespace-pre-line pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-200 dark:bg-zinc-700">
+      <p className="flex-1 min-h-0 overflow-y-auto text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed break-words whitespace-pre-line pr-2 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-200 dark:bg-zinc-700">
         {current.body}
       </p>
 
@@ -288,13 +294,13 @@ function TourCard({
       <div className="flex items-center justify-between gap-3 pt-1 border-t border-zinc-100 dark:border-zinc-800 shrink-0">
         <button
           onClick={onFinish}
-          className="text-xs font-bold text-zinc-400 hover:text-zinc-600 dark:text-zinc-400 transition-colors py-2 px-3 rounded-xl hover:bg-zinc-50 dark:bg-zinc-900/50 shrink-0"
+          className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors py-2 px-3 rounded-xl hover:bg-accent shrink-0"
         >
           Pular tour
         </button>
         <button
           onClick={handleNext}
-          className="flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 active:scale-[0.97] text-white text-xs sm:text-sm font-black px-5 py-2.5 rounded-2xl transition-all shadow-lg shadow-zinc-950/25 shrink-0"
+          className="flex items-center gap-2 bg-foreground text-background hover:bg-foreground/90 active:scale-[0.97] text-xs sm:text-sm font-black px-5 py-2.5 rounded-2xl transition-all shadow-lg shrink-0"
         >
           {isLast ? 'Concluir ✓' : 'Próximo'}
           {!isLast && <ArrowRight className="w-3.5 h-3.5" />}

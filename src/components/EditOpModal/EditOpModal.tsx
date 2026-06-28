@@ -90,39 +90,39 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
 
   return (
     <Dialog open={!!editingOp} onOpenChange={(o) => { if (!o) setEditingOp(null); }}>
-      <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-xl rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-5 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50 max-h-[90dvh] overflow-y-auto scrollbar-none gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
+      <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-xl rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-5 sm:p-8 shadow-2xl border-0 ring-1 ring-border max-h-[90dvh] overflow-y-auto scrollbar-none gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
         <DialogHeader className="mb-6 space-y-2">
-          <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center mb-2 shadow-sm border border-zinc-200 dark:border-zinc-800/60">
+          <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-xl flex items-center justify-center mb-2 shadow-sm border border-border">
              <Pencil className="w-6 h-6 text-zinc-700 dark:text-zinc-300" />
           </div>
-          <DialogTitle className="text-2xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight">Editar Operação</DialogTitle>
+          <DialogTitle className="text-2xl font-black text-foreground tracking-tight">Editar Operação</DialogTitle>
         </DialogHeader>
         {editingOp && (
           <form onSubmit={handleSubmitEdit(onEditOp)} className="space-y-6">
             <div className={cn("grid gap-5", "grid-cols-1 sm:grid-cols-2")}>
               <div className="space-y-2">
-                <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Nº da OP</Label>
-                <Input type="text" inputMode="numeric" pattern="[0-9]*" {...registerEdit('opNumber', { onChange: (e: any) => e.target.value = e.target.value.replace(/[^0-9]/g, '') })} className="w-full h-14 px-4 bg-[#F9FAFB] dark:bg-zinc-900 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-2xl text-base font-mono text-zinc-900 dark:text-zinc-100 focus-visible:ring-0 focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 transition-all shadow-sm focus:bg-white dark:focus:bg-zinc-950" />
+                <Label className="block text-xs font-black text-muted-foreground uppercase tracking-widest pl-1">Nº da OP</Label>
+                <Input type="text" inputMode="numeric" pattern="[0-9]*" {...registerEdit('opNumber', { onChange: (e: any) => e.target.value = e.target.value.replace(/[^0-9]/g, '') })} className="w-full h-14 px-4 bg-muted border-2 border-border rounded-2xl text-base font-mono text-foreground focus-visible:ring-0 focus-visible:border-ring transition-all shadow-sm focus-within:bg-background" />
               </div>
               <div className="space-y-2">
-                <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Inicial</Label>
+                <Label className="block text-xs font-black text-muted-foreground uppercase tracking-widest pl-1">Hora Inicial</Label>
                 <CustomTimePicker
                   value={watchEdit('horaInicial')}
                   onChange={(v: string) => setValueEdit('horaInicial', v, { shouldValidate: true })}
                   clockIconClass="absolute left-3 w-5 h-5 text-zinc-400 pointer-events-none"
-                  wrapperClass="bg-[#F9FAFB] dark:bg-zinc-900 h-14 rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 dark:focus-within:border-zinc-700 transition-all shadow-sm focus-within:bg-white dark:focus-within:bg-zinc-950"
+                  wrapperClass="bg-muted h-14 rounded-2xl border-2 border-border focus-within:border-ring transition-all shadow-sm focus-within:bg-background"
                   inputClass="pl-9 pr-2 text-base w-full bg-transparent outline-none flex-1 font-bold"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Produto</Label>
+              <Label className="block text-xs font-black text-muted-foreground uppercase tracking-widest pl-1">Produto</Label>
               <Dialog open={showEditProductSuggestions} onOpenChange={setShowEditProductSuggestions}>
                 <button 
                   type="button" 
                   onClick={() => { setShowEditProductSuggestions(true); setIsTypingEditProduct(true); }} 
-                  className={cn("flex h-14 w-full items-center justify-between rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] dark:bg-zinc-900 px-4 py-2 text-base text-zinc-900 dark:text-zinc-100 transition-all focus:outline-none focus:border-zinc-950 dark:focus:border-zinc-700 shadow-sm focus:bg-white dark:focus:bg-zinc-950", watchEdit('produto') ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400")}
+                  className={cn("flex h-14 w-full items-center justify-between rounded-2xl border-2 border-border bg-muted px-4 py-2 text-base text-foreground transition-all focus:outline-none focus:border-ring shadow-sm focus-within:bg-background", watchEdit('produto') ? "text-foreground" : "text-muted-foreground")}
                 >
                   <span className="truncate">
                     {watchEdit('produto') || "Selecione o produto..."}
@@ -130,8 +130,8 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                   <Search className="w-5 h-5 text-zinc-400 shrink-0 ml-2" />
                 </button>
 
-                <DialogContent className="w-[95vw] max-w-lg p-0 gap-0 overflow-hidden rounded-[1.5rem] bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col max-h-[85vh] z-[10005]">
-                  <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-col gap-3 shrink-0">
+                <DialogContent className="w-[95vw] max-w-lg p-0 gap-0 overflow-hidden rounded-[1.5rem] bg-card border border-border shadow-2xl flex flex-col max-h-[85vh] z-[10005]">
+                  <div className="p-4 border-b border-border bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-col gap-3 shrink-0">
                     <DialogTitle className="text-lg font-black text-slate-900 dark:text-zinc-50 uppercase tracking-widest pl-1">
                       Selecionar Produto
                     </DialogTitle>
@@ -140,16 +140,16 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                         {...registerEdit('produto')} 
                         autoComplete="off" 
                         placeholder="Digite para buscar..." 
-                        className="flex h-14 w-full rounded-xl border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 pl-11 pr-4 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-zinc-950 dark:focus-visible:border-zinc-700 shadow-sm" 
+                        className="flex h-14 w-full rounded-xl border border-border bg-card pl-11 pr-4 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-ring shadow-sm" 
                       />
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                     </div>
                   </div>
-                  <div className="overflow-y-auto p-2 scrollbar-none touch-pan-y flex-1 min-h-[40vh] bg-white dark:bg-zinc-950">
+                  <div className="overflow-y-auto p-2 scrollbar-none touch-pan-y flex-1 min-h-[40vh] bg-card">
                     {filteredEditProducts.length > 0 ? filteredEditProducts.map(p => (
-                      <div key={`${p.produto}-${p.litragem}`} onPointerDown={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }} className="cursor-pointer px-5 py-4 mb-1 last:mb-0 text-base text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] dark:hover:bg-zinc-900 hover:text-zinc-950 dark:text-zinc-50 rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800/80">
+                      <div key={`${p.produto}-${p.litragem}`} onPointerDown={(e) => { e.preventDefault(); setValueEdit('produto', p.produto); setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }} className="cursor-pointer px-5 py-4 mb-1 last:mb-0 text-base text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] dark:hover:bg-zinc-900 hover:text-foreground rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800/80">
                          <span className="truncate group-hover/item:text-black dark:group-hover/item:text-white">{p.produto}</span>
-                         {p.litragem && <span className="text-[10px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-mono tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md">{p.litragem}</span>}
+                         {p.litragem && <span className="text-[10px] sm:text-xs text-muted-foreground font-mono tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-md">{p.litragem}</span>}
                       </div>
                     )) : watchEdit('produto') ? (
                          <div className="px-5 py-4 text-base text-blue-600 font-bold cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-[1.25rem] transition-colors flex items-center border border-transparent hover:border-blue-100" onPointerDown={() => { setShowEditProductSuggestions(false); setIsTypingEditProduct(false); }}>
@@ -166,18 +166,18 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
               </Dialog>
             </div>
             <div className="space-y-2">
-              <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Linha de Produção</Label>
+              <Label className="block text-xs font-black text-muted-foreground uppercase tracking-widest pl-1">Linha de Produção</Label>
               <input type="hidden" {...registerEdit('linha')} />
               <Popover open={openEditLineSelect} onOpenChange={setOpenEditLineSelect}>
-                <PopoverTrigger type="button" role="combobox" aria-expanded={openEditLineSelect} className={cn("flex items-center justify-between w-full h-14 px-4 border-2 border-zinc-200 dark:border-zinc-800/80 bg-[#F9FAFB] dark:bg-zinc-900 transition-all duration-200 text-base font-semibold rounded-2xl outline-none focus:border-zinc-950 shadow-sm disabled:cursor-not-allowed disabled:opacity-50", watchEdit('linha') ? 'border-zinc-300 bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400 hover:border-zinc-300')}>
+                <PopoverTrigger type="button" role="combobox" aria-expanded={openEditLineSelect} className={cn("flex items-center justify-between w-full h-14 px-4 border-2 border-border bg-muted transition-all duration-200 text-base font-semibold rounded-2xl outline-none focus:border-zinc-950 shadow-sm disabled:cursor-not-allowed disabled:opacity-50", watchEdit('linha') ? 'border-zinc-300 bg-card text-foreground' : 'text-muted-foreground hover:border-zinc-300')}>
                   {watchEdit('linha') ? `Linha ${watchEdit('linha').replace(/^Linha\s*/i, '')}` : 'Selecione a Linha'}
                   <ChevronsUpDown className="ml-3 h-5 w-5 shrink-0 text-zinc-400" />
                 </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-1.5 shadow-2xl border-zinc-200 dark:border-zinc-800 rounded-2xl z-[50]" align="start">
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-1.5 shadow-2xl border-border rounded-2xl z-[50]" align="start">
                   <Command className="border-none" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
                     <CommandInput placeholder="Buscar linha..." className="bg-transparent text-base sm:text-sm h-12" value={searchEditLine} onValueChange={setSearchEditLine} />
                     <CommandList className="max-h-[250px] overflow-y-auto mt-2 p-1">
-                      <CommandEmpty className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                      <CommandEmpty className="py-4 text-center text-sm text-muted-foreground">
                           {searchEditLine ? (
                             <Button
                               type="button"
@@ -226,33 +226,33 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                       />
                     </div>
                     <div className={cn("space-y-2", "sm:col-span-2 lg:col-span-1")}>
-                     <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Final</Label>
+                     <Label className="block text-xs font-black text-muted-foreground uppercase tracking-widest pl-1">Hora Final</Label>
                      <CustomTimePicker
                        value={watchEdit('horaFinal')}
                        onChange={(v: string) => setValueEdit('horaFinal', v, { shouldValidate: true })}
                        clockIconClass="absolute left-3 w-5 h-5 text-zinc-400 pointer-events-none"
-                       wrapperClass="bg-[#F9FAFB] dark:bg-zinc-900 h-14 rounded-2xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-all shadow-sm focus-within:bg-white dark:focus-within:bg-zinc-950"
+                       wrapperClass="bg-muted h-14 rounded-2xl border-2 border-border focus-within:border-zinc-950 transition-all shadow-sm focus-within:bg-background"
                        inputClass="pl-9 pr-2 text-base w-full bg-transparent outline-none flex-1 font-bold"
                      />
                    </div>
                 </div>
 
                 {/* Paradas Edit Section */}
-                <div className="mt-6 pt-5 border-t border-zinc-200 dark:border-zinc-800/60">
+                <div className="mt-6 pt-5 border-t border-border">
                   <div className="flex items-center justify-between mb-4 px-1">
                     <Label className="text-sm font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest">Paradas Registradas</Label>
-                    <div className="text-xs font-bold px-2.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-800 rounded-md shadow-sm">{editParadas.length}</div>
+                    <div className="text-xs font-bold px-2.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-muted-foreground border border-border rounded-md shadow-sm">{editParadas.length}</div>
                   </div>
                   
                   <div className="space-y-3 max-h-[300px] overflow-y-auto mb-5 scrollbar-none pr-1">
                     {editParadas.map((parada, idx) => (
-                      <div key={idx} className="group/parada relative flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-3 p-4 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/80 rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+                      <div key={idx} className="group/parada relative flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-3 p-4 bg-card border border-border rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                         <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-400 opacity-80" />
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 pl-3 flex-1 min-w-[200px]">
                           <div className="flex-1">
-                            <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100 leading-tight block break-words">{parada.seq} - {parada.tipologia}</span>
+                            <span className="text-sm font-bold text-foreground leading-tight block break-words">{parada.seq} - {parada.tipologia}</span>
                             {(parada.numeroOS || parada.observacao) && (
-                              <div className="mt-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 truncate flex items-center gap-2">
+                              <div className="mt-1 text-[11px] font-medium text-muted-foreground truncate flex items-center gap-2">
                                 {parada.numeroOS && <span className="bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] font-bold">OS: {parada.numeroOS}</span>}
                                 {parada.observacao && <span>{parada.observacao}</span>}
                               </div>
@@ -260,7 +260,7 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                           </div>
                           <div className="flex items-center gap-1.5 align-middle bg-zinc-50 dark:bg-zinc-900/50 self-start sm:self-auto px-2.5 py-1.5 rounded-md border border-zinc-100 dark:border-zinc-800 shrink-0">
                             <Clock className="w-3.5 h-3.5 text-zinc-400" />
-                            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{parada.horaInicio} até {parada.horaFim}</span>
+                            <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">{parada.horaInicio} até {parada.horaFim}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 self-start shrink-0 sm:self-auto w-full sm:w-auto pl-3 sm:pl-4">
@@ -293,25 +293,25 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                       </div>
                     ))}
                     {editParadas.length === 0 && (
-                      <div className="flex flex-col items-center justify-center p-6 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/60 border-dashed rounded-2xl text-zinc-400">
+                      <div className="flex flex-col items-center justify-center p-6 bg-zinc-50 dark:bg-zinc-900/50 border border-border border-dashed rounded-2xl text-zinc-400">
                          <p className="text-sm font-medium">Nenhuma parada registrada</p>
                       </div>
                     )}
                   </div>
                   
-                  <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/80 rounded-2xl p-4 sm:p-5 shadow-sm">
-                    <p className="text-xs font-black text-zinc-600 dark:text-zinc-400 uppercase tracking-widest mb-4">Adicionar Parada</p>
+                  <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-sm">
+                    <p className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-4">Adicionar Parada</p>
                     <div className="flex flex-col gap-4">
                       <Select value={editParadaSelectedCode} onValueChange={setEditParadaSelectedCode}>
-                        <SelectTrigger className="min-h-[4.5rem] py-3 h-auto px-4 sm:px-5 bg-white dark:bg-zinc-950 w-full text-left font-semibold text-zinc-800 dark:text-zinc-200 shadow-sm border-2 border-zinc-200 dark:border-zinc-800/80 focus:border-zinc-950 focus:ring-4 focus:ring-zinc-900/10 [&_[data-slot=select-value]]:line-clamp-none [&_[data-slot=select-value]]:whitespace-normal whitespace-normal rounded-[1.25rem] transition-all group hover:border-zinc-300 items-center">
+                        <SelectTrigger className="min-h-[4.5rem] py-3 h-auto px-4 sm:px-5 bg-card w-full text-left font-semibold text-card-foreground shadow-sm border-2 border-border focus:border-zinc-950 focus:ring-4 focus:ring-zinc-900/10 [&_[data-slot=select-value]]:line-clamp-none [&_[data-slot=select-value]]:whitespace-normal whitespace-normal rounded-[1.25rem] transition-all group hover:border-zinc-300 items-center">
                           <SelectValue placeholder="Selecione o motivo da parada">
                             {editParadaSelectedCode 
                               ? (
                                 <div className="flex items-center gap-3 w-full pr-2">
-                                  <span className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-black text-sm border border-zinc-200 dark:border-zinc-800/80 shadow-inner">
+                                  <span className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-foreground font-black text-sm border border-border shadow-inner">
                                     {editParadaSelectedCode}
                                   </span>
-                                  <span className="font-bold text-sm sm:text-base text-zinc-950 dark:text-zinc-50 break-words leading-tight flex-1">
+                                  <span className="font-bold text-sm sm:text-base text-foreground break-words leading-tight flex-1">
                                     {availableParadas.find((p: any) => p.seq.toString() === editParadaSelectedCode)?.tipologia || ''}
                                   </span>
                                 </div>
@@ -319,14 +319,14 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                               : <span className="text-zinc-400 font-bold text-sm sm:text-base flex items-center pr-2"><ChevronDown className="w-5 h-5 mr-3 shrink-0 text-zinc-300" />Toque para selecionar...</span>}
                           </SelectValue>
                         </SelectTrigger>
-                        <SelectContent className="max-h-[50dvh] w-[calc(100vw-3rem)] sm:w-[--radix-select-trigger-width] overflow-y-auto overflow-x-hidden rounded-[1.5rem] p-2 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/80 bg-white dark:bg-zinc-950/95 backdrop-blur-xl z-50">
-                          <div className="p-2 border-b border-zinc-100 dark:border-zinc-800/80 sticky top-0 bg-white dark:bg-zinc-950/95 backdrop-blur-xl z-[60] -m-2 mb-2">
+                        <SelectContent className="max-h-[50dvh] w-[calc(100vw-3rem)] sm:w-[--radix-select-trigger-width] overflow-y-auto overflow-x-hidden rounded-[1.5rem] p-2 shadow-2xl border-0 ring-1 ring-border bg-card backdrop-blur-xl z-50">
+                          <div className="p-2 border-b border-zinc-100 dark:border-zinc-800/80 sticky top-0 bg-card backdrop-blur-xl z-[60] -m-2 mb-2">
                             <div className="relative">
                               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                               <input 
                                 type="text" 
                                 placeholder="Buscar parada..." 
-                                className="w-full h-10 pl-9 pr-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/60 rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-400"
+                                className="w-full h-10 pl-9 pr-4 bg-zinc-50 dark:bg-zinc-900/50 border border-border rounded-xl text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900/10 transition-all font-medium text-card-foreground placeholder:text-zinc-400 dark:placeholder:text-muted-foreground"
                                 value={searchParadaText}
                                 onChange={(e) => setSearchParadaText(e.target.value)}
                                 onKeyDown={(e) => e.stopPropagation()}
@@ -336,19 +336,19 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                             </div>
                           </div>
                           {availableParadas.filter((p: any) => p.tipologia.toLowerCase().includes(searchParadaText.toLowerCase()) || p.seq.toString().includes(searchParadaText)).map((p: any) => (
-                            <SelectItem key={p.seq} value={p.seq.toString()} className="group outline-none py-3 px-3 rounded-2xl mb-1 last:mb-0 cursor-pointer focus:bg-[#F9FAFB] focus:text-zinc-950 dark:text-zinc-50 transition-all border border-transparent focus:border-zinc-200 dark:border-zinc-800/80 data-[state=checked]:bg-zinc-950 data-[state=checked]:text-white data-[state=checked]:focus:bg-zinc-950 data-[state=checked]:focus:text-white items-start sm:items-center">
+                            <SelectItem key={p.seq} value={p.seq.toString()} className="group outline-none py-3 px-3 rounded-2xl mb-1 last:mb-0 cursor-pointer focus:bg-[#F9FAFB] focus:text-foreground transition-all border border-transparent focus:border-border data-[state=checked]:bg-zinc-950 data-[state=checked]:text-white data-[state=checked]:focus:bg-zinc-950 data-[state=checked]:focus:text-white items-start sm:items-center">
                               <div className="flex items-center sm:items-center gap-3.5 pr-2 w-full flex-1">
-                                <span className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-black text-xs group-focus:bg-white dark:bg-zinc-950 group-focus:text-zinc-950 dark:text-zinc-50 group-data-[state=checked]:bg-white dark:bg-zinc-950/20 group-data-[state=checked]:text-white group-focus:shadow-sm border border-zinc-200 dark:border-zinc-800/60 group-data-[state=checked]:border-white/10 transition-all">
+                                <span className="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-muted-foreground font-black text-xs group-focus:bg-card group-focus:text-foreground group-data-[state=checked]:bg-card group-data-[state=checked]:text-white group-focus:shadow-sm border border-border group-data-[state=checked]:border-white/10 transition-all">
                                   {p.seq}
                                 </span>
-                                <span className="font-bold text-sm sm:text-sm text-zinc-700 dark:text-zinc-300 group-focus:text-zinc-950 dark:text-zinc-50 group-data-[state=checked]:text-white whitespace-normal break-words [&]:line-clamp-none text-left flex-1 leading-snug pt-0.5 sm:pt-0">
+                                <span className="font-bold text-sm sm:text-sm text-zinc-700 dark:text-zinc-300 group-focus:text-foreground group-data-[state=checked]:text-white whitespace-normal break-words [&]:line-clamp-none text-left flex-1 leading-snug pt-0.5 sm:pt-0">
                                   {p.tipologia}
                                 </span>
                               </div>
                             </SelectItem>
                           ))}
                           {availableParadas.filter((p: any) => p.tipologia.toLowerCase().includes(searchParadaText.toLowerCase()) || p.seq.toString().includes(searchParadaText)).length === 0 && (
-                            <div className="py-6 text-center text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                            <div className="py-6 text-center text-sm font-medium text-muted-foreground">
                               Nenhuma parada encontrada.
                             </div>
                           )}
@@ -357,11 +357,11 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                       <div className="grid grid-cols-2 gap-4">
                          <div className="relative">
                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10"><Clock className="w-4 h-4" /></div>
-                           <CustomTimePicker value={editParadaStart} onChange={setEditParadaStart} placeholder="Início" wrapperClass="h-14 bg-[#F9FAFB] dark:bg-zinc-900 rounded-xl shadow-sm border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors focus-within:bg-white dark:focus-within:bg-zinc-950" inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0 w-full" />
+                           <CustomTimePicker value={editParadaStart} onChange={setEditParadaStart} placeholder="Início" wrapperClass="h-14 bg-muted rounded-xl shadow-sm border-2 border-border focus-within:border-zinc-950 transition-colors focus-within:bg-background" inputClass="pl-9 pr-2 text-sm text-center font-bold text-card-foreground bg-transparent focus:ring-0 w-full" />
                          </div>
                          <div className="relative">
                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none z-10"><Clock className="w-4 h-4" /></div>
-                           <CustomTimePicker value={editParadaEnd} onChange={setEditParadaEnd} placeholder="Fim" wrapperClass="h-14 bg-[#F9FAFB] dark:bg-zinc-900 rounded-xl shadow-sm border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors focus-within:bg-white dark:focus-within:bg-zinc-950" inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0 w-full" />
+                           <CustomTimePicker value={editParadaEnd} onChange={setEditParadaEnd} placeholder="Fim" wrapperClass="h-14 bg-muted rounded-xl shadow-sm border-2 border-border focus-within:border-zinc-950 transition-colors focus-within:bg-background" inputClass="pl-9 pr-2 text-sm text-center font-bold text-card-foreground bg-transparent focus:ring-0 w-full" />
                          </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
@@ -370,17 +370,17 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
                           placeholder="Número O.S."
                           value={editParadaOS}
                           onChange={(e) => setEditParadaOS(e.target.value)}
-                          className="h-14 px-4 bg-[#F9FAFB] dark:bg-zinc-900 rounded-xl shadow-sm border-2 border-zinc-200 dark:border-zinc-800/80 focus:border-zinc-950 focus:bg-white dark:focus:bg-zinc-950 transition-colors text-sm font-bold text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none"
+                          className="h-14 px-4 bg-muted rounded-xl shadow-sm border-2 border-border focus:border-zinc-950 focus-within:bg-background transition-colors text-sm font-bold text-card-foreground placeholder:text-zinc-400 focus:outline-none"
                         />
                         <input
                           type="text"
                           placeholder="Observação"
                           value={editParadaObs}
                           onChange={(e) => setEditParadaObs(e.target.value)}
-                          className="h-14 px-4 bg-[#F9FAFB] dark:bg-zinc-900 rounded-xl shadow-sm border-2 border-zinc-200 dark:border-zinc-800/80 focus:border-zinc-950 focus:bg-white dark:focus:bg-zinc-950 transition-colors text-sm font-bold text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none"
+                          className="h-14 px-4 bg-muted rounded-xl shadow-sm border-2 border-border focus:border-zinc-950 focus-within:bg-background transition-colors text-sm font-bold text-card-foreground placeholder:text-zinc-400 focus:outline-none"
                         />
                       </div>
-                      <Button type="button" variant="outline" size="sm" onClick={addEditParada} className="w-full mt-2 h-14 text-sm font-bold border-dashed border-2 border-zinc-200 dark:border-zinc-800 rounded-xl bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-zinc-900/20">
+                      <Button type="button" variant="outline" size="sm" onClick={addEditParada} className="w-full mt-2 h-14 text-sm font-bold border-dashed border-2 border-border rounded-xl bg-card hover:bg-zinc-50 dark:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-zinc-900/20">
                         <Plus className="w-5 h-5 mr-2" /> Adicionar Parada
                       </Button>
                     </div>
@@ -389,10 +389,10 @@ export const EditOpModal: React.FC<EditOpModalProps> = ({
               </div>
             )}
             <DialogFooter className="flex-col sm:flex-col gap-3 pt-6 mt-4 border-t border-zinc-100 dark:border-zinc-800 w-full">
-              <Button type="submit" disabled={loadingEdit} className="w-full h-16 bg-zinc-950 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 rounded-2xl text-lg font-black shadow-xl shadow-zinc-900/20 focus-visible:ring-4 focus-visible:ring-zinc-900/20 transition-all">
+              <Button type="submit" disabled={loadingEdit} className="w-full h-16 bg-primary text-primary-foreground hover:bg-primary/90 rounded-2xl text-lg font-black shadow-xl shadow-zinc-900/20 focus-visible:ring-4 focus-visible:ring-zinc-900/20 transition-all">
                 {loadingEdit ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Salvar Alterações'}
               </Button>
-              <Button variant="ghost" type="button" onClick={() => setEditingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">Cancelar</Button>
+              <Button variant="ghost" type="button" onClick={() => setEditingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-foreground focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">Cancelar</Button>
             </DialogFooter>
           </form>
         )}

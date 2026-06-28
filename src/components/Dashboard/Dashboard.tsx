@@ -26,15 +26,15 @@ const getDurationMinutes = (start: string, end: string) => {
 };
 
 // Colors (Tailwind compatible)
-const LINE_COLORS = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#d1fae5'];
-const PROD_COLORS = ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe'];
-const UPTIME_COLORS = ['#10b981', '#ef4444']; // Good, Bad
+const LINE_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
+const PROD_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
+const UPTIME_COLORS = ['var(--chart-1)', 'var(--destructive)'];
 
 // Custom Tooltip Component
 const CustomTooltip = ({ active, payload, label, unit = '' }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800/80 p-4 rounded-[1.25rem] shadow-2xl">
+      <div className="bg-card backdrop-blur-xl border border-border p-4 rounded-[1.25rem] shadow-2xl">
         {label && <p className="font-black text-sm text-zinc-800 dark:text-zinc-100 mb-3 border-b border-zinc-100 dark:border-zinc-800/60 pb-2">{label}</p>}
         {!label && payload[0]?.payload?.name && <p className="font-black text-sm text-zinc-800 dark:text-zinc-100 mb-3 border-b border-zinc-100 dark:border-zinc-800/60 pb-2">{payload[0].payload.name}</p>}
         
@@ -42,7 +42,7 @@ const CustomTooltip = ({ active, payload, label, unit = '' }: any) => {
           {payload.map((entry: any, index: number) => (
             <div key={index} className="flex items-center gap-3 text-sm font-semibold">
               <div className="w-2.5 h-2.5 rounded-full ring-2 ring-offset-1 dark:ring-offset-zinc-950" style={{ backgroundColor: entry.color || entry.fill, ringColor: entry.color || entry.fill }} />
-              <span className="text-zinc-500 dark:text-zinc-400 flex-1">{entry.name}:</span>
+              <span className="text-muted-foreground flex-1">{entry.name}:</span>
               <span className="text-zinc-900 dark:text-zinc-50 font-black text-base">{entry.value} {unit}</span>
             </div>
           ))}
@@ -153,12 +153,12 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Disponibilidade (OEE) */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-sm border border-zinc-200 dark:border-zinc-800/80 flex items-center lg:col-span-1 relative overflow-hidden group">
+        <div className="bg-card p-6 rounded-[2rem] shadow-sm border border-border flex items-center lg:col-span-1 relative overflow-hidden group">
           <div className="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl transition-opacity opacity-0 group-hover:opacity-100" />
           <div className="flex-1 z-10">
             <div className="flex items-center gap-2 mb-2">
               <Activity className="w-5 h-5 text-emerald-500" />
-              <h3 className="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Disponibilidade (OEE)</h3>
+              <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest">Disponibilidade (OEE)</h3>
             </div>
             <p className="text-5xl font-black text-zinc-900 dark:text-zinc-50 mb-1 tracking-tighter">{uptimePercent}%</p>
             <p className="text-xs font-bold text-zinc-400 flex items-center gap-1">
@@ -187,7 +187,7 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
         </div>
 
         {/* Produção por Hora (Area Chart) */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-sm border border-zinc-200 dark:border-zinc-800/80 lg:col-span-2">
+        <div className="bg-card p-6 rounded-[2rem] shadow-sm border border-border lg:col-span-2">
           <div className="flex items-center gap-2 mb-6">
             <ArrowUpRight className="w-5 h-5 text-blue-500" />
             <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 uppercase tracking-widest">Curva de Produção (Por Hora)</h3>
@@ -197,16 +197,16 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={productionByHour} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3f3f46" opacity={0.15} />
-                  <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a', fontWeight: 600 }} dy={10} />
-                  <YAxis hide domain={['dataMin', 'dataMax + 100']} />
-                  <RechartsTooltip content={<CustomTooltip unit="UN" />} cursor={{ stroke: '#3f3f46', strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }} />
-                  <Area type="monotone" dataKey="quantidade" name="Fabricado" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorProd)" />
+                  <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                <XAxis dataKey="hour" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dx={-10} />
+                <RechartsTooltip content={<CustomTooltip unit=" un" />} cursor={{ stroke: 'var(--border)', strokeWidth: 1, strokeDasharray: '5 5' }} />
+                <Area type="monotone" dataKey="quantidade" name="Fabricado" stroke="var(--chart-1)" strokeWidth={4} fillOpacity={1} fill="url(#colorProd)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -221,24 +221,24 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Paradas Impact vs Frequency */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-sm border border-zinc-200 dark:border-zinc-800/80">
+        <div className="bg-card p-6 rounded-[2rem] shadow-sm border border-border">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-5 h-5 text-red-500" />
             <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 uppercase tracking-widest">Análise de Paradas</h3>
           </div>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 font-bold">Minutos Perdidos vs Frecuencia de Ocurrencia</p>
+          <p className="text-xs text-muted-foreground mb-6 font-bold">Minutos Perdidos vs Frecuencia de Ocurrencia</p>
           
           {paradasAnalysis.length > 0 ? (
             <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={paradasAnalysis} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3f3f46" opacity={0.15} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a', fontWeight: 600 }} tickFormatter={(val) => val.length > 10 ? val.substring(0, 10) + '...' : val} dy={10} />
-                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#71717a' }} />
-                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#71717a' }} hide />
-                  <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: '#3f3f46', opacity: 0.05 }} />
-                  <Bar yAxisId="left" dataKey="Minutos" fill="#ef4444" radius={[6, 6, 0, 0]} maxBarSize={40} />
-                  <Line yAxisId="right" type="monotone" dataKey="Ocorrencias" stroke="#f59e0b" strokeWidth={4} dot={{ r: 5, fill: '#f59e0b', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 7 }} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dy={10} tickFormatter={(val) => val.length > 10 ? val.substring(0, 10) + '...' : val} />
+                  <YAxis yAxisId="left" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dx={-10} />
+                  <YAxis yAxisId="right" orientation="right" hide />
+                  <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
+                  <Bar yAxisId="left" dataKey="Minutos" fill="var(--destructive)" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                  <Line yAxisId="right" type="monotone" dataKey="Ocorrencias" stroke="var(--chart-3)" strokeWidth={4} dot={{ r: 5, fill: 'var(--chart-3)', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 7 }} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -248,18 +248,18 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
         </div>
 
         {/* Produção por Linha Chart */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-sm border border-zinc-200 dark:border-zinc-800/80 flex flex-col">
+        <div className="bg-card p-6 rounded-[2rem] shadow-sm border border-border flex flex-col">
           <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 uppercase tracking-widest mb-2">Produção por Linha (UN)</h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6 font-bold">Volumen total por máquina</p>
+          <p className="text-xs text-muted-foreground mb-6 font-bold">Volumen total por máquina</p>
           {productionByLinha.length > 0 ? (
             <div className="h-[280px] w-full flex-1">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={productionByLinha} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3f3f46" opacity={0.15} />
-                  <XAxis dataKey="linha" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a', fontWeight: 600 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#71717a' }} />
-                  <RechartsTooltip content={<CustomTooltip unit="UN" />} cursor={{ fill: '#3f3f46', opacity: 0.05 }} />
-                  <Bar dataKey="quantidade" name="Fabricado" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={50}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="linha" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dx={-10} />
+                  <RechartsTooltip content={<CustomTooltip unit="UN" />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
+                  <Bar dataKey="quantidade" name="Fabricado" radius={[6, 6, 0, 0]} maxBarSize={50}>
                     {productionByLinha.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={LINE_COLORS[index % LINE_COLORS.length]} />
                     ))}
@@ -273,17 +273,17 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
         </div>
 
         {/* Top Products */}
-        <div className="bg-white dark:bg-zinc-900 p-6 rounded-[2rem] shadow-sm border border-zinc-200 dark:border-zinc-800/80 lg:col-span-2">
+        <div className="bg-card p-6 rounded-[2rem] shadow-sm border border-border lg:col-span-2">
           <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 uppercase tracking-widest mb-6">Top Produtos Fabricados</h3>
           {topProducts.length > 0 ? (
             <div className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={topProducts} layout="vertical" margin={{ top: 0, right: 30, left: 60, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#3f3f46" opacity={0.15} />
-                  <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#71717a' }} />
-                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#71717a', fontWeight: 600 }} width={120} dx={-10} />
-                  <RechartsTooltip content={<CustomTooltip unit="UN" />} cursor={{ fill: '#3f3f46', opacity: 0.05 }} />
-                  <Bar dataKey="quantidade" name="Fabricado" fill="#3b82f6" radius={[0, 6, 6, 0]} maxBarSize={30}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
+                  <XAxis type="number" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dy={5} />
+                  <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dx={-10} width={100} />
+                  <RechartsTooltip content={<CustomTooltip unit=" un" />} cursor={{fill: 'var(--muted)', opacity: 0.4}} />
+                  <Bar dataKey="quantidade" name="Fabricado" fill="var(--chart-1)" radius={[0, 6, 6, 0]} maxBarSize={30}>
                     {topProducts.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={PROD_COLORS[index % PROD_COLORS.length]} />
                     ))}

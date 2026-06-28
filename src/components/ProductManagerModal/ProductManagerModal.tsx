@@ -111,7 +111,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
         <button type="button" autoFocus aria-hidden="true" className="sr-only" />
 
         {/* Drag handle (mobile) */}
-        <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0 bg-white dark:bg-zinc-950/50">
+        <div className="sm:hidden flex justify-center pt-3 pb-1 shrink-0 bg-card">
           <div className="w-10 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-600" />
         </div>
 
@@ -133,7 +133,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
             </div>
             <button
               onClick={() => onOpenChange(false)}
-              className="w-8 h-8 rounded-full bg-white dark:bg-zinc-950/5 dark:bg-white dark:bg-zinc-950/5 dark:bg-white/5 hover:bg-white dark:bg-zinc-950/15 flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0"
+              className="w-8 h-8 rounded-full bg-card dark:bg-card dark:bg-white/5 hover:bg-card flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -141,21 +141,21 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
         </div>
 
         {/* Search & Actions Area */}
-        <div className="px-5 pt-4 pb-2 bg-white dark:bg-zinc-950/50 shrink-0">
+        <div className="px-5 pt-4 pb-2 bg-card shrink-0">
           <div className="relative group">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-blue-500 transition-colors pointer-events-none" />
             <Input
               placeholder="Buscar produto..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-11 rounded-xl border border-zinc-200 dark:border-zinc-800/80 focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/10 bg-white dark:bg-zinc-950 shadow-sm text-sm font-semibold placeholder:font-medium placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-400 transition-all"
+              className="pl-10 h-11 rounded-xl border border-border focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/10 bg-card shadow-sm text-sm font-semibold placeholder:font-medium placeholder:text-zinc-400 dark:placeholder:text-muted-foreground transition-all"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center transition-colors"
               >
-                <X className="w-3 h-3 text-zinc-500 dark:text-zinc-400" />
+                <X className="w-3 h-3 text-muted-foreground" />
               </button>
             )}
           </div>
@@ -171,10 +171,10 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
               <div key={p.produto} className={cn(
                 'rounded-xl border transition-all duration-200 overflow-hidden',
                 editingProduct?.produto === p.produto
-                  ? 'border-blue-500 ring-4 ring-blue-500/10 bg-white dark:bg-zinc-950 shadow-md z-10 relative'
+                  ? 'border-blue-500 ring-4 ring-blue-500/10 bg-card shadow-md z-10 relative'
                   : confirmDelete?.produto === p.produto
                   ? 'border-red-300 ring-4 ring-red-500/10 bg-red-50 dark:bg-red-950/30 z-10 relative'
-                  : 'border-zinc-200 dark:border-zinc-800/60 bg-white dark:bg-zinc-950 hover:border-zinc-300 hover:shadow-sm shadow-sm/50'
+                  : 'border-border bg-card hover:border-zinc-300 hover:shadow-sm shadow-sm/50'
               )}>
                 {/* Product Row */}
                 <div className="flex items-center gap-3 p-3">
@@ -190,7 +190,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] sm:text-sm font-black text-zinc-800 dark:text-zinc-200 truncate leading-tight">{p.produto}</p>
+                    <p className="text-[13px] sm:text-sm font-black text-card-foreground truncate leading-tight">{p.produto}</p>
                     <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
                       {p.litragem || '—'}
                     </p>
@@ -218,22 +218,22 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
                   <div className="px-3 pb-3 space-y-3 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 pt-3">
                     <div className="grid grid-cols-[2fr,1fr] gap-2">
                       <div className="space-y-1">
-                        <label className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-0.5">Nome do Produto</label>
+                        <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-0.5">Nome do Produto</label>
                         <Input
                           value={newName}
                           onChange={(e) => setNewName(e.target.value)}
-                          className="h-9 text-sm font-bold bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/20 rounded-lg shadow-sm"
+                          className="h-9 text-sm font-bold bg-card border border-border focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/20 rounded-lg shadow-sm"
                           placeholder="Ex: V-MOL"
                           autoFocus
                           onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditingProduct(null); }}
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[9px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-0.5">Volume</label>
+                        <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest pl-0.5">Volume</label>
                         <Input
                           value={newLitragem}
                           onChange={(e) => setNewLitragem(e.target.value)}
-                          className="h-9 text-xs font-bold bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/20 rounded-lg shadow-sm"
+                          className="h-9 text-xs font-bold bg-card border border-border focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/20 rounded-lg shadow-sm"
                           placeholder="Ex: 1,5L"
                           onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditingProduct(null); }}
                         />
@@ -242,7 +242,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
                     <div className="flex justify-end gap-2 pt-1">
                       <button
                         onClick={() => setEditingProduct(null)}
-                        className="px-3 h-8 flex items-center justify-center bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors shadow-sm"
+                        className="px-3 h-8 flex items-center justify-center bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-muted-foreground text-xs font-bold rounded-lg border border-border transition-colors shadow-sm"
                       >
                         Cancelar
                       </button>
@@ -266,7 +266,7 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => setConfirmDelete(null)}
-                        className="px-3 h-8 flex items-center justify-center bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold rounded-lg border border-zinc-200 dark:border-zinc-800 transition-colors shadow-sm"
+                        className="px-3 h-8 flex items-center justify-center bg-card hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold rounded-lg border border-border transition-colors shadow-sm"
                       >
                         Cancelar
                       </button>
@@ -284,11 +284,11 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
             ))
           ) : (
             <div className="py-12 flex flex-col items-center gap-3 text-center">
-              <div className="w-12 h-12 rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-sm flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-card border border-border shadow-sm flex items-center justify-center">
                 <Box className="w-5 h-5 text-zinc-300" />
               </div>
               <div>
-                <p className="text-[13px] font-black text-zinc-600 dark:text-zinc-400">Nenhum produto encontrado</p>
+                <p className="text-[13px] font-black text-muted-foreground">Nenhum produto encontrado</p>
                 {searchTerm && <p className="text-[11px] font-bold text-zinc-400 mt-0.5">Tente buscar de outra forma</p>}
               </div>
             </div>
@@ -296,10 +296,10 @@ export const ProductManagerModal = ({ open, onOpenChange, products, onRefresh }:
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 shrink-0 bg-white dark:bg-zinc-950/50 border-t border-zinc-100 dark:border-zinc-800">
+        <div className="px-5 py-3 shrink-0 bg-card border-t border-zinc-100 dark:border-zinc-800">
           <button
             onClick={() => onOpenChange(false)}
-            className="w-full h-10 rounded-xl bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 shadow-sm text-zinc-700 dark:text-zinc-300 font-black text-xs transition-colors flex items-center justify-center"
+            className="w-full h-10 rounded-xl bg-card hover:bg-zinc-50 dark:bg-zinc-900/50 border border-border shadow-sm text-zinc-700 dark:text-zinc-300 font-black text-xs transition-colors flex items-center justify-center"
           >
             Fechar janela
           </button>

@@ -38,9 +38,9 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
 }) => {
   return (
     <Dialog open={changePasswordOpen} onOpenChange={(o) => { if (!o) setChangePasswordOpen(false); }}>
-      <DialogContent className="w-[calc(100%-1.5rem)] max-w-sm rounded-2xl shadow-xl border-zinc-200 dark:border-zinc-800/60 flex flex-col pt-8">
+      <DialogContent className="w-[calc(100%-1.5rem)] max-w-sm rounded-2xl shadow-xl border-border flex flex-col pt-8">
         <DialogHeader>
-          <DialogTitle className="text-base font-black text-zinc-900 dark:text-zinc-100 text-center">Mudar Senha - {loginProfile}</DialogTitle>
+          <DialogTitle className="text-base font-black text-foreground text-center">Mudar Senha - {loginProfile}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1 relative">
@@ -54,7 +54,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
             <button
               type="button"
               onClick={() => setShowChangerPassword(v => !v)}
-              className="absolute right-3 top-[26px] w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:text-zinc-100 transition-colors"
+              className="absolute right-3 top-[26px] w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-foreground transition-colors"
               title="Mostrar Senha"
             >
               {showChangerPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -79,10 +79,10 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
               onKeyDown={e => { if (e.key === 'Enter') handleChangePassword(); }}
             />
           </div>
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">Utilize a mesma senha nos demais dispositivos caso seja alterada.</p>
+          <p className="text-[11px] text-muted-foreground font-medium">Utilize a mesma senha nos demais dispositivos caso seja alterada.</p>
         </div>
         <DialogFooter className="gap-2 pt-2">
-          <Button variant="outline" type="button" onClick={() => setChangePasswordOpen(false)} className="rounded-xl border-zinc-200 dark:border-zinc-800/60 font-medium w-full">Cancelar</Button>
+          <Button variant="outline" type="button" onClick={() => setChangePasswordOpen(false)} className="rounded-xl border-border font-medium w-full">Cancelar</Button>
           <Button onClick={handleChangePassword} disabled={changingPasswordLoading || !changerOldPassword || !newPassword || !confirmNewPassword} className="bg-zinc-900 text-white rounded-xl shadow-sm hover:bg-zinc-800 font-semibold ring-1 ring-zinc-900/10 w-full">
             {changingPasswordLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Mudar Senha'}
           </Button>

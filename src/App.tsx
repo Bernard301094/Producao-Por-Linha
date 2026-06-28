@@ -244,13 +244,13 @@ function ThemeToggle() {
 
   return (
     <div className="flex items-center justify-between p-1 bg-zinc-100 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
-      <button type="button" onClick={() => setTheme('light')} className={cn("flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all", theme === 'light' ? "bg-white dark:bg-zinc-950 shadow-sm text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200")}>
+      <button type="button" onClick={() => setTheme('light')} className={cn("flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all", theme === 'light' ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200")}>
         <Sun className="w-4 h-4" /> Claro
       </button>
-      <button type="button" onClick={() => setTheme('dark')} className={cn("flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all", theme === 'dark' ? "bg-white dark:bg-zinc-950 shadow-sm text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200")}>
+      <button type="button" onClick={() => setTheme('dark')} className={cn("flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all", theme === 'dark' ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200")}>
         <Moon className="w-4 h-4" /> Escuro
       </button>
-      <button type="button" onClick={() => setTheme('system')} className={cn("flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all", theme === 'system' ? "bg-white dark:bg-zinc-950 shadow-sm text-zinc-900 dark:text-zinc-100" : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200")}>
+      <button type="button" onClick={() => setTheme('system')} className={cn("flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all", theme === 'system' ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200")}>
         <Monitor className="w-4 h-4" /> Auto
       </button>
     </div>
@@ -275,6 +275,14 @@ export default function App() {
 
   const [tourActive, setTourActive] = useState(false);
   const [mobileTab, setMobileTab] = useState<'pendentes' | 'concluidas'>('pendentes');
+  
+  // Track device-scoped shift override
+  const [deviceShift, setDeviceShift] = useState<{turno: string, date: string} | null>(() => {
+    try {
+      const saved = localStorage.getItem('activeDeviceShift');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
   const [showDashboard, setShowDashboard] = useState(false);
 
   const [isNovaSheetOpen, setIsNovaSheetOpen] = useState(false);
@@ -588,8 +596,13 @@ export default function App() {
     }
   }, [watchHoraInicial, setValue]);
 
+  const defaultLogicalToday = useMemo(() => getLogicalDateStr(getServerTime()), []);
   const currentTurnForView = useMemo(() => getSuggestedShift(new Date(), format(new Date(), 'HH:mm')), []);
-  const effectiveTurno = selectedTurnoOverride || currentTurnForView;
+  
+  // deviceShift persists the last shift started on this device.
+  // We use deviceShift for the view, UNLESS the user explicitly overrides it.
+  const effectiveTurno = selectedTurnoOverride || (deviceShift ? deviceShift.turno : currentTurnForView);
+  const effectiveDate = selectedTurnoOverride ? defaultLogicalToday : (deviceShift ? deviceShift.date : defaultLogicalToday);
   const loginProfile = `Turno ${currentTurnForView}`;
 
   const refreshData = async () => {
@@ -697,13 +710,13 @@ export default function App() {
     }
 
     const sameTurn = data.turno;
-    const logicalToday = getLogicalDateStr(getServerTime());
+    const currentLogicalToday = getLogicalDateStr(getServerTime());
 
     if (operations.some(op => {
       if (op.opNumber !== data.opNumber) return false;
       const turnMatch = op.turno === sameTurn;
       if (!op.carimboInicial) return turnMatch;
-      return turnMatch && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
+      return turnMatch && getLogicalDateStr(new Date(op.carimboInicial)) === currentLogicalToday;
     })) {
       toast.error('Essa OP já está listada como pendente para este turno e data.');
       return;
@@ -727,6 +740,12 @@ export default function App() {
       };
       await addOperation(newOp);
       addProduct(data.produto, derivedLitragem);
+      
+      // Persist this device's active shift
+      const turnoToSave = data.turno || '';
+      localStorage.setItem('activeDeviceShift', JSON.stringify({ turno: turnoToSave, date: currentLogicalToday }));
+      setDeviceShift({ turno: turnoToSave, date: currentLogicalToday });
+      
       Haptics.notification({ type: NotificationType.Success }).catch(() => {});
       toast.success('Operação iniciada!');
       localStorage.setItem('v-ops-default-linha', data.linha);
@@ -850,9 +869,9 @@ export default function App() {
       const opTurno = op.turno || '';
       const sameTurn = opTurno === effectiveTurno || opTurno === `Turno ${effectiveTurno}`;
       if (!op.carimboInicial) return sameTurn;
-      return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
+      return sameTurn && getLogicalDateStr(new Date(op.carimboInicial)) === effectiveDate;
     });
-  }, [finishedOps, effectiveTurno, logicalToday]);
+  }, [finishedOps, effectiveTurno, effectiveDate]);
 
   const myPendingOps = useMemo(() => {
     return operations.filter(op => {
@@ -861,9 +880,9 @@ export default function App() {
       const sameTurn = opTurno === effectiveTurno || opTurno === `Turno ${effectiveTurno}`;
       if (!sameTurn) return false;
       if (!op.carimboInicial) return true;
-      return getLogicalDateStr(new Date(op.carimboInicial)) === logicalToday;
+      return getLogicalDateStr(new Date(op.carimboInicial)) === effectiveDate;
     });
-  }, [operations, effectiveTurno, logicalToday]);
+  }, [operations, effectiveTurno, effectiveDate]);
 
   // Normalize linha names: 'Linha 05', '05', 'Linha 5', '5' all become '5'
   const normalizeLinha = (l: string) => {
@@ -1069,22 +1088,22 @@ export default function App() {
 
       <div className="min-h-screen bg-gradient-to-br from-slate-50 dark:from-zinc-950 via-white dark:via-zinc-900 to-slate-100 dark:to-zinc-950 overflow-x-hidden">
         {/* Header - Distribución Profesional */}
-        <header className="bg-white dark:bg-zinc-950/80 backdrop-blur-xl border-b border-slate-200 dark:border-zinc-800/60 shadow-sm sticky top-0 z-30 pt-[max(0px,env(safe-area-inset-top))]">
+        <header className="bg-card backdrop-blur-xl border-b border-border shadow-sm sticky top-0 z-30 pt-[max(0px,env(safe-area-inset-top))]">
           <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 2xl:px-8 py-4 sm:py-0 sm:h-20 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-4">
             
             {/* SECCIÓN IZQUIERDA: Logo y Contexto */}
             <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto sm:flex-1">
               {/* Contenedor del logo más estilizado */}
-              <div className="bg-white dark:bg-zinc-950 p-2 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800/60 shrink-0 flex items-center justify-center">
+              <div className="bg-card p-2 rounded-xl shadow-sm border border-border shrink-0 flex items-center justify-center">
                  <img src="/icon.svg" className="w-10 h-10 sm:w-10 sm:h-10 object-contain drop-shadow-sm" alt="Vonixx" />
               </div>
               
               {/* Textos y Etiquetas */}
               <div className="flex flex-col min-w-0 justify-center flex-1">
-                <h1 className="text-xl sm:text-2xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight leading-none truncate mb-1">
+                <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight leading-none truncate mb-1">
                   Diário de Bordo
                 </h1>
-                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mt-0.5">
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
                   <span className="shrink-0">{today}</span>
                   <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-600 shrink-0"></span>
                   <span className="truncate">{loginProfile}</span>
@@ -1093,10 +1112,10 @@ export default function App() {
             </div>
 
             {/* SECCIÓN DERECHA: Botones (Desktop y Mobile) */}
-            <div className="flex items-center justify-between w-full sm:w-auto gap-2 shrink-0 tour-header-actions overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+            <div className="flex flex-col sm:flex-row items-center w-full sm:w-auto gap-3 sm:gap-2 shrink-0 tour-header-actions pb-1 sm:pb-0">
               
               {/* Turno Selector (Mobile & Desktop) - Now styled with premium rounded-xl buttons */}
-              <div className="flex items-center gap-1.5 bg-zinc-100/80 dark:bg-zinc-900/80 rounded-xl p-1.5 border border-zinc-200 dark:border-zinc-800 shadow-sm shrink-0 w-full sm:w-auto overflow-x-auto hide-scrollbar">
+              <div className="flex items-center justify-between gap-1 bg-zinc-100/80 dark:bg-zinc-900/80 rounded-xl p-1.5 border border-border shadow-sm shrink-0 w-full sm:w-auto">
                 {['A', 'B', 'C', 'D'].map(t => {
                   const isActiveByClock = t === currentTurnForView;
                   const isSelected = t === effectiveTurno;
@@ -1108,8 +1127,8 @@ export default function App() {
                         "flex-1 sm:flex-none px-4 sm:px-4 py-2 sm:py-1.5 text-sm sm:text-xs font-black uppercase tracking-widest rounded-lg transition-all",
                         isSelected && !isActiveByClock ? "bg-blue-600 text-white shadow-md scale-[1.02]" : 
                         isSelected && isActiveByClock ? "bg-emerald-600 text-white shadow-md scale-[1.02]" : 
-                        isActiveByClock ? "bg-white dark:bg-zinc-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-zinc-200 dark:border-zinc-700" :
-                        "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-white dark:hover:bg-zinc-800"
+                        isActiveByClock ? "bg-card text-emerald-600 dark:text-emerald-400 shadow-sm border border-zinc-200 dark:border-zinc-700" :
+                        "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-card"
                       )}
                       title={`Ver Turno ${t}`}
                     >
@@ -1119,7 +1138,7 @@ export default function App() {
                 })}
               </div>
               
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center justify-center sm:justify-end gap-3 sm:gap-2 shrink-0 w-full sm:w-auto mt-1 sm:mt-0">
                 <button 
                   onClick={() => setShowProductManager(true)}
                   className="flex items-center justify-center sm:px-3 sm:py-1.5 w-9 h-9 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800/50 rounded-lg transition-colors shadow-sm"
@@ -1144,7 +1163,7 @@ export default function App() {
                     onClick={() => setShowDashboard(!showDashboard)}
                     className={cn(
                       "flex items-center justify-center sm:px-3 sm:py-1.5 w-9 h-9 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold rounded-lg transition-colors shadow-sm",
-                      showDashboard ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50" : "text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800"
+                      showDashboard ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50" : "text-muted-foreground bg-zinc-50 dark:bg-zinc-900/50 border border-border hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800"
                     )}
                     title="Dashboard"
                   >
@@ -1159,7 +1178,7 @@ export default function App() {
                 <div className="w-[1px] h-5 bg-zinc-200 dark:bg-zinc-700"></div>
                 <button 
                   onClick={() => setSettingsModalOpen(true)}
-                  className="flex items-center justify-center w-8 h-8 text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-lg transition-colors shadow-sm"
+                  className="flex items-center justify-center w-8 h-8 text-muted-foreground bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 border border-border rounded-lg transition-colors shadow-sm"
                   title="Configurações"
                 >
                   <Settings className="w-4 h-4" />
@@ -1182,7 +1201,7 @@ export default function App() {
             {/* Centro: Botón Nova OP */}
             <button
               onClick={() => setIsNovaSheetOpen(true)}
-              className="flex items-center gap-2 bg-white dark:bg-zinc-100 hover:bg-zinc-100 dark:hover:bg-white text-zinc-950 dark:text-zinc-900 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
+              className="flex items-center gap-2 bg-foreground text-background hover:bg-foreground/90 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
             >
               <Plus className="w-[18px] h-[18px] stroke-[3]" />
               Nova OP
@@ -1202,19 +1221,19 @@ export default function App() {
         </div>
 
         {/* Mobile Nav Cards */}
-        <div className="lg:hidden px-3 py-2.5 bg-[#F9FAFB] dark:bg-zinc-950 sticky top-[calc(3.75rem+env(safe-area-inset-top))] z-20 border-b border-zinc-200 dark:border-zinc-800/60">
+        <div className="lg:hidden px-3 py-2.5 bg-background sticky top-[calc(3.75rem+env(safe-area-inset-top))] z-20 border-b border-border">
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => setMobileTab('pendentes')}
               className={cn(
                 "relative rounded-2xl p-4 text-left transition-all active:scale-[0.98]",
                 mobileTab === 'pendentes'
-                  ? "bg-zinc-950 shadow-xl shadow-zinc-950/20"
-                  : "bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/80 shadow-sm"
+                  ? "bg-foreground shadow-xl shadow-foreground/20"
+                  : "bg-card border border-border shadow-sm"
               )}
             >
-              <p className={cn("text-[9px] font-black uppercase tracking-widest mb-2 leading-none", mobileTab === 'pendentes' ? "text-zinc-400" : "text-zinc-400")}>Em andamento</p>
-              <p className={cn("text-4xl font-black leading-none", mobileTab === 'pendentes' ? "text-white" : "text-zinc-900 dark:text-zinc-100")}>{myPendingOps.length}</p>
+              <p className={cn("text-[9px] font-black uppercase tracking-widest mb-2 leading-none", mobileTab === 'pendentes' ? "text-background/70" : "text-muted-foreground")}>Em andamento</p>
+              <p className={cn("text-4xl font-black leading-none", mobileTab === 'pendentes' ? "text-background" : "text-foreground")}>{myPendingOps.length}</p>
               {mobileTab === 'pendentes' && <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-amber-400" />}
             </button>
             <button
@@ -1222,12 +1241,12 @@ export default function App() {
               className={cn(
                 "relative rounded-2xl p-4 text-left transition-all active:scale-[0.98]",
                 mobileTab === 'concluidas'
-                  ? "bg-emerald-600 shadow-xl shadow-emerald-500/25"
-                  : "bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/80 shadow-sm"
+                  ? "bg-emerald-600 shadow-xl shadow-emerald-500/25 border-emerald-600"
+                  : "bg-card border border-border shadow-sm"
               )}
             >
-              <p className={cn("text-[9px] font-black uppercase tracking-widest mb-2 leading-none", mobileTab === 'concluidas' ? "text-emerald-100/70" : "text-zinc-400")}>Concluídas</p>
-              <p className={cn("text-4xl font-black leading-none", mobileTab === 'concluidas' ? "text-white" : "text-zinc-900 dark:text-zinc-100")}>{myFinishedOps.length}</p>
+              <p className={cn("text-[9px] font-black uppercase tracking-widest mb-2 leading-none", mobileTab === 'concluidas' ? "text-emerald-100/70" : "text-muted-foreground")}>Concluídas</p>
+              <p className={cn("text-4xl font-black leading-none", mobileTab === 'concluidas' ? "text-white" : "text-foreground")}>{myFinishedOps.length}</p>
               <p className={cn("text-[11px] font-bold mt-1.5 leading-none", mobileTab === 'concluidas' ? "text-emerald-100" : "text-emerald-600 dark:text-emerald-500")}>{totalUnidades.toLocaleString()} UN</p>
             </button>
           </div>
@@ -1263,17 +1282,17 @@ export default function App() {
           <div className={cn("grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-4 lg:gap-5 2xl:gap-7 items-start", showDashboard && operatingMode === 'global' ? "hidden" : "")}>
 
             {/* Pendentes */}
-            <div className={cn('bg-white dark:bg-zinc-950 sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-slate-200 dark:ring-zinc-800/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-5 2xl:col-span-5 lg:order-2 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-slate-200 dark:border-zinc-800/80 sm:border-y-0 relative tour-pendentes w-full', mobileTab !== 'pendentes' ? 'hidden lg:flex' : 'flex')}>
-              <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col gap-3 bg-zinc-950/5 dark:bg-white dark:bg-zinc-950/5 dark:bg-white/5 relative overflow-hidden shrink-0">
+            <div className={cn('bg-card sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-border flex flex-col overflow-hidden lg:col-span-4 xl:col-span-5 2xl:col-span-5 lg:order-2 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-border sm:border-y-0 relative tour-pendentes w-full', mobileTab !== 'pendentes' ? 'hidden lg:flex' : 'flex')}>
+              <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col gap-3 bg-card relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:14px_14px] opacity-50" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white dark:bg-zinc-950 shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-800/80 rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-card shadow-sm ring-1 ring-border rounded-xl flex items-center justify-center">
                       <ClipboardList className="w-5 h-5 text-zinc-700 dark:text-zinc-300" />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-base font-black text-zinc-900 dark:text-zinc-100 tracking-tight leading-none mb-1">Pendentes</span>
-                      <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-none">{displayPendingOps.length} {displayPendingOps.length === 1 ? 'registro' : 'registros'}</span>
+                      <span className="text-base font-black text-foreground tracking-tight leading-none mb-1">Pendentes</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest leading-none">{displayPendingOps.length} {displayPendingOps.length === 1 ? 'registro' : 'registros'}</span>
                     </div>
                   </div>
                 </div>
@@ -1282,7 +1301,7 @@ export default function App() {
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
                       <Search className="w-4 h-4" />
                     </div>
-                    <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Pesquisar produto, linha..." className="w-full h-10 pl-9 pr-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/80 rounded-xl text-base sm:text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-sm transition-all" />
+                    <input type="text" value={searchPending} onChange={e => setSearchPending(e.target.value)} placeholder="Pesquisar produto, linha..." className="w-full h-10 pl-9 pr-3 bg-card border border-border rounded-xl text-base sm:text-sm text-card-foreground placeholder:text-zinc-400 dark:placeholder:text-muted-foreground focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 shadow-sm transition-all" />
                   </div>
                   
                   {pendingLinhas.length > 1 && operatingMode !== 'dedicated' && (
@@ -1296,7 +1315,7 @@ export default function App() {
                               "w-full h-11 justify-between px-4 rounded-xl text-sm font-bold border-2 transition-all shadow-sm focus:ring-2 focus:ring-zinc-900/20",
                               selectedLinhaPending !== 'Todas'
                                 ? "bg-zinc-900 text-white border-zinc-900 hover:bg-zinc-800"
-                                : "bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300"
+                                : "bg-card text-muted-foreground border-border hover:border-zinc-300"
                             )}
                           >
                             <div className="flex items-center gap-2">
@@ -1306,7 +1325,7 @@ export default function App() {
                             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-40" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[min(var(--radix-popover-trigger-width),calc(100vw-1.5rem))] p-0 rounded-[1.25rem] shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/80 bg-white dark:bg-zinc-950/95 backdrop-blur-xl z-50 overflow-hidden" align="start">
+                        <PopoverContent className="w-[min(var(--radix-popover-trigger-width),calc(100vw-1.5rem))] p-0 rounded-[1.25rem] shadow-2xl border-0 ring-1 ring-border bg-card backdrop-blur-xl z-50 overflow-hidden" align="start">
                           <Command className="bg-transparent">
                             <div className="p-2 border-b border-zinc-100 dark:border-zinc-800">
                               <CommandInput placeholder="Filtrar linha..." className="h-9 border-0 focus:ring-0" />
@@ -1322,13 +1341,13 @@ export default function App() {
                                       updateSelectedLinhaPending(currentValue, true);
                                       setOpenLineFilterPending(false);
                                     }}
-                                    className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] dark:aria-selected:bg-zinc-800/50 aria-selected:text-zinc-950 dark:text-zinc-50 dark:aria-selected:text-white transition-colors font-bold text-xs mb-0.5 last:mb-0"
+                                    className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] dark:aria-selected:bg-zinc-800/50 aria-selected:text-foreground dark:aria-selected:text-white transition-colors font-bold text-xs mb-0.5 last:mb-0"
                                   >
                                     <div className="flex items-center gap-2">
                                       <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300 dark:bg-zinc-600" : "bg-amber-400")} />
                                       {formatLinhaDisplay(linha)}
                                     </div>
-                                    {selectedLinhaPending === linha && <Check className="h-3 w-3 text-zinc-900 dark:text-zinc-100" />}
+                                    {selectedLinhaPending === linha && <Check className="h-3 w-3 text-foreground" />}
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
@@ -1347,8 +1366,8 @@ export default function App() {
                     <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-4">
                       <ClipboardList className="w-8 h-8 text-zinc-300" />
                     </div>
-                    <p className="text-sm font-black text-zinc-600 dark:text-zinc-400 mb-1">Nada por aqui</p>
-                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 max-w-[200px]">Não há OPs pendentes aguardando fechamento.</p>
+                    <p className="text-sm font-black text-muted-foreground mb-1">Nada por aqui</p>
+                    <p className="text-xs font-medium text-muted-foreground max-w-[200px]">Não há OPs pendentes aguardando fechamento.</p>
                   </div>
                 ) : displayPendingOps.map(op => (
                   <PendingOpItem 
@@ -1400,20 +1419,20 @@ export default function App() {
             </div>
 
             {/* Concluídas */}
-            <div className={cn('bg-white dark:bg-zinc-950 sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-slate-200 dark:ring-zinc-800/50 flex flex-col overflow-hidden lg:col-span-4 xl:col-span-4 2xl:col-span-4 lg:order-3 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-slate-200 dark:border-zinc-800/80 sm:border-y-0 relative tour-concluidas', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
+            <div className={cn('bg-card sm:rounded-[2rem] sm:shadow-xl sm:ring-1 ring-border flex flex-col overflow-hidden lg:col-span-4 xl:col-span-4 2xl:col-span-4 lg:order-3 border-none min-h-[calc(100dvh-11.5rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))] max-h-none lg:min-h-0 lg:h-[calc(100dvh-11rem)] border-b border-border sm:border-y-0 relative tour-concluidas', mobileTab !== 'concluidas' && 'hidden lg:flex')}>
               <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col gap-3 bg-emerald-950/5 dark:bg-emerald-400/5 relative overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#05966910_1px,transparent_1px),linear-gradient(to_bottom,#05966910_1px,transparent_1px)] bg-[size:14px_14px] opacity-70" />
                 <div className="flex items-center justify-between gap-2 relative z-10 w-full">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white dark:bg-zinc-950 shadow-sm ring-1 ring-emerald-200 dark:ring-emerald-800/50 rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-card shadow-sm ring-1 ring-emerald-200 dark:ring-emerald-800/50 rounded-xl flex items-center justify-center">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-base font-black text-zinc-900 dark:text-zinc-100 tracking-tight leading-none mb-1">Concluídas</span>
-                      <span className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest leading-none">{displayFinishedOps.length} {displayFinishedOps.length === 1 ? 'registro' : 'registros'}</span>
+                      <span className="text-base font-black text-foreground tracking-tight leading-none mb-1">Concluídas</span>
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest leading-none">{displayFinishedOps.length} {displayFinishedOps.length === 1 ? 'registro' : 'registros'}</span>
                     </div>
                   </div>
-                  <div className="text-right bg-white dark:bg-zinc-950 px-2 py-1.5 rounded-lg border border-emerald-100 shadow-sm shrink-0">
+                  <div className="text-right bg-card px-2 py-1.5 rounded-lg border border-emerald-100 shadow-sm shrink-0">
                     <p className="text-[9px] text-emerald-600 dark:text-emerald-500/70 uppercase tracking-widest font-black mb-0.5">Total</p>
                     <p className="text-sm font-black text-emerald-700 dark:text-emerald-400 tracking-tighter leading-none">{displayTotalUnidades.toLocaleString()} UN</p>
                   </div>
@@ -1423,7 +1442,7 @@ export default function App() {
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
                       <Search className="w-4 h-4" />
                     </div>
-                    <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Pesquisar OP ou produto..." className="w-full h-10 pl-9 pr-3 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/80 rounded-xl text-base sm:text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-400 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-sm transition-all" />
+                    <input type="text" value={searchFinished} onChange={e => setSearchFinished(e.target.value)} placeholder="Pesquisar OP ou produto..." className="w-full h-10 pl-9 pr-3 bg-card border border-border rounded-xl text-base sm:text-sm text-card-foreground placeholder:text-zinc-400 dark:placeholder:text-muted-foreground focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-sm transition-all" />
                   </div>
                   
                   {finishedLinhas.length > 1 && operatingMode !== 'dedicated' && (
@@ -1437,7 +1456,7 @@ export default function App() {
                               "w-full h-11 justify-between px-4 rounded-xl text-sm font-bold border-2 transition-all shadow-sm focus:ring-2 focus:ring-emerald-900/20",
                               selectedLinhaFinished !== 'Todas'
                                 ? "bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700"
-                                : "bg-white dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300"
+                                : "bg-card text-muted-foreground border-border hover:border-zinc-300"
                             )}
                           >
                             <div className="flex items-center gap-2">
@@ -1447,7 +1466,7 @@ export default function App() {
                             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-40" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[min(var(--radix-popover-trigger-width),calc(100vw-1.5rem))] p-0 rounded-[1.25rem] shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/80 bg-white dark:bg-zinc-950/95 backdrop-blur-xl z-50 overflow-hidden" align="start">
+                        <PopoverContent className="w-[min(var(--radix-popover-trigger-width),calc(100vw-1.5rem))] p-0 rounded-[1.25rem] shadow-2xl border-0 ring-1 ring-border bg-card backdrop-blur-xl z-50 overflow-hidden" align="start">
                           <Command className="bg-transparent">
                             <div className="p-2 border-b border-zinc-100 dark:border-zinc-800">
                               <CommandInput placeholder="Filtrar linha..." className="h-9 border-0 focus:ring-0" />
@@ -1463,13 +1482,13 @@ export default function App() {
                                       updateSelectedLinhaFinished(currentValue, true);
                                       setOpenLineFilterFinished(false);
                                     }}
-                                    className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] dark:aria-selected:bg-zinc-800/50 aria-selected:text-zinc-950 dark:text-zinc-50 dark:aria-selected:text-white transition-colors font-bold text-xs mb-0.5 last:mb-0"
+                                    className="flex items-center justify-between p-2.5 rounded-lg cursor-pointer aria-selected:bg-[#F9FAFB] dark:aria-selected:bg-zinc-800/50 aria-selected:text-foreground dark:aria-selected:text-white transition-colors font-bold text-xs mb-0.5 last:mb-0"
                                   >
                                     <div className="flex items-center gap-2">
                                       <div className={cn("w-2 h-2 rounded-full", linha === 'Todas' ? "bg-zinc-300 dark:bg-zinc-600" : "bg-emerald-500")} />
                                       {formatLinhaDisplay(linha)}
                                     </div>
-                                    {selectedLinhaFinished === linha && <Check className="h-3 w-3 text-zinc-900 dark:text-zinc-100" />}
+                                    {selectedLinhaFinished === linha && <Check className="h-3 w-3 text-foreground" />}
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
@@ -1488,8 +1507,8 @@ export default function App() {
                     <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-4">
                       <CheckCircle2 className="w-8 h-8 text-zinc-300" />
                     </div>
-                    <p className="text-sm font-black text-zinc-600 dark:text-zinc-400 mb-1">Nada por aqui</p>
-                    <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 max-w-[200px]">Nenhuma operação foi concluída neste turno ainda.</p>
+                    <p className="text-sm font-black text-muted-foreground mb-1">Nada por aqui</p>
+                    <p className="text-xs font-medium text-muted-foreground max-w-[200px]">Nenhuma operação foi concluída neste turno ainda.</p>
                   </div>
                 ) : displayFinishedOps.map((op) => (
                   <FinishedOpItem
@@ -1512,7 +1531,7 @@ export default function App() {
       </div>
 
       <Dialog open={isNovaSheetOpen} onOpenChange={setIsNovaSheetOpen}>
-        <DialogContent showCloseButton={false} className="w-full max-w-full rounded-t-[2rem] p-0 border-0 gap-0 top-auto bottom-0 translate-y-0 max-h-[90vh] overflow-hidden flex flex-col bg-white dark:bg-zinc-950 shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.25)]">
+        <DialogContent showCloseButton={false} className="w-full max-w-full rounded-t-[2rem] p-0 border-0 gap-0 top-auto bottom-0 translate-y-0 max-h-[90vh] overflow-hidden flex flex-col bg-card shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.25)]">
           {/* Drag handle */}
           <div className="flex-shrink-0 flex flex-col items-center pt-3 pb-1 cursor-pointer" onClick={() => setIsNovaSheetOpen(false)}>
             <div className="w-10 h-1 rounded-full bg-zinc-200 dark:bg-zinc-700" />
@@ -1524,13 +1543,13 @@ export default function App() {
                 <Plus className="w-4 h-4 text-white" />
               </div>
               <div>
-                <p className="text-base font-black text-zinc-950 dark:text-zinc-50 leading-none">Nova Ordem de Produção</p>
+                <p className="text-base font-black text-foreground leading-none">Nova Ordem de Produção</p>
                 <p className="text-[11px] font-semibold text-zinc-400 mt-0.5">Turno {currentTurnForView}</p>
               </div>
             </div>
             <button
               onClick={() => setIsNovaSheetOpen(false)}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 transition-colors"
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:bg-zinc-700 text-muted-foreground transition-colors"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -1579,19 +1598,19 @@ export default function App() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={!!deletingOp} onOpenChange={(o: boolean) => { if (!o) setDeletingOp(null); }}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-border gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
           <DialogHeader className="text-center space-y-2 mb-8">
             <div className="w-16 h-16 bg-red-100/50 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-800/50 shadow-sm">
               <Trash2 className="w-8 h-8" />
             </div>
-            <DialogTitle className="text-2xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight">Confirmar Exclusão</DialogTitle>
+            <DialogTitle className="text-2xl font-black text-foreground tracking-tight">Confirmar Exclusão</DialogTitle>
           </DialogHeader>
-          <p className="text-base text-zinc-500 dark:text-zinc-400 font-medium text-center mb-8 px-4">Tem certeza que deseja remover esta operação? <strong className="text-zinc-900 dark:text-zinc-100">Esta ação não pode ser desfeita.</strong></p>
+          <p className="text-base text-muted-foreground font-medium text-center mb-8 px-4">Tem certeza que deseja remover esta operação? <strong className="text-foreground">Esta ação não pode ser desfeita.</strong></p>
           <DialogFooter className="flex-col sm:flex-col gap-3">
             <Button onClick={confirmDelete} disabled={loadingDelete} className="w-full h-14 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-base font-black shadow-xl shadow-red-500/20 focus-visible:ring-4 focus-visible:ring-red-500/20 transition-all">
               {loadingDelete ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Sim, Remover Operação'}
             </Button>
-            <Button variant="ghost" onClick={() => setDeletingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
+            <Button variant="ghost" onClick={() => setDeletingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-foreground focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
                Cancelar
             </Button>
           </DialogFooter>
@@ -1600,21 +1619,21 @@ export default function App() {
 
       {/* Revert to Pending Confirmation Dialog */}
       <Dialog open={!!revertingOp} onOpenChange={(o: boolean) => { if (!o) setRevertingOp(null); }}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50 gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] max-h-[92dvh] overflow-y-auto rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl border-0 ring-1 ring-border gap-0 top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8">
           <DialogHeader className="text-center space-y-2 mb-8">
             <div className="w-16 h-16 bg-amber-100/50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200 dark:border-amber-800/50 shadow-sm">
               <RotateCcw className="w-8 h-8" />
             </div>
-            <DialogTitle className="text-2xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight">Reverter OP</DialogTitle>
+            <DialogTitle className="text-2xl font-black text-foreground tracking-tight">Reverter OP</DialogTitle>
           </DialogHeader>
-          <p className="text-base text-zinc-500 dark:text-zinc-400 font-medium text-center mb-8">
-            A OP <span className="font-bold text-zinc-900 dark:text-zinc-100">{revertingOp?.opNumber}</span> será removida de Concluídas e voltará para a lista de Pendentes. O registro na planilha será removido.
+          <p className="text-base text-muted-foreground font-medium text-center mb-8">
+            A OP <span className="font-bold text-foreground">{revertingOp?.opNumber}</span> será removida de Concluídas e voltará para a lista de Pendentes. O registro na planilha será removido.
           </p>
           <DialogFooter className="flex-col sm:flex-col gap-3">
             <Button onClick={confirmRevert} disabled={loadingRevert} className="w-full h-14 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl text-base font-black shadow-xl shadow-zinc-900/20 focus-visible:ring-4 focus-visible:ring-zinc-900/20 transition-all">
               {loadingRevert ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Confirmar Reversão'}
             </Button>
-            <Button variant="ghost" onClick={() => setRevertingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-900 dark:text-zinc-100 focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
+            <Button variant="ghost" onClick={() => setRevertingOp(null)} className="w-full h-14 rounded-2xl text-base font-bold text-muted-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-foreground focus-visible:ring-2 focus-visible:ring-zinc-900/20 transition-all">
                Cancelar
             </Button>
           </DialogFooter>
@@ -1681,13 +1700,13 @@ export default function App() {
       )}
       {/* Settings Dialog */}
       <Dialog open={settingsModalOpen} onOpenChange={setSettingsModalOpen}>
-        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50 bg-white dark:bg-zinc-950">
+        <DialogContent className="w-[calc(100%-1.5rem)] max-w-[400px] rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl border-0 ring-1 ring-border bg-card">
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-xl font-black text-zinc-950 dark:text-zinc-50">Ajustes da Tablet</DialogTitle>
+            <DialogTitle className="text-xl font-black text-foreground">Ajustes da Tablet</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
             <div className="space-y-3">
-              <Label className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Modo de Operação</Label>
+              <Label className="text-sm font-bold text-card-foreground">Modo de Operação</Label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -1697,11 +1716,11 @@ export default function App() {
                   }}
                   className={cn(
                     "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all",
-                    operatingMode === 'global' ? "border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-900" : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
+                    operatingMode === 'global' ? "border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-900" : "border-border hover:border-zinc-300 dark:hover:border-zinc-700"
                   )}
                 >
-                  <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">Global</span>
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Todas as linhas</span>
+                  <span className="font-bold text-sm text-foreground">Global</span>
+                  <span className="text-xs text-muted-foreground mt-1">Todas as linhas</span>
                 </button>
                 <button
                   type="button"
@@ -1711,23 +1730,23 @@ export default function App() {
                   }}
                   className={cn(
                     "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all",
-                    operatingMode === 'dedicated' ? "border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-900" : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
+                    operatingMode === 'dedicated' ? "border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-900" : "border-border hover:border-zinc-300 dark:hover:border-zinc-700"
                   )}
                 >
-                  <span className="font-bold text-sm text-zinc-900 dark:text-zinc-100">Dedicado</span>
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Apenas 1 linha</span>
+                  <span className="font-bold text-sm text-foreground">Dedicado</span>
+                  <span className="text-xs text-muted-foreground mt-1">Apenas 1 linha</span>
                 </button>
               </div>
             </div>
 
             <div className="space-y-3">
-              <Label className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Aparência</Label>
+              <Label className="text-sm font-bold text-card-foreground">Aparência</Label>
               <ThemeToggle />
             </div>
 
             {operatingMode === 'dedicated' && (
               <div className="space-y-3 animate-in fade-in duration-200">
-                <Label className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Linha da Tablet</Label>
+                <Label className="text-sm font-bold text-card-foreground">Linha da Tablet</Label>
                 <div className="grid grid-cols-4 gap-1.5 max-h-[200px] overflow-y-auto p-1">
                   {Array.from({ length: 16 }, (_, i) => `Linha ${String(i + 1).padStart(2, '0')}`).map(l => (
                     <button
@@ -1743,7 +1762,7 @@ export default function App() {
                       }}
                       className={cn(
                         "h-10 rounded-lg text-xs font-bold border transition-all",
-                        selectedLinhaPending === normalizeLinha(l) ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:!text-zinc-900 border-zinc-900 dark:border-zinc-100" : "bg-white dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                        selectedLinhaPending === normalizeLinha(l) ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:!text-zinc-900 border-zinc-900 dark:border-zinc-100" : "bg-card text-zinc-700 dark:text-zinc-300 border-border hover:bg-zinc-50 dark:hover:bg-zinc-900"
                       )}
                     >
                       {l.replace('Linha ', '')}

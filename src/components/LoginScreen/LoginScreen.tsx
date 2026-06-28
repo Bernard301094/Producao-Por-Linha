@@ -30,7 +30,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 }) => {
   return (
     <div className="min-h-[100dvh] bg-[#F9FAFB] flex flex-col items-center justify-center px-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:p-4 md:p-6 lg:p-8">
-      <div className="w-full max-w-6xl bg-white dark:bg-zinc-950 sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row min-h-[100dvh] sm:min-h-[600px] lg:min-h-[700px] ring-0 sm:ring-1 ring-zinc-200 dark:ring-zinc-800/50">
+      <div className="w-full max-w-6xl bg-card sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col lg:flex-row min-h-[100dvh] sm:min-h-[600px] lg:min-h-[700px] ring-0 sm:ring-1 ring-border">
         
         {/* Left Side: Branding / Background */}
         <div className="lg:w-[45%] p-8 lg:p-16 hidden lg:flex flex-col justify-between relative overflow-hidden bg-zinc-950">
@@ -49,12 +49,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             </div>
           </div>
           <div className="relative z-10">
-            <p className="text-xs font-bold tracking-widest uppercase text-zinc-500 dark:text-zinc-400 font-mono">Vs. 2.0 • Vonixx</p>
+            <p className="text-xs font-bold tracking-widest uppercase text-muted-foreground font-mono">Vs. 2.0 • Vonixx</p>
           </div>
         </div>
 
         {/* Right Side: Login Content */}
-        <div className="flex-1 px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-6 md:p-12 lg:p-16 flex flex-col justify-center bg-white dark:bg-zinc-950 relative">
+        <div className="flex-1 px-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pt-6 sm:pb-6 md:p-12 lg:p-16 flex flex-col justify-center bg-card relative">
           
           <div className="w-full max-w-md mx-auto relative z-10 flex flex-col h-full lg:h-auto lg:h-full lg:justify-center">
             
@@ -62,14 +62,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             <div className="lg:hidden flex flex-col items-center gap-4 mb-8 pt-4 text-center">
               <img src="/icon.svg" className="w-16 h-16 object-contain drop-shadow-md flex-shrink-0" alt="Icon" />
               <div>
-                <h1 className="text-2xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight leading-none mb-1">Diário de Bordo</h1>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 font-mono uppercase tracking-widest font-bold">Vonixx</p>
+                <h1 className="text-2xl font-black text-foreground tracking-tight leading-none mb-1">Diário de Bordo</h1>
+                <p className="text-xs text-muted-foreground font-mono uppercase tracking-widest font-bold">Vonixx</p>
               </div>
             </div>
 
             <div className="mb-10 text-center lg:text-left">
-              <h3 className="text-3xl font-black text-zinc-950 dark:text-zinc-50 tracking-tight mb-2">Bem-vindo(a)</h3>
-              <p className="text-base text-zinc-500 dark:text-zinc-400 font-medium">Acesse seu perfil para continuar.</p>
+              <h3 className="text-3xl font-black text-foreground tracking-tight mb-2">Bem-vindo(a)</h3>
+              <p className="text-base text-muted-foreground font-medium">Acesse seu perfil para continuar.</p>
             </div>
             
             <div className="space-y-8 flex-1 flex flex-col">
@@ -88,7 +88,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                         onClick={() => { setSelectedProfile(profile); setPasswordInput(''); setShowPassword(false); }}
                         className={cn(
                           'w-full h-auto aspect-[2/1] p-3 sm:p-4 rounded-2xl font-black text-sm lg:text-base transition-all duration-200 border-2 text-center flex items-center justify-center group',
-                          'bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800/60 text-zinc-700 dark:text-zinc-300 hover:border-zinc-900 hover:bg-zinc-950 hover:text-white hover:shadow-lg focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-900/20'
+                          'bg-card border-border text-zinc-700 dark:text-zinc-300 hover:border-zinc-900 hover:bg-zinc-950 hover:text-white hover:shadow-lg focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-900/20'
                         )}
                       >
                         <span className="truncate">{profile}</span>
@@ -100,20 +100,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 <div className="flex-1 flex flex-col space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <button
                     onClick={() => { setSelectedProfile(null); setPasswordInput(''); }}
-                    className="self-center lg:self-start flex items-center justify-center gap-2 text-zinc-400 hover:text-zinc-900 dark:text-zinc-100 text-sm font-bold transition-colors uppercase tracking-widest focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 rounded-md px-2 py-1"
+                    className="self-center lg:self-start flex items-center justify-center gap-2 text-zinc-400 hover:text-foreground text-sm font-bold transition-colors uppercase tracking-widest focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 rounded-md px-2 py-1"
                   >
                     ← Mudar Perfil
                   </button>
 
-                  <div className="flex items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[#F9FAFB] rounded-[1.5rem] border border-zinc-200 dark:border-zinc-800/80 shadow-inner">
+                  <div className="flex items-center gap-4 sm:gap-5 p-4 sm:p-5 bg-[#F9FAFB] rounded-[1.5rem] border border-border shadow-inner">
                     <div className="flex-1">
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-widest font-black mb-1">Perfil Selecionado</p>
-                      <p className="text-xl font-black text-zinc-950 dark:text-zinc-50 truncate">{selectedProfile}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-widest font-black mb-1">Perfil Selecionado</p>
+                      <p className="text-xl font-black text-foreground truncate">{selectedProfile}</p>
                     </div>
                   </div>
 
                   <div className="space-y-2.5 pt-4">
-                     <Label className="block text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Senha de Acesso</Label>
+                     <Label className="block text-xs font-black text-muted-foreground uppercase tracking-widest pl-1">Senha de Acesso</Label>
                      <div className="relative">
                        <Input
                          type={showPassword ? 'text' : 'password'}
@@ -122,12 +122,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                          onKeyDown={e => { if (e.key === 'Enter') handleLogin(); }}
                          placeholder="Digite a senha..."
                          autoFocus
-                         className="w-full h-16 bg-white dark:bg-zinc-950 border-2 border-zinc-200 dark:border-zinc-800/80 text-zinc-950 dark:text-zinc-50 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 dark:text-zinc-400 pr-14 pl-5 rounded-2xl focus-visible:ring-0 focus-visible:border-zinc-950 text-lg shadow-sm transition-colors"
+                         className="w-full h-16 bg-card border-2 border-border text-foreground placeholder:text-zinc-400 dark:placeholder:text-muted-foreground pr-14 pl-5 rounded-2xl focus-visible:ring-0 focus-visible:border-zinc-950 text-lg shadow-sm transition-colors"
                        />
                        <button
                          type="button"
                          onClick={() => setShowPassword(v => !v)}
-                         className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
+                         className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-foreground hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20"
                        >
                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                        </button>
