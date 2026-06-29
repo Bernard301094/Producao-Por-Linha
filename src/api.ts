@@ -2,6 +2,7 @@ import { db, auth } from './firebase';
 import { collection, doc, setDoc, getDocs, getDoc, deleteDoc, updateDoc, query, where, onSnapshot, limit, orderBy } from 'firebase/firestore';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import firebaseConfig from '../firebase-applet-config.json';
+import { getServerTime } from './lib/time';
 
 export interface Parada {
   seq: number;
@@ -138,7 +139,7 @@ export const markOperationFinished = async (
 ) => {
   const formattedLinha = op.linha ? (isNaN(Number(op.linha)) ? op.linha : `Linha ${op.linha}`) : '';
 
-  const now = new Date(Date.now()); // Fallback or imported getServerTime if imported
+  const now = getServerTime();
   const DD = String(now.getDate()).padStart(2, '0');
   const MM = String(now.getMonth() + 1).padStart(2, '0');
   const YYYY = now.getFullYear();
@@ -280,7 +281,7 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
       turno:          turno              || 'A',
       operador:       data.operador      || '',
       horaInicial:    data.horaInicial   || '',
-      carimboInicial: data.carimboInicial || new Date(Date.now()).toISOString(),
+      carimboInicial: data.carimboInicial || getServerTime().toISOString(),
       status:         'pending',
       paradas:        data.paradas       || []
     };
@@ -479,7 +480,7 @@ export const cleanSyncedRecords = async () => {
     where('syncStatus', '==', 'success')
   );
   const snap = await getDocs(q);
-  const now = Date.now();
+  const now = getServerTime().getTime();
   const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
 
   for (const item of snap.docs) {
@@ -609,7 +610,7 @@ export const checkSheetConnection = async () => {
 };
 
 export const updateAuthProfile = async (profileName: string, dataOrPassword: string | Record<string, any>) => {
-  const now = new Date(Date.now()).toISOString();
+  const now = getServerTime().toISOString();
   const safeProfileName = String(profileName).replace(/\//g, '_');
 
   if (typeof dataOrPassword === 'string') {
