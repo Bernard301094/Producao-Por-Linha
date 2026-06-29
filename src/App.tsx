@@ -1089,33 +1089,81 @@ export default function App() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 dark:from-zinc-950 via-white dark:via-zinc-900 to-slate-100 dark:to-zinc-950 overflow-x-hidden">
         {/* Header - Distribución Profesional */}
         <header className="bg-card backdrop-blur-xl border-b border-border shadow-sm sticky top-0 z-30 pt-[max(0px,env(safe-area-inset-top))]">
-          <div className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 2xl:px-8 py-4 sm:py-0 sm:h-20 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-4">
+          <div className="w-full max-w-[1920px] mx-auto px-3 sm:px-6 2xl:px-8 py-3 sm:h-20 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
             
-            {/* SECCIÓN IZQUIERDA: Logo y Contexto */}
-            <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto sm:flex-1">
-              {/* Contenedor del logo más estilizado */}
-              <div className="bg-card p-2 rounded-xl shadow-sm border border-border shrink-0 flex items-center justify-center">
-                 <img src="/icon.svg" className="w-10 h-10 sm:w-10 sm:h-10 object-contain drop-shadow-sm" alt="Vonixx" />
-              </div>
+            {/* ROW 1 (Mobile) / LEFT SECTION (Desktop): Logo, Text, and Icons */}
+            <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4 w-full sm:w-auto sm:flex-1">
               
-              {/* Textos y Etiquetas */}
-              <div className="flex flex-col min-w-0 justify-center flex-1">
-                <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight leading-none truncate mb-1">
-                  Diário de Bordo
-                </h1>
-                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
-                  <span className="shrink-0">{today}</span>
-                  <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-600 shrink-0"></span>
-                  <span className="truncate">{loginProfile}</span>
+              {/* Logo y Contexto */}
+              <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                <div className="bg-card p-1.5 sm:p-2 rounded-xl shadow-sm border border-border shrink-0 flex items-center justify-center">
+                   <img src="/icon.svg" className="w-8 h-8 sm:w-10 sm:h-10 object-contain drop-shadow-sm" alt="Vonixx" />
+                </div>
+                
+                <div className="flex flex-col min-w-0 justify-center">
+                  <h1 className="text-lg sm:text-2xl font-black text-foreground tracking-tight leading-none truncate mb-0.5 sm:mb-1">
+                    Diário de Bordo
+                  </h1>
+                  <div className="flex items-center gap-1 text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest truncate mt-0.5">
+                    <span className="shrink-0">{today}</span>
+                    <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-600 shrink-0 hidden min-[400px]:block"></span>
+                    <span className="truncate hidden min-[400px]:block">{loginProfile}</span>
+                  </div>
                 </div>
               </div>
+
+              {/* Iconos de Acción (Edit, Tour, Dashboard) - Ahora al lado del texto */}
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <button 
+                  onClick={() => setShowProductManager(true)}
+                  className="flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800/50 rounded-lg transition-colors shadow-sm shrink-0"
+                  title="Gerenciar Produtos"
+                >
+                  <Pencil className="w-4 h-4 shrink-0" /> 
+                  <span className="hidden sm:inline">Produtos</span>
+                </button>
+                
+                <button 
+                  onClick={() => setTourActive(true)}
+                  className="flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800/50 rounded-lg transition-colors shadow-sm shrink-0"
+                  title="Iniciar Tour"
+                >
+                  <HelpCircle className="w-4 h-4 shrink-0" /> 
+                  <span className="hidden sm:inline">Tour</span>
+                </button>
+
+                {operatingMode === 'global' && (
+                  <button 
+                    onClick={() => setShowDashboard(!showDashboard)}
+                    className={cn(
+                      "flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 w-8 h-8 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold rounded-lg transition-colors shadow-sm shrink-0",
+                      showDashboard ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50" : "text-muted-foreground bg-zinc-50 dark:bg-zinc-900/50 border border-border hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800"
+                    )}
+                    title="Dashboard"
+                  >
+                    <PieChartIcon className="w-4 h-4 shrink-0" /> 
+                    <span className="hidden sm:inline">Dashboard</span>
+                  </button>
+                )}
+                
+                {/* Settings Icon para Desktop */}
+                <div className="hidden lg:flex items-center gap-2 ml-1">
+                  <div className="w-[1px] h-5 bg-zinc-200 dark:bg-zinc-700"></div>
+                  <button 
+                    onClick={() => setSettingsModalOpen(true)}
+                    className="flex items-center justify-center w-8 h-8 text-muted-foreground bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 border border-border rounded-lg transition-colors shadow-sm shrink-0"
+                    title="Configurações"
+                  >
+                    <Settings className="w-4 h-4 shrink-0" />
+                  </button>
+                </div>
+              </div>
+
             </div>
 
-            {/* SECCIÓN DERECHA: Botones (Desktop y Mobile) */}
-            <div className="flex flex-col sm:flex-row items-center w-full sm:w-auto gap-3 sm:gap-2 shrink-0 tour-header-actions pb-1 sm:pb-0">
-              
-              {/* Turno Selector (Mobile & Desktop) - Now styled with premium rounded-xl buttons */}
-              <div className="flex items-center justify-between gap-1 bg-zinc-100/80 dark:bg-zinc-900/80 rounded-xl p-1.5 border border-border shadow-sm shrink-0 w-full sm:w-auto">
+            {/* ROW 2 (Mobile) / RIGHT SECTION (Desktop): Turn Selector */}
+            <div className="flex flex-col sm:flex-row items-center w-full sm:w-auto shrink-0 tour-header-actions">
+              <div className="flex items-center justify-between gap-1 bg-zinc-100/80 dark:bg-zinc-900/80 rounded-xl p-1.5 border border-border shadow-sm w-full sm:w-auto shrink-0">
                 {['A', 'B', 'C', 'D'].map(t => {
                   const isActiveByClock = t === currentTurnForView;
                   const isSelected = t === effectiveTurno;
@@ -1124,7 +1172,7 @@ export default function App() {
                       key={t}
                       onClick={() => setSelectedTurnoOverride(t === currentTurnForView ? null : t)}
                       className={cn(
-                        "flex-1 sm:flex-none px-4 sm:px-4 py-2 sm:py-1.5 text-sm sm:text-xs font-black uppercase tracking-widest rounded-lg transition-all",
+                        "flex-1 sm:flex-none px-3 sm:px-4 py-1.5 text-xs sm:text-xs font-black uppercase tracking-widest rounded-lg transition-all",
                         isSelected && !isActiveByClock ? "bg-blue-600 text-white shadow-md scale-[1.02]" : 
                         isSelected && isActiveByClock ? "bg-emerald-600 text-white shadow-md scale-[1.02]" : 
                         isActiveByClock ? "bg-card text-emerald-600 dark:text-emerald-400 shadow-sm border border-zinc-200 dark:border-zinc-700" :
@@ -1137,55 +1185,8 @@ export default function App() {
                   );
                 })}
               </div>
-              
-              <div className="flex items-center justify-center sm:justify-end gap-3 sm:gap-2 shrink-0 w-full sm:w-auto mt-1 sm:mt-0">
-                <button 
-                  onClick={() => setShowProductManager(true)}
-                  className="flex items-center justify-center sm:px-3 sm:py-1.5 w-9 h-9 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800/50 rounded-lg transition-colors shadow-sm"
-                  title="Gerenciar Produtos"
-                >
-                  <Pencil className="w-4 h-4" /> 
-                  <span className="hidden sm:inline">Produtos</span>
-                </button>
-                
-                <button 
-                  onClick={() => setTourActive(true)}
-                  className="flex items-center justify-center sm:px-3 sm:py-1.5 w-9 h-9 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800/50 rounded-lg transition-colors shadow-sm"
-                  title="Iniciar Tour"
-                >
-                  <HelpCircle className="w-4 h-4" /> 
-                  <span className="hidden sm:inline">Tour</span>
-                </button>
-
-                {/* Dashboard Toggle for Global Mode */}
-                {operatingMode === 'global' && (
-                  <button 
-                    onClick={() => setShowDashboard(!showDashboard)}
-                    className={cn(
-                      "flex items-center justify-center sm:px-3 sm:py-1.5 w-9 h-9 sm:w-auto sm:h-auto gap-1.5 text-xs font-bold rounded-lg transition-colors shadow-sm",
-                      showDashboard ? "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50" : "text-muted-foreground bg-zinc-50 dark:bg-zinc-900/50 border border-border hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800"
-                    )}
-                    title="Dashboard"
-                  >
-                    <PieChartIcon className="w-4 h-4" /> 
-                    <span className="hidden sm:inline">Dashboard</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Settings (Solo visible en Desktop porque en mobile está abajo) */}
-              <div className="hidden lg:flex items-center gap-2 ml-1">
-                <div className="w-[1px] h-5 bg-zinc-200 dark:bg-zinc-700"></div>
-                <button 
-                  onClick={() => setSettingsModalOpen(true)}
-                  className="flex items-center justify-center w-8 h-8 text-muted-foreground bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-800 dark:bg-zinc-800 border border-border rounded-lg transition-colors shadow-sm"
-                  title="Configurações"
-                >
-                  <Settings className="w-4 h-4" />
-                </button>
-              </div>
-
             </div>
+
           </div>
         </header>
 
