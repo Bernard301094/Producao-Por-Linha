@@ -297,9 +297,7 @@ export default function App() {
   const [selectedLinhaPending, setSelectedLinhaPending] = useState(() => localStorage.getItem('v-ops-default-linha-pending') || localStorage.getItem('v-ops-default-linha') || 'Todas');
   const [selectedLinhaFinished, setSelectedLinhaFinished] = useState(() => localStorage.getItem('v-ops-default-linha-finished') || localStorage.getItem('v-ops-default-linha') || 'Todas');
   const [selectedTurnoOverride, setSelectedTurnoOverride] = useState<string | null>(null);
-  const [operatingMode, setOperatingMode] = useState<'global' | 'dedicated'>(() => {
-    return (localStorage.getItem('v-ops-operating-mode') as 'global' | 'dedicated') || 'global';
-  });
+  const operatingMode = 'global';
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
 
@@ -1202,7 +1200,7 @@ export default function App() {
             {/* Centro: Botón Nova OP */}
             <button
               onClick={() => setIsNovaSheetOpen(true)}
-              className="flex items-center gap-2 bg-foreground text-background hover:bg-foreground/90 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
+              className="flex items-center gap-2 bg-white text-black hover:bg-zinc-200 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
             >
               <Plus className="w-[18px] h-[18px] stroke-[3]" />
               Nova OP
@@ -1706,72 +1704,12 @@ export default function App() {
             <DialogTitle className="text-xl font-black text-foreground">Ajustes da Tablet</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
-            <div className="space-y-3">
-              <Label className="text-sm font-bold text-card-foreground">Modo de Operação</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOperatingMode('global');
-                    localStorage.setItem('v-ops-operating-mode', 'global');
-                  }}
-                  className={cn(
-                    "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all",
-                    operatingMode === 'global' ? "border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-900" : "border-border hover:border-zinc-300 dark:hover:border-zinc-700"
-                  )}
-                >
-                  <span className="font-bold text-sm text-foreground">Global</span>
-                  <span className="text-xs text-muted-foreground mt-1">Todas as linhas</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOperatingMode('dedicated');
-                    localStorage.setItem('v-ops-operating-mode', 'dedicated');
-                  }}
-                  className={cn(
-                    "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all",
-                    operatingMode === 'dedicated' ? "border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-900" : "border-border hover:border-zinc-300 dark:hover:border-zinc-700"
-                  )}
-                >
-                  <span className="font-bold text-sm text-foreground">Dedicado</span>
-                  <span className="text-xs text-muted-foreground mt-1">Apenas 1 linha</span>
-                </button>
-              </div>
-            </div>
+
 
             <div className="space-y-3">
               <Label className="text-sm font-bold text-card-foreground">Aparência</Label>
               <ThemeToggle />
             </div>
-
-            {operatingMode === 'dedicated' && (
-              <div className="space-y-3 animate-in fade-in duration-200">
-                <Label className="text-sm font-bold text-card-foreground">Linha da Tablet</Label>
-                <div className="grid grid-cols-4 gap-1.5 max-h-[200px] overflow-y-auto p-1">
-                  {Array.from({ length: 16 }, (_, i) => `Linha ${String(i + 1).padStart(2, '0')}`).map(l => (
-                    <button
-                      key={l}
-                      type="button"
-                      onClick={() => {
-                        const normalized = normalizeLinha(l);
-                        setSelectedLinhaPending(normalized);
-                        setSelectedLinhaFinished(normalized);
-                        localStorage.setItem('v-ops-default-linha-pending', normalized);
-                        localStorage.setItem('v-ops-default-linha-finished', normalized);
-                        localStorage.setItem('v-ops-default-linha', normalized);
-                      }}
-                      className={cn(
-                        "h-10 rounded-lg text-xs font-bold border transition-all",
-                        selectedLinhaPending === normalizeLinha(l) ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:!text-zinc-900 border-zinc-900 dark:border-zinc-100" : "bg-card text-zinc-700 dark:text-zinc-300 border-border hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                      )}
-                    >
-                      {l.replace('Linha ', '')}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
           <DialogFooter className="mt-6 sm:justify-center">
             <Button onClick={() => setSettingsModalOpen(false)} className="w-full sm:w-auto h-12 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 rounded-xl font-bold px-8">
