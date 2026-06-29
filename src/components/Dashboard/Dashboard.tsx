@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { Activity, Clock, AlertTriangle, ArrowUpRight } from 'lucide-react';
 import { FinishedOperation, Operation } from '../../api';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 
 interface DashboardProps {
   finishedOps: FinishedOperation[];
@@ -29,6 +30,27 @@ const getDurationMinutes = (start: string, end: string) => {
 const LINE_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
 const PROD_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
 const UPTIME_COLORS = ['var(--chart-1)', 'var(--destructive)'];
+
+const uptimeConfig = {
+  value: { label: "Minutos", color: "var(--chart-1)" },
+} satisfies ChartConfig;
+
+const prodConfig = {
+  quantidade: { label: "Produção", color: "var(--chart-2)" }
+} satisfies ChartConfig;
+
+const paradasImpactConfig = {
+  Minutos: { label: "Minutos", color: "var(--destructive)" },
+  Ocorrencias: { label: "Ocorrências", color: "var(--chart-3)" }
+} satisfies ChartConfig;
+
+const paradasFreqConfig = {
+  quantidade: { label: "Fabricado", color: "var(--chart-4)" }
+} satisfies ChartConfig;
+
+const topProdConfig = {
+  quantidade: { label: "Quantidade", color: "var(--chart-5)" }
+} satisfies ChartConfig;
 
 // Custom Tooltip Component
 const CustomTooltip = ({ active, payload, label, unit = '' }: any) => {
@@ -68,8 +90,8 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
 
     const upMin = Math.max(0, totalMin - downMin);
     return [
-      { name: 'Tempo Produzindo', value: upMin },
-      { name: 'Tempo Parado', value: downMin }
+      { name: 'Tempo Produzindo', value: upMin, fill: "var(--chart-1)" },
+      { name: 'Tempo Parado', value: downMin, fill: "var(--destructive)" }
     ];
   }, [finishedOps]);
 
@@ -167,19 +189,15 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
           </div>
           <div className="w-32 h-32 shrink-0 relative z-10">
             {totalTime > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={uptimeConfig} className="h-full w-full mx-auto aspect-square">
                 <PieChart>
                   <Pie
                     data={uptimeDowntime}
-                    cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value" stroke="none" cornerRadius={8}
-                  >
-                    {uptimeDowntime.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={UPTIME_COLORS[index % UPTIME_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip content={<CustomTooltip unit="min" />} cursor={false} />
+                    cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value" nameKey="name" stroke="none" cornerRadius={8}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent hideLabel />} cursor={false} />
                 </PieChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-zinc-400">Sem dados</div>
             )}
@@ -193,22 +211,30 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
             <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 uppercase tracking-widest">Curva de Produção (Por Hora)</h3>
           </div>
           {productionByHour.length > 0 ? (
-            <div className="h-40 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-40 w-full mt-2">
+              <ChartContainer config={prodConfig} className="h-full w-full">
                 <AreaChart data={productionByHour} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                   <defs>
-                  <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                <XAxis dataKey="hour" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-                <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dx={-10} />
-                <RechartsTooltip content={<CustomTooltip unit=" un" />} cursor={{ stroke: 'var(--border)', strokeWidth: 1, strokeDasharray: '5 5' }} />
-                <Area type="monotone" dataKey="quantidade" name="Fabricado" stroke="var(--chart-1)" strokeWidth={4} fillOpacity={1} fill="url(#colorProd)" />
+                    <linearGradient id="colorProd" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--color-quantidade)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--color-quantidade)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.5} />
+                  <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--muted-foreground)', fontWeight: 700 }} dy={10} />
+                  <YAxis hide domain={['auto', 'auto']} />
+                  <ChartTooltip content={<ChartTooltipContent indicator="dot" />} cursor={{ stroke: 'var(--border)', strokeWidth: 1, strokeDasharray: '5 5' }} />
+                  <Area 
+                    type="monotone" 
+                    dataKey="quantidade" 
+                    stroke="var(--color-quantidade)" 
+                    strokeWidth={4}
+                    fillOpacity={1} 
+                    fill="url(#colorProd)" 
+                    activeDot={{ r: 6, fill: 'var(--color-quantidade)', stroke: 'var(--background)', strokeWidth: 2 }}
+                  />
                 </AreaChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           ) : (
             <div className="h-40 flex items-center justify-center text-zinc-400 font-bold">Nenhuma produção registrada</div>
@@ -229,18 +255,18 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
           <p className="text-xs text-muted-foreground mb-6 font-bold">Minutos Perdidos vs Frecuencia de Ocurrencia</p>
           
           {paradasAnalysis.length > 0 ? (
-            <div className="h-[280px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[280px] w-full mt-4">
+              <ChartContainer config={paradasImpactConfig} className="h-full w-full">
                 <ComposedChart data={paradasAnalysis} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dy={10} tickFormatter={(val) => val.length > 10 ? val.substring(0, 10) + '...' : val} />
-                  <YAxis yAxisId="left" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dx={-10} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.5} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 600 }} dy={10} tickFormatter={(val) => val.length > 10 ? val.substring(0, 10) + '...' : val} />
+                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 600 }} dx={-10} />
                   <YAxis yAxisId="right" orientation="right" hide />
-                  <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
-                  <Bar yAxisId="left" dataKey="Minutos" fill="var(--destructive)" radius={[6, 6, 0, 0]} maxBarSize={40} />
-                  <Line yAxisId="right" type="monotone" dataKey="Ocorrencias" stroke="var(--chart-3)" strokeWidth={4} dot={{ r: 5, fill: 'var(--chart-3)', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 7 }} />
+                  <ChartTooltip content={<ChartTooltipContent indicator="line" />} cursor={{ fill: 'var(--muted)', opacity: 0.2 }} />
+                  <Bar yAxisId="left" dataKey="Minutos" fill="var(--color-Minutos)" radius={[6, 6, 0, 0]} maxBarSize={40} />
+                  <Line yAxisId="right" type="monotone" dataKey="Ocorrencias" stroke="var(--color-Ocorrencias)" strokeWidth={4} dot={{ r: 5, fill: 'var(--color-Ocorrencias)', strokeWidth: 2, stroke: 'var(--background)' }} activeDot={{ r: 7 }} />
                 </ComposedChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           ) : (
             <div className="h-[280px] flex items-center justify-center text-zinc-400 font-bold">Nenhuma parada registrada</div>
@@ -252,20 +278,16 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
           <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 uppercase tracking-widest mb-2">Produção por Linha (UN)</h3>
           <p className="text-xs text-muted-foreground mb-6 font-bold">Volumen total por máquina</p>
           {productionByLinha.length > 0 ? (
-            <div className="h-[280px] w-full flex-1">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[280px] w-full flex-1 mt-4">
+              <ChartContainer config={paradasFreqConfig} className="h-full w-full">
                 <BarChart data={productionByLinha} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="linha" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dy={10} />
-                  <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dx={-10} />
-                  <RechartsTooltip content={<CustomTooltip unit="UN" />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
-                  <Bar dataKey="quantidade" name="Fabricado" radius={[6, 6, 0, 0]} maxBarSize={50}>
-                    {productionByLinha.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={LINE_COLORS[index % LINE_COLORS.length]} />
-                    ))}
-                  </Bar>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" opacity={0.5} />
+                  <XAxis dataKey="linha" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 600 }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 600 }} dx={-10} />
+                  <ChartTooltip content={<ChartTooltipContent indicator="dashed" />} cursor={{ fill: 'var(--muted)', opacity: 0.2 }} />
+                  <Bar dataKey="quantidade" fill="var(--color-quantidade)" radius={[6, 6, 0, 0]} maxBarSize={50} />
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           ) : (
             <div className="h-[280px] flex items-center justify-center text-zinc-400 font-bold">Nenhuma produção registrada</div>
@@ -276,20 +298,16 @@ export function Dashboard({ finishedOps, operations }: DashboardProps) {
         <div className="bg-card p-6 rounded-[2rem] shadow-sm border border-border lg:col-span-2">
           <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 uppercase tracking-widest mb-6">Top Produtos Fabricados</h3>
           {topProducts.length > 0 ? (
-            <div className="h-[250px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[250px] w-full mt-4">
+              <ChartContainer config={topProdConfig} className="h-full w-full">
                 <BarChart data={topProducts} layout="vertical" margin={{ top: 0, right: 30, left: 60, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
-                  <XAxis type="number" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dy={5} />
-                  <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} dx={-10} width={100} />
-                  <RechartsTooltip content={<CustomTooltip unit=" un" />} cursor={{fill: 'var(--muted)', opacity: 0.4}} />
-                  <Bar dataKey="quantidade" name="Fabricado" fill="var(--chart-1)" radius={[0, 6, 6, 0]} maxBarSize={30}>
-                    {topProducts.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={PROD_COLORS[index % PROD_COLORS.length]} />
-                    ))}
-                  </Bar>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" opacity={0.5} />
+                  <XAxis type="number" hide />
+                  <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 600 }} dx={-10} width={100} />
+                  <ChartTooltip content={<ChartTooltipContent indicator="dashed" />} cursor={{ fill: 'var(--muted)', opacity: 0.2 }} />
+                  <Bar dataKey="quantidade" fill="var(--color-quantidade)" radius={[0, 6, 6, 0]} maxBarSize={30} />
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
           ) : (
             <div className="h-[250px] flex items-center justify-center text-zinc-400 font-bold">Nenhuma producción registrada</div>
