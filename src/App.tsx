@@ -592,12 +592,12 @@ export default function App() {
 
   useEffect(() => {
     if (watchHoraInicial) {
-      setValue('turno', getSuggestedShift(new Date(), watchHoraInicial));
+      setValue('turno', getSuggestedShift(getServerTime(), watchHoraInicial));
     }
   }, [watchHoraInicial, setValue]);
 
   const defaultLogicalToday = useMemo(() => getLogicalDateStr(getServerTime()), []);
-  const currentTurnForView = useMemo(() => getSuggestedShift(new Date(), format(new Date(), 'HH:mm')), []);
+  const currentTurnForView = useMemo(() => getSuggestedShift(getServerTime(), format(getServerTime(), 'HH:mm')), []);
   
   // deviceShift persists the last shift started on this device.
   // We use deviceShift for the view, UNLESS the user explicitly overrides it.
@@ -651,7 +651,7 @@ export default function App() {
 
   useEffect(() => {
     refreshData();
-    setValue('horaInicial', format(new Date(), 'HH:mm'));
+    setValue('horaInicial', format(getServerTime(), 'HH:mm'));
   }, [setValue]);
 
   // Real-time subscriptions to Firestore
@@ -731,7 +731,7 @@ export default function App() {
         : Date.now().toString(36) + Math.random().toString(36).substring(2);
 
       const newOp: Operation = {
-        id: newOpId, carimboInicial: new Date().toISOString(), ...data,
+        id: newOpId, carimboInicial: getServerTime().toISOString(), ...data,
         opNumber: data.opNumber || '',
         produto: data.produto || '',
         horaInicial: data.horaInicial ? (data.horaInicial.length === 5 ? `${data.horaInicial}:00` : data.horaInicial) : '',
@@ -755,7 +755,7 @@ export default function App() {
         produto: '',
         linha: data.linha,
         turno: data.turno,
-        horaInicial: format(new Date(), 'HH:mm'),
+        horaInicial: format(getServerTime(), 'HH:mm'),
         operador: data.operador
       });
       setShowConfirmStart(false);
@@ -1068,7 +1068,7 @@ export default function App() {
     doDelete();
   };
 
-    const today = useMemo(() => format(new Date(), 'dd/MM/yyyy'), []);
+    const today = useMemo(() => format(getServerTime(), 'dd/MM/yyyy'), []);
 
     const handleAddForgottenParada = useCallback(async (finOp: FinishedOperation, parada: ParadaRecord) => {
       const updated = [...(finOp.paradas || []), parada];
@@ -1270,7 +1270,7 @@ export default function App() {
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Produzido</span>
             </div>
             <div className="ml-auto text-[10px] font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-widest">
-              {new Date().toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
+              {getServerTime().toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit' })}
             </div>
           </div>
         </div>

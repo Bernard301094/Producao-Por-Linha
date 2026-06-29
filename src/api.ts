@@ -138,7 +138,7 @@ export const markOperationFinished = async (
 ) => {
   const formattedLinha = op.linha ? (isNaN(Number(op.linha)) ? op.linha : `Linha ${op.linha}`) : '';
 
-  const now = new Date();
+  const now = new Date(Date.now()); // Fallback or imported getServerTime if imported
   const DD = String(now.getDate()).padStart(2, '0');
   const MM = String(now.getMonth() + 1).padStart(2, '0');
   const YYYY = now.getFullYear();
@@ -280,7 +280,7 @@ export const moveFinishedToPending = async (id: string, turno: string) => {
       turno:          turno              || 'A',
       operador:       data.operador      || '',
       horaInicial:    data.horaInicial   || '',
-      carimboInicial: data.carimboInicial || new Date().toISOString(),
+      carimboInicial: data.carimboInicial || new Date(Date.now()).toISOString(),
       status:         'pending',
       paradas:        data.paradas       || []
     };
@@ -479,7 +479,7 @@ export const cleanSyncedRecords = async () => {
     where('syncStatus', '==', 'success')
   );
   const snap = await getDocs(q);
-  const now = new Date().getTime();
+  const now = Date.now();
   const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
 
   for (const item of snap.docs) {
@@ -609,7 +609,7 @@ export const checkSheetConnection = async () => {
 };
 
 export const updateAuthProfile = async (profileName: string, dataOrPassword: string | Record<string, any>) => {
-  const now = new Date().toISOString();
+  const now = new Date(Date.now()).toISOString();
   const safeProfileName = String(profileName).replace(/\//g, '_');
 
   if (typeof dataOrPassword === 'string') {
