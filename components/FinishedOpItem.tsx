@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Clock, Pencil, RotateCcw, Trash2, CloudOff, RefreshCw, Plus, ArrowRightLeft, Search, Loader2 } from 'lucide-react';
+import { Clock, Pencil, RotateCcw, Trash2, CloudOff, RefreshCw, Plus, ArrowRightLeft, Search, Loader2, ChevronDown, ChevronUp, MoreHorizontal, AlertTriangle, Package } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -25,6 +26,9 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
   const [convHoraFinal,    setConvHoraFinal]     = useState('');
   const [convQuantidade,   setConvQuantidade]    = useState('');
   const [loadingConvert,   setLoadingConvert]    = useState(false);
+  
+  // ── Paradas Accordion ───────────────────────────────────────────────────────
+  const [showParadas, setShowParadas] = useState(false);
 
   const resetForgot  = () => { setForgotMotivo(''); setForgotStart(''); setForgotEnd(''); setForgotSearch(''); setForgotOS(''); setForgotObs(''); };
   const resetConvert = () => { setConvHoraInicial(''); setConvHoraFinal(''); setConvQuantidade(''); };
@@ -59,130 +63,178 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
   };
 
   return (
-    <div className={`relative bg-white dark:bg-zinc-950 rounded-2xl xl:rounded-3xl overflow-hidden mb-3 border transition-all shadow-md hover:shadow-lg ${op.syncStatus === 'error' ? 'border-red-200 dark:border-red-800/50 ring-1 ring-red-100' : 'border-slate-200 dark:border-zinc-800 hover:border-slate-300'}`}>
+    <div className={`relative bg-white dark:bg-zinc-950 rounded-[1.5rem] overflow-hidden mb-4 border transition-all shadow-sm hover:shadow-md ${op.syncStatus === 'error' ? 'border-red-200 dark:border-red-800/50 ring-1 ring-red-100' : 'border-border'}`}>
       {/* Top accent */}
-      <div className={`h-1 xl:h-1.5 w-full ${op.syncStatus === 'error' ? 'bg-red-400' : 'bg-emerald-400'}`} />
+      <div className={`h-1.5 w-full ${op.syncStatus === 'error' ? 'bg-red-400' : 'bg-emerald-400'}`} />
 
-      <div className="p-4 xl:p-5 2xl:p-6">
+      <div className="p-4 sm:p-5">
         {/* Identity row */}
-        <div className="flex items-start justify-between gap-3 mb-3 xl:mb-4">
-          <div className="flex flex-col flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap mb-2">
-              <span className="text-[10px] xl:text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 px-2 xl:px-2.5 py-0.5 xl:py-1 rounded-lg">
-                OP {op.opNumber}
-              </span>
-              {(() => {
-                const lName = formatLinhaName(op.linha);
-                const colors = getLinhaColors(lName);
-                return (
-                  <span
-                    className="text-[10px] xl:text-xs font-bold tracking-widest px-2 xl:px-2.5 py-0.5 xl:py-1 rounded-lg border shadow-sm"
-                    style={{ backgroundColor: colors.bg, color: colors.text, borderColor: colors.border }}
-                  >
-                    {lName.toUpperCase()}
-                  </span>
-                );
-              })()}
-              {op.litragem && (
-                <span className="text-[10px] xl:text-xs font-semibold text-slate-400">{op.litragem}</span>
-              )}
-              <span className="text-[10px] xl:text-xs font-bold tracking-widest text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 px-2 xl:px-2.5 py-0.5 xl:py-1 rounded-lg shadow-sm">
-                {op.turno?.startsWith('Turno') ? op.turno : `Turno ${op.turno}`}
-              </span>
-              {op.isAvulsa && (
-                <span className="text-[10px] xl:text-xs font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-2 xl:px-2.5 py-0.5 xl:py-1 rounded-lg">PARADA AVULSA</span>
-              )}
-            </div>
-            <h3 className="text-base xl:text-lg 2xl:text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-1">{op.produto}</h3>
-          </div>
-          {/* Time badge */}
-          {!op.isAvulsa && (
-            <div className="shrink-0 flex items-center gap-1 text-[10px] xl:text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 px-2.5 xl:px-3 py-1.5 xl:py-2 rounded-xl">
-              <Clock className="w-3 h-3 xl:w-3.5 xl:h-3.5 text-slate-400" />
-              {op.horaInicial}{op.horaFinal ? ` → ${op.horaFinal}` : ''}
-            </div>
-          )}
+        <div className="flex items-start justify-between gap-3 mb-4">
+           {/* Identificação Panel */}
+           <div className="flex-1 flex flex-col gap-2 bg-zinc-50 dark:bg-zinc-900/50 p-3 sm:p-4 rounded-[1.25rem] border border-border">
+             <div className="flex items-center gap-1.5 flex-wrap">
+               <span className="text-[10px] sm:text-xs font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 px-2 py-0.5 rounded-md uppercase tracking-widest">
+                 OP {op.opNumber}
+               </span>
+               <span className="text-[10px] sm:text-xs font-black tracking-widest text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 px-2 py-0.5 rounded-md shadow-sm uppercase">
+                 {op.turno?.startsWith('Turno') ? op.turno : `Turno ${op.turno}`}
+               </span>
+               {op.isAvulsa && (
+                 <span className="text-[10px] sm:text-xs font-black text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-2 py-0.5 rounded-md uppercase tracking-widest">PARADA AVULSA</span>
+               )}
+             </div>
+             
+             <div className="flex items-center gap-2">
+               <Package className="w-4 h-4 text-zinc-400 shrink-0" />
+               <h3 className="text-base sm:text-lg font-black text-foreground tracking-tight leading-tight line-clamp-2">{op.produto}</h3>
+             </div>
+             
+             <div className="flex items-center gap-2 mt-1">
+               {(() => {
+                 const lName = formatLinhaName(op.linha);
+                 const colors = getLinhaColors(lName);
+                 return (
+                   <span
+                     className="text-[10px] font-black tracking-widest px-2 py-0.5 rounded-md border shadow-sm uppercase"
+                     style={{ backgroundColor: colors.bg, color: colors.text, borderColor: colors.border }}
+                   >
+                     {lName}
+                   </span>
+                 );
+               })()}
+               {op.litragem && (
+                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md border border-border">{op.litragem}</span>
+               )}
+             </div>
+           </div>
+           
+           {/* Actions / Menu */}
+           <div className="shrink-0 flex items-start">
+             <Popover>
+                <PopoverTrigger asChild>
+                  <button className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-border text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-sm active:scale-95">
+                     <MoreHorizontal className="w-5 h-5" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-1.5 rounded-xl border-border shadow-xl z-10" align="end">
+                   <button
+                     onClick={() => openEdit(op)}
+                     className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                   >
+                     <Pencil className="w-4 h-4 text-zinc-400" /> Editar Registro
+                   </button>
+                   <button
+                     onClick={() => setDeletingOp(op)}
+                     className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors mt-0.5"
+                   >
+                     <Trash2 className="w-4 h-4 text-red-500/70" /> Excluir Registro
+                   </button>
+                </PopoverContent>
+             </Popover>
+           </div>
         </div>
 
-        {/* Stats */}
-        {!op.isAvulsa && op.quantidade && (
-          <div className="flex items-stretch gap-2 xl:gap-3 mb-3 xl:mb-4">
-            <div className="flex-1 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-800/50 rounded-xl xl:rounded-2xl px-3 xl:px-4 py-2 xl:py-3 flex flex-col">
-              <span className="text-[8px] xl:text-[9px] font-bold text-emerald-600 dark:text-emerald-500/70 uppercase tracking-widest leading-none mb-1">Produzido</span>
-              <span className="text-2xl xl:text-3xl 2xl:text-4xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums leading-none">{parseInt(op.quantidade).toLocaleString()}</span>
-              <span className="text-[9px] xl:text-[10px] font-bold text-emerald-500/60 mt-1">UN</span>
-            </div>
-          </div>
-        )}
+        {/* Results Panel */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+           {/* Quantidade */}
+           {!op.isAvulsa && op.quantidade ? (
+             <div className="bg-emerald-50 dark:bg-emerald-950/20 border-2 border-emerald-100 dark:border-emerald-900/50 rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-inner">
+               <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-500/70 uppercase tracking-widest mb-1">Produzido</span>
+               <div className="flex items-baseline gap-1">
+                 <span className="text-3xl sm:text-4xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums leading-none tracking-tighter">{parseInt(op.quantidade).toLocaleString()}</span>
+                 <span className="text-[10px] font-black text-emerald-500/60">UN</span>
+               </div>
+             </div>
+           ) : (
+             <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+               <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Parada Avulsa</span>
+               <span className="text-sm font-bold text-zinc-500">Sem produção</span>
+             </div>
+           )}
 
-        {/* Paradas chips */}
+           {/* Horarios */}
+           <div className="bg-zinc-50 dark:bg-zinc-900/50 border-2 border-border rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-inner">
+             <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Horário</span>
+             <span className="text-lg sm:text-xl font-black text-foreground tabular-nums tracking-tighter">
+               {op.horaInicial}{op.horaFinal ? ` → ${op.horaFinal}` : ''}
+             </span>
+           </div>
+        </div>
+
+        {/* Paradas Accordion */}
         {op.paradas && op.paradas.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3 xl:mb-4">
-            {op.paradas.map((p: any, i: number) => (
-              <div key={i} className="flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/60 rounded-xl px-2.5 xl:px-3 py-1.5 xl:py-2">
-                <span className="text-[9px] xl:text-[10px] font-black text-zinc-500 dark:text-zinc-400 tabular-nums">{p.seq}</span>
-                <span className="text-[10px] xl:text-xs font-semibold text-zinc-700 dark:text-zinc-300 max-w-[120px] xl:max-w-[160px] truncate">{p.tipologia}</span>
-                <span className="text-[9px] xl:text-[10px] font-black text-zinc-400 tabular-nums">{p.horaInicio}–{p.horaFim}</span>
-              </div>
-            ))}
+          <div className="bg-zinc-50 dark:bg-zinc-900/30 border border-border rounded-2xl p-3 mb-4">
+            <button 
+               onClick={() => setShowParadas(!showParadas)}
+               className="w-full flex items-center justify-between p-1 focus:outline-none"
+            >
+               <div className="flex items-center gap-2">
+                 <div className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center border border-amber-200 dark:border-amber-800/50">
+                    <AlertTriangle className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                 </div>
+                 <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
+                    {op.paradas.length} Parada{op.paradas.length !== 1 && 's'} Registrada{op.paradas.length !== 1 && 's'}
+                 </span>
+               </div>
+               {showParadas ? <ChevronUp className="w-4 h-4 text-zinc-400" /> : <ChevronDown className="w-4 h-4 text-zinc-400" />}
+            </button>
+            
+            {showParadas && (
+               <div className="mt-3 pt-3 border-t border-border flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                 {op.paradas.map((p: any, i: number) => (
+                   <div key={i} className="flex items-center gap-2 bg-white dark:bg-zinc-950 border border-border shadow-sm rounded-xl px-3 py-2">
+                     <span className="text-[10px] font-black text-zinc-400 tabular-nums bg-zinc-100 dark:bg-zinc-900 px-1.5 py-0.5 rounded-md">{p.seq}</span>
+                     <span className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 max-w-[140px] truncate">{p.tipologia}</span>
+                     <span className="text-[10px] font-black text-zinc-400 tabular-nums border-l border-border pl-2">{p.horaInicio} – {p.horaFim}</span>
+                   </div>
+                 ))}
+               </div>
+            )}
           </div>
         )}
 
         {/* Sync error */}
         {op.syncStatus === 'error' && (
-          <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-xl p-3 mb-3 xl:mb-4 flex items-center justify-between gap-3">
+          <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-xl p-3 mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <CloudOff className="w-4 h-4 text-red-500 shrink-0" />
-              <span className="text-xs xl:text-sm font-bold text-red-700 dark:text-red-400">Falha na sincronização</span>
+              <span className="text-xs sm:text-sm font-bold text-red-700 dark:text-red-400">Falha na sincronização</span>
             </div>
             <button
               onClick={() => onSyncRetry && onSyncRetry(op)}
-              className="flex items-center gap-1.5 text-[11px] xl:text-xs font-bold bg-white dark:bg-zinc-950 text-red-700 dark:text-red-400 px-3 py-1.5 border border-red-200 dark:border-red-800/50 rounded-lg hover:bg-red-100 transition-colors shrink-0"
+              className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold bg-white dark:bg-zinc-950 text-red-700 dark:text-red-400 px-3 py-1.5 border border-red-200 dark:border-red-800/50 rounded-lg hover:bg-red-100 transition-colors shrink-0"
             >
               <RefreshCw className="w-3 h-3" /> Tentar
             </button>
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 pt-3 xl:pt-4 border-t border-zinc-100 dark:border-zinc-800">
+        {/* Actions (Reverter e Add Parada) */}
+        <div className="flex items-center gap-3 pt-4 border-t border-border">
           {op.isAvulsa ? (
             <button
               onClick={() => { resetConvert(); setShowConvertModal(true); }}
-              className="flex-1 flex items-center justify-center gap-1.5 h-10 xl:h-12 text-xs xl:text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl xl:rounded-2xl transition-all"
+              className="flex-1 flex items-center justify-center gap-2 h-12 text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-2xl transition-all shadow-md shadow-amber-500/20 active:scale-95"
             >
-              <ArrowRightLeft className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> Converter para OP
+              <ArrowRightLeft className="w-4 h-4" /> Converter para OP
             </button>
           ) : (
             <button
               onClick={() => setRevertingOp(op)}
-              className="flex-1 flex items-center justify-center gap-1.5 h-10 xl:h-12 text-xs xl:text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white rounded-xl xl:rounded-2xl transition-all"
+              className="flex-1 flex items-center justify-center gap-2 h-12 text-sm font-bold bg-zinc-900 hover:bg-zinc-800 text-white rounded-2xl transition-all shadow-md shadow-zinc-900/20 active:scale-95"
             >
-              <RotateCcw className="w-3.5 h-3.5 xl:w-4 xl:h-4" /> Reverter OP
+              <RotateCcw className="w-4 h-4" /> Reverter OP
             </button>
           )}
+          
           <button
-            onClick={() => openEdit(op)}
-            className="w-10 xl:w-12 h-10 xl:h-12 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 rounded-xl xl:rounded-2xl transition-colors border border-zinc-200 dark:border-zinc-800/60 bg-white dark:bg-zinc-950"
+            onClick={() => { resetForgot(); setShowForgotModal(true); }}
+            className="w-12 h-12 flex items-center justify-center bg-zinc-50 dark:bg-zinc-900 border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 rounded-2xl transition-colors shrink-0 active:scale-95"
+            title="Adicionar Parada Esquecida"
           >
-            <Pencil className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
-          </button>
-          <button
-            onClick={() => setDeletingOp(op)}
-            className="w-10 xl:w-12 h-10 xl:h-12 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:bg-red-950/30 rounded-xl xl:rounded-2xl transition-colors border border-zinc-200 dark:border-zinc-800/60 bg-white dark:bg-zinc-950"
-          >
-            <Trash2 className="w-3.5 h-3.5 xl:w-4 xl:h-4" />
+            <Plus className="w-5 h-5" />
           </button>
         </div>
-
-        {/* + Adicionar Parada Esquecida */}
-        <button
-          onClick={() => { resetForgot(); setShowForgotModal(true); }}
-          className="w-full mt-2 flex items-center justify-center gap-1.5 h-9 text-[11px] xl:text-xs font-bold text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:bg-zinc-900/50 rounded-xl transition-colors border border-dashed border-zinc-200 dark:border-zinc-800"
-        >
-          <Plus className="w-3 h-3 xl:w-3.5 xl:h-3.5" /> Adicionar Parada Esquecida
-        </button>
-      </div>
 
       {/* ── Parada Esquecida Modal ───────────────────────────────────────────── */}
       <Dialog open={showForgotModal} onOpenChange={(o) => { if (!o) { setShowForgotModal(false); resetForgot(); } }}>

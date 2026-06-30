@@ -21,14 +21,14 @@ import { FinishedOpItem } from '../components/FinishedOpItem';
 import { StartOpForm } from './components/StartOpForm/StartOpForm';
 import { cn, useAutoIncrement } from './lib/utils';
 
-import { EditOpModal } from './components/EditOpModal/EditOpModal';
-import { ProductManagerModal } from './components/ProductManagerModal/ProductManagerModal';
-import { Dashboard } from './components/Dashboard/Dashboard';
+const EditOpModal = React.lazy(() => import('./components/EditOpModal/EditOpModal').then(module => ({ default: module.EditOpModal })));
+const ProductManagerModal = React.lazy(() => import('./components/ProductManagerModal/ProductManagerModal').then(module => ({ default: module.ProductManagerModal })));
+const Dashboard = React.lazy(() => import('./components/Dashboard/Dashboard').then(module => ({ default: module.Dashboard })));
 import { toast, Toaster } from 'sonner';
 import { Check, ChevronsUpDown, Package, ClipboardList, CheckCircle2, LogOut, Loader2, Trash2, Pencil, Eye, EyeOff, RotateCcw, Wifi, Clock, KeyRound, Plus, Minus, Search, ChevronDown, ChevronUp, HelpCircle, X, Settings, Moon, Sun, Monitor, PieChart as PieChartIcon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { motion } from 'motion/react';
-import { TourOverlay } from './components/TourOverlay/TourOverlay';
+const TourOverlay = React.lazy(() => import('./components/TourOverlay/TourOverlay').then(module => ({ default: module.TourOverlay })));
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
 import { getServerTime, syncServerTime, getServerTimeISO, isTimeSynced } from './lib/time';
@@ -1276,7 +1276,9 @@ export default function App() {
 
         <div className="w-full max-w-[1920px] mx-auto px-0 sm:px-4 lg:px-6 2xl:px-8 py-0 sm:py-6 lg:py-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-24 lg:pb-4">
           {showDashboard && operatingMode === 'global' && (
-            <Dashboard finishedOps={displayFinishedOps} operations={displayPendingOps} />
+            <React.Suspense fallback={<div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-zinc-400" /></div>}>
+              <Dashboard finishedOps={displayFinishedOps} operations={displayPendingOps} />
+            </React.Suspense>
           )}
           <div className={cn("grid grid-cols-1 lg:grid-cols-12 gap-0 sm:gap-4 lg:gap-5 2xl:gap-7 items-start", showDashboard && operatingMode === 'global' ? "hidden" : "")}>
 
@@ -1643,6 +1645,7 @@ export default function App() {
 
       {/* Edit OP Dialog */}
       {editingOp && (
+        <React.Suspense fallback={<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm"><Loader2 className="w-8 h-8 animate-spin text-white" /></div>}>
         <EditOpModal
           editingOp={editingOp}
           setEditingOp={setEditingOp}
@@ -1679,23 +1682,28 @@ export default function App() {
           setEditParadaObs={setEditParadaObs}
           availableParadas={availableParadas}
         />
+        </React.Suspense>
       )}
 
       {showProductManager && (
+        <React.Suspense fallback={<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 backdrop-blur-sm"><Loader2 className="w-8 h-8 animate-spin text-white" /></div>}>
         <ProductManagerModal 
           open={showProductManager}
           onOpenChange={setShowProductManager}
           products={availableProducts}
           onRefresh={loadProducts}
         />
+        </React.Suspense>
       )}
 
       {tourActive && (
+        <React.Suspense fallback={null}>
         <TourOverlay
           isDesktop={isDesktop}
           setMobileTab={setMobileTab}
           onFinish={() => setTourActive(false)}
         />
+        </React.Suspense>
       )}
       {/* Settings Dialog */}
       <Dialog open={settingsModalOpen} onOpenChange={setSettingsModalOpen}>
