@@ -244,7 +244,25 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               OP {op.opNumber}
             </span>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <button 
+                onClick={(e) => { e.stopPropagation(); openEdit(op); }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+                title="Editar OP"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+              
+              <button 
+                onClick={(e) => { e.stopPropagation(); setDeletingOp(op); }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-red-50 dark:bg-zinc-900 dark:hover:bg-red-950/30 text-zinc-400 hover:text-red-500 transition-colors"
+                title="Excluir OP"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+
+              <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-800 mx-1" />
+
               {openParada ? (
                 <div className="shrink-0 flex items-center gap-1.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 px-2.5 py-1 rounded-full shadow-sm">
                   <span className="relative flex h-2 w-2">
@@ -265,10 +283,10 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               
               <button 
                 onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 ml-0.5"
                 title="Histórico da Linha"
               >
-                <History className="w-3.5 h-3.5" />
+                <History className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -310,12 +328,12 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           </div>
           
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-2.5 mt-2">
+          <div className="grid grid-cols-2 gap-3 mt-3">
             {openParada ? (
               <Button 
                 variant="destructive" 
                 onClick={(e) => { e.stopPropagation(); setShowParadas(true); }}
-                className="h-11 rounded-xl font-black text-xs sm:text-sm shadow-sm"
+                className="h-14 rounded-xl font-black text-sm shadow-sm"
               >
                 Terminar Parada
               </Button>
@@ -323,9 +341,9 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               <Button 
                 variant="outline" 
                 onClick={(e) => { e.stopPropagation(); setShowParadas(true); }}
-                className="h-11 rounded-xl font-black text-xs sm:text-sm bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:text-amber-400 dark:border-amber-800/50 shadow-sm"
+                className="h-14 rounded-xl font-black text-sm bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:text-amber-400 dark:border-amber-800/50 shadow-sm"
               >
-                <Clock className="w-4 h-4 mr-1.5 opacity-80" /> Parada
+                <Clock className="w-5 h-5 mr-2 opacity-80" /> Parada
               </Button>
             )}
             
@@ -333,14 +351,14 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               variant="outline" 
               onClick={(e) => { e.stopPropagation(); setIsFinishing(true); setFinishTime(format(new Date(), 'HH:mm')); }}
               className={cn(
-                "h-11 rounded-xl font-black text-xs sm:text-sm shadow-sm",
+                "h-14 rounded-xl font-black text-sm shadow-sm",
                 openParada 
                   ? "bg-zinc-50 text-zinc-400 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-600 dark:border-zinc-800 opacity-60" 
                   : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 dark:border-emerald-800/50"
               )}
               disabled={openParada}
             >
-              <CheckCircle2 className="w-4 h-4 mr-1.5 opacity-80" /> Apontar
+              <CheckCircle2 className="w-5 h-5 mr-2 opacity-80" /> Apontar
             </Button>
           </div>
         </div>
@@ -495,55 +513,16 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           </div>
         )}
 
-        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-1">
-          {isFinishing ? (
+        {isFinishing && (
+          <div className="flex items-center justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-1">
             <button
               onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishObs(''); }}
               className="w-full sm:w-auto h-10 px-4 rounded-xl text-sm font-bold text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 transition-colors"
             >
-              Cancelar
+              Cancelar Apontamento
             </button>
-          ) : (
-            <>
-              <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar pb-1 sm:pb-0">
-                <motion.button whileTap={{ scale: 0.93 }} onClick={() => openEdit(op)} className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 rounded-xl transition-colors">
-                  <Pencil className="w-4 h-4" />
-                </motion.button>
-                <motion.button whileTap={{ scale: 0.93 }} onClick={() => setDeletingOp(op)} className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:bg-red-950/30 rounded-xl transition-colors">
-                  <Trash2 className="w-4 h-4" />
-                </motion.button>
-                <button
-                  onClick={() => { setShowParadas(p => !p); setShowHistory(false); }}
-                  className={cn("flex items-center gap-1.5 h-9 px-2 sm:px-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-colors shrink-0",
-                    showParadas ? "bg-amber-100 text-amber-700 dark:text-amber-400" : "text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-600 dark:text-zinc-400"
-                  )}
-                >
-                  <History className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Paradas</span>
-                  <span className="sm:hidden">Paradas</span>
-                  {finishParadas.length > 0 && <span className="bg-amber-400 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] font-black">{finishParadas.length}</span>}
-                </button>
-                <button
-                  onClick={() => { setShowHistory(h => !h); setShowParadas(false); }}
-                  className={cn("flex items-center gap-1.5 h-9 px-2 sm:px-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest transition-colors shrink-0",
-                    showHistory ? "bg-blue-100 text-blue-700 dark:text-blue-400" : "text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 hover:text-zinc-600 dark:text-zinc-400"
-                  )}
-                >
-                  <ArrowRight className="w-3.5 h-3.5" />
-                  Hist.
-                </button>
-              </div>
-              <motion.div whileTap={{ scale: 0.96 }} className="ml-auto">
-                <button
-                  onClick={() => { setIsFinishing(true); setFinishQtd(''); setFinishTime(format(new Date(), 'HH:mm')); setFinishObs(''); }}
-                  className="h-10 sm:h-12 px-3 sm:px-5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/25 flex items-center gap-1.5 sm:gap-2 shrink-0"
-                >
-                  <CheckCircle2 className="w-4 h-4" /> Concluir
-                </button>
-              </motion.div>
-            </>
-          )}
-        </div>
+          </div>
+        )}
       </motion.div>
 
       <AnimatePresence>
