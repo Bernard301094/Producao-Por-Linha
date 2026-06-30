@@ -232,9 +232,14 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
         onDragEnd={handleDragEnd}
         animate={controls}
         style={{ x }}
-        className="relative bg-white dark:bg-zinc-950 sm:rounded-[2rem] rounded-[1.5rem] p-4 sm:p-5 border border-slate-200 dark:border-zinc-800 hover:border-slate-300 hover:shadow-lg transition-all shadow-md overflow-hidden text-left flex flex-col gap-3 sm:gap-4 touch-pan-y"
+        className={cn(
+          "relative sm:rounded-[2rem] rounded-[1.5rem] p-4 sm:p-5 border transition-all overflow-hidden text-left flex flex-col gap-3 sm:gap-4 touch-pan-y",
+          openParada 
+            ? "bg-red-50/50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50 shadow-[0_0_20px_rgba(239,68,68,0.15)] hover:shadow-[0_0_25px_rgba(239,68,68,0.25)]" 
+            : "bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800 hover:border-slate-300 hover:shadow-lg shadow-md"
+        )}
       >
-        <div className={cn("absolute top-0 left-0 w-1 h-full", openParada ? "bg-red-500" : "bg-emerald-500")} />
+        <div className={cn("absolute top-0 left-0 w-1 h-full", openParada ? "bg-red-500 animate-pulse" : "bg-emerald-500")} />
 
         <div className="pl-2 flex flex-col gap-3">
           
@@ -272,12 +277,10 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
                   <span className="text-xs font-black tabular-nums">{paradaElapsed}</span>
                 </div>
               ) : elapsed ? (
-                <div className="shrink-0 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 px-3 py-1.5 rounded-full shadow-sm">
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                  </span>
-                  <span className="text-xs font-black tabular-nums">{elapsed}</span>
+                <div className="shrink-0 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 px-3 py-1.5 rounded-full shadow-sm relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/0 via-emerald-400/20 to-emerald-400/0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
+                  <Settings2 className="w-3.5 h-3.5 animate-[spin_4s_linear_infinite] text-emerald-500" />
+                  <span className="text-xs font-black tabular-nums relative z-10">{elapsed}</span>
                 </div>
               ) : null}
               
@@ -353,8 +356,6 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           </div>
         </div>
 
-
-
         {showHistory && (
           <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
             <div className="sticky top-[100px] z-10 flex items-center justify-between py-2 -mt-2 mb-1 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm">
@@ -391,131 +392,133 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           </div>
         )}
 
-        {isFinishing && (
-          <div className="border-t border-emerald-200 dark:border-emerald-800/50 pt-4 space-y-4 bg-emerald-50 dark:bg-emerald-950/30 -mx-4 sm:-mx-5 px-4 sm:px-5 pb-1 mt-1">
-            <div className="grid gap-3 items-end grid-cols-2">
-              <QuickCounter label="Quantidade (UN)" value={finishQtd} onChange={setFinishQtd} className="w-full" />
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Final</label>
-                <CustomTimePicker
-                  value={finishTime}
-                  onChange={setFinishTime}
-                  clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
-                  wrapperClass="h-[46px] bg-white dark:bg-zinc-950 rounded-xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors shadow-sm"
-                  inputClass="pl-9 pr-4 text-sm font-bold bg-transparent focus:ring-0 w-full h-full"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Observação da OP (Opcional)</label>
-              <input
-                type="text"
-                placeholder="Ex: Produto correto cherry wax..."
-                value={finishObs}
-                onChange={e => setFinishObs(e.target.value)}
-                className="w-full h-10 px-4 bg-white dark:bg-zinc-950 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-950 transition-colors shadow-sm"
-              />
-            </div>
-            <Dialog open={isConfirmingFinish} onOpenChange={setIsConfirmingFinish}>
-              <motion.div whileTap={{ scale: 0.98 }} className="w-full">
-                <Button size="lg" onClick={onConfirm} disabled={itemLoading} className="w-full h-14 text-base bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-500/20 transition-all">
-                  {itemLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" />Confirmar Encerramento</>}
-                </Button>
-              </motion.div>
-              <DialogContent className="w-full max-w-full rounded-t-[2rem] p-0 border-0 gap-0 top-auto bottom-0 translate-y-0 max-h-[92dvh] overflow-hidden flex flex-col bg-white dark:bg-zinc-950 shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.25)]">
-                <div className="flex justify-center pt-3 pb-1 shrink-0 cursor-pointer" onClick={() => setIsConfirmingFinish(false)}>
-                  <div className="w-10 h-1 rounded-full bg-zinc-200 dark:bg-zinc-700" />
-                </div>
-
-                <div className="bg-zinc-950 mx-4 rounded-2xl p-4 shrink-0 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-[linear-gradient(135deg,#ffffff06_0%,transparent_60%)]" />
-                  <div className="flex items-center justify-between gap-3 relative z-10">
-                    <div className="flex flex-col flex-1 min-w-0">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-1">Encerrar Produção</span>
-                      <span className="text-xl font-black text-white leading-none truncate">{op.produto}</span>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-[10px] font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md">OP {op.opNumber}</span>
-                        <span className="text-[10px] font-bold tracking-widest px-2 py-1 rounded-md border shadow-sm" style={{ backgroundColor: getLinhaColors(op.linha).bg, color: getLinhaColors(op.linha).text, borderColor: getLinhaColors(op.linha).border }}>
-                          {formatLinhaName(op.linha).toUpperCase()}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400/20 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="w-6 h-6 text-emerald-400" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-                  <DialogTitle className="sr-only">Confirmar OP {op.opNumber}</DialogTitle>
-                  <DialogDescription className="sr-only">Confirmar encerramento da producción</DialogDescription>
-
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-4 text-center">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-500 block mb-1">Produzido</span>
-                      <span className="text-2xl sm:text-4xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums leading-none">{parseInt(finishQtd || '0').toLocaleString()}</span>
-                      <span className="text-[10px] font-bold text-emerald-500/70 block mt-1">UN</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/60 rounded-2xl px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-zinc-400" />
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Período</span>
-                        <span className="text-sm font-black text-zinc-800 dark:text-zinc-200 tabular-nums">{op.horaInicial} → {finishTime}</span>
-                      </div>
-                    </div>
-                    {elapsed && <span className="text-xs font-black text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/60 px-2.5 py-1 rounded-lg">{elapsed}</span>}
-                  </div>
-
-                  {finishParadas && finishParadas.length > 0 && (
-                    <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/60 rounded-2xl p-3">
-                      <p className="text-[9px] font-black tracking-widest text-zinc-400 uppercase mb-2.5 flex items-center gap-1.5">
-                        <History className="w-3 h-3" />
-                        {finishParadas.length} {finishParadas.length === 1 ? 'Parada' : 'Paradas'} registradas
-                      </p>
-                      <div className="space-y-1.5">
-                        {finishParadas.map((p, i) => (
-                          <div key={i} className="flex items-center gap-2 bg-white dark:bg-zinc-950 px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800/60">
-                            <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-1.5 py-0.5 rounded-md shrink-0">{p.seq}</span>
-                            <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 flex-1 truncate">{p.tipologia}</span>
-                            <span className="text-[10px] font-black text-zinc-400 tabular-nums shrink-0">{p.horaInicio}–{p.horaFim || <span className="text-amber-500 uppercase tracking-widest text-[8px]">Pendente</span>}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 border-t border-zinc-100 dark:border-zinc-800 shrink-0 space-y-2 bg-white dark:bg-zinc-950">
-                  <motion.div whileTap={{ scale: 0.98 }}>
-                    <Button onClick={handleActualFinish} disabled={itemLoading} className="w-full h-16 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-black shadow-xl shadow-emerald-500/20 transition-all">
-                      {itemLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" />Salvar e Concluir OP</>}
-                    </Button>
-                  </motion.div>
-                  <Button variant="ghost" onClick={() => setIsConfirmingFinish(false)} className="w-full h-11 rounded-2xl text-sm font-bold text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800">
-                    Voltar e revisar
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        )}
-
-        {isFinishing && (
-          <div className="flex items-center justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800 mt-1">
-            <button
-              onClick={() => { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishObs(''); }}
-              className="w-full sm:w-auto h-10 px-4 rounded-xl text-sm font-bold text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 transition-colors"
-            >
-              Cancelar Apontamento
-            </button>
-          </div>
-        )}
       </motion.div>
 
       <AnimatePresence>
+        {isFinishing && (
+          <Dialog open={isFinishing} onOpenChange={(o) => { if (!o) { setIsFinishing(false); setFinishQtd(''); setFinishTime(''); setFinishObs(''); setIsConfirmingFinish(false); } }}>
+            <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-md rounded-b-none rounded-t-[2rem] sm:rounded-[2rem] p-6 border-0 ring-1 ring-zinc-200 dark:ring-zinc-800/50 shadow-2xl top-auto bottom-0 sm:top-1/2 sm:bottom-auto translate-y-0 sm:-translate-y-1/2 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-6 gap-0 max-h-[90dvh] overflow-y-auto bg-white dark:bg-zinc-950">
+              <DialogHeader className="mb-5 space-y-1">
+                <DialogTitle className="text-xl font-black text-zinc-950 dark:text-zinc-50">Apontar Produção</DialogTitle>
+                <DialogDescription className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">OP {op.opNumber} — {op.produto}</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="grid gap-3 items-end grid-cols-2">
+                  <QuickCounter label="Quantidade (UN)" value={finishQtd} onChange={setFinishQtd} className="w-full" />
+                  <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Hora Final</label>
+                    <CustomTimePicker
+                      value={finishTime}
+                      onChange={setFinishTime}
+                      clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
+                      wrapperClass="h-[46px] bg-white dark:bg-zinc-950 rounded-xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors shadow-sm"
+                      inputClass="pl-9 pr-4 text-sm font-bold bg-transparent focus:ring-0 w-full h-full"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest pl-1">Observação da OP (Opcional)</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Produto correto cherry wax..."
+                    value={finishObs}
+                    onChange={e => setFinishObs(e.target.value)}
+                    className="w-full h-12 px-4 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/80 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-950 transition-colors shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800">
+                <Button size="lg" onClick={onConfirm} disabled={itemLoading} className="w-full h-14 text-base bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg shadow-emerald-500/20 transition-all">
+                  {itemLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" />Revisar e Confirmar</>}
+                </Button>
+              </div>
+
+              {/* Confirmation Dialog inside the first dialog is perfectly fine in radix, they will stack */}
+              <Dialog open={isConfirmingFinish} onOpenChange={setIsConfirmingFinish}>
+                <DialogContent className="w-full max-w-md rounded-[2rem] p-0 border-0 gap-0 max-h-[92dvh] overflow-hidden flex flex-col bg-white dark:bg-zinc-950 shadow-[0_0_60px_-10px_rgba(0,0,0,0.5)]">
+                  <div className="flex justify-center pt-3 pb-1 shrink-0 cursor-pointer" onClick={() => setIsConfirmingFinish(false)}>
+                    <div className="w-10 h-1 rounded-full bg-zinc-200 dark:bg-zinc-700" />
+                  </div>
+
+                  <div className="bg-zinc-950 mx-4 rounded-2xl p-4 shrink-0 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[linear-gradient(135deg,#ffffff06_0%,transparent_60%)]" />
+                    <div className="flex items-center justify-between gap-3 relative z-10">
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-1">Encerrar Produção</span>
+                        <span className="text-xl font-black text-white leading-none truncate">{op.produto}</span>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-[10px] font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md">OP {op.opNumber}</span>
+                          <span className="text-[10px] font-bold tracking-widest px-2 py-1 rounded-md border shadow-sm" style={{ backgroundColor: getLinhaColors(op.linha).bg, color: getLinhaColors(op.linha).text, borderColor: getLinhaColors(op.linha).border }}>
+                            {formatLinhaName(op.linha).toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400/20 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+                    <DialogTitle className="sr-only">Confirmar OP {op.opNumber}</DialogTitle>
+                    <DialogDescription className="sr-only">Confirmar encerramento da produção</DialogDescription>
+
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-4 text-center">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-500 block mb-1">Produzido</span>
+                        <span className="text-2xl sm:text-4xl font-black text-emerald-700 dark:text-emerald-400 tabular-nums leading-none">{parseInt(finishQtd || '0').toLocaleString()}</span>
+                        <span className="text-[10px] font-bold text-emerald-500/70 block mt-1">UN</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/60 rounded-2xl px-4 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-zinc-400" />
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Período</span>
+                          <span className="text-sm font-black text-zinc-800 dark:text-zinc-200 tabular-nums">{op.horaInicial} → {finishTime}</span>
+                        </div>
+                      </div>
+                      {elapsed && <span className="text-xs font-black text-zinc-500 dark:text-zinc-400 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/60 px-2.5 py-1 rounded-lg">{elapsed}</span>}
+                    </div>
+
+                    {finishParadas && finishParadas.length > 0 && (
+                      <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/60 rounded-2xl p-3">
+                        <p className="text-[9px] font-black tracking-widest text-zinc-400 uppercase mb-2.5 flex items-center gap-1.5">
+                          <History className="w-3 h-3" />
+                          {finishParadas.length} {finishParadas.length === 1 ? 'Parada' : 'Paradas'} registradas
+                        </p>
+                        <div className="space-y-1.5">
+                          {finishParadas.map((p, i) => (
+                            <div key={i} className="flex items-center gap-2 bg-white dark:bg-zinc-950 px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800/60">
+                              <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 px-1.5 py-0.5 rounded-md shrink-0">{p.seq}</span>
+                              <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 flex-1 truncate">{p.tipologia}</span>
+                              <span className="text-[10px] font-black text-zinc-400 tabular-nums shrink-0">{p.horaInicio}–{p.horaFim || <span className="text-amber-500 uppercase tracking-widest text-[8px]">Pendente</span>}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 border-t border-zinc-100 dark:border-zinc-800 shrink-0 space-y-2 bg-white dark:bg-zinc-950">
+                    <motion.div whileTap={{ scale: 0.98 }}>
+                      <Button onClick={handleActualFinish} disabled={itemLoading} className="w-full h-16 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-lg font-black shadow-xl shadow-emerald-500/20 transition-all">
+                        {itemLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <><CheckCircle2 className="w-5 h-5 mr-2" />Salvar e Concluir OP</>}
+                      </Button>
+                    </motion.div>
+                    <Button variant="ghost" onClick={() => setIsConfirmingFinish(false)} className="w-full h-11 rounded-2xl text-sm font-bold text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800">
+                      Voltar e revisar
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
+      </AnimatePresence>      <AnimatePresence>
         {showParadas && (
           <Dialog open={showParadas} onOpenChange={setShowParadas}>
             <DialogContent className="w-full max-w-full rounded-t-[2rem] p-0 border-0 gap-0 top-auto bottom-0 translate-y-0 max-h-[92dvh] overflow-hidden flex flex-col bg-white dark:bg-zinc-950 shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.25)]">
