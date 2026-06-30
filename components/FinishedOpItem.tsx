@@ -29,7 +29,7 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
   const resetForgot  = () => { setForgotMotivo(''); setForgotStart(''); setForgotEnd(''); setForgotSearch(''); setForgotOS(''); setForgotObs(''); };
   const resetConvert = () => { setConvHoraInicial(''); setConvHoraFinal(''); setConvQuantidade(''); };
 
-  const handleAddForgot = async () => {
+  const handleAddForgot = async (addAnother: boolean = false) => {
     if (!forgotMotivo || !forgotStart || !forgotEnd) { toast.error('Preencha motivo e horários.'); return; }
     const base = availableParadas.find((p: any) => p.seq.toString() === forgotMotivo);
     if (!base) { toast.error('Selecione um motivo válido.'); return; }
@@ -37,7 +37,10 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
     try {
       await onAddForgottenParada?.(op, { ...base, horaInicio: forgotStart, horaFim: forgotEnd, numeroOS: forgotOS, observacao: forgotObs });
       toast.success('Parada adicionada ao histórico!');
-      setShowForgotModal(false); resetForgot();
+      resetForgot();
+      if (!addAnother) {
+        setShowForgotModal(false);
+      }
     } catch (e: any) { toast.error(`Erro: ${e.message}`); }
     finally { setLoadingForgot(false); }
   };
@@ -266,14 +269,25 @@ export const FinishedOpItem = React.memo(({ op, openEdit, setDeletingOp, setReve
             </div>
           </div>
           <div className="flex flex-col gap-2 mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800">
-            <Button
-              type="button"
-              onClick={handleAddForgot}
-              disabled={loadingForgot || !forgotMotivo || !forgotStart || !forgotEnd}
-              className="w-full h-14 bg-zinc-950 hover:bg-zinc-800 text-white rounded-2xl font-black text-base disabled:opacity-50 transition-all"
-            >
-              {loadingForgot ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirmar Parada'}
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleAddForgot(true)}
+                disabled={loadingForgot || !forgotMotivo || !forgotStart || !forgotEnd}
+                className="w-full h-14 bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-zinc-200 dark:border-zinc-800 rounded-2xl font-black text-sm disabled:opacity-50 transition-all shadow-sm"
+              >
+                {loadingForgot ? <Loader2 className="w-5 h-5 animate-spin" /> : '+ Salvar e Nova'}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleAddForgot(false)}
+                disabled={loadingForgot || !forgotMotivo || !forgotStart || !forgotEnd}
+                className="w-full h-14 bg-zinc-950 dark:bg-zinc-50 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-950 rounded-2xl font-black text-sm disabled:opacity-50 transition-all shadow-sm"
+              >
+                {loadingForgot ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Salvar e Fechar'}
+              </Button>
+            </div>
             <Button type="button" variant="ghost" onClick={() => { setShowForgotModal(false); resetForgot(); }} className="w-full h-11 rounded-xl text-sm font-bold text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:bg-zinc-800 transition-colors">
               Cancelar
             </Button>
