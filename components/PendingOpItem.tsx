@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { motion, useAnimation, useMotionValue, useTransform, AnimatePresence } from 'motion/react';
-import { CheckCircle2, Clock, Pencil, Trash2, Plus, Loader2, Search, History, ArrowRight, ArrowLeft, X } from 'lucide-react';
+import { CheckCircle2, Clock, Pencil, Trash2, Plus, Loader2, Search, History, ArrowRight, ArrowLeft, X, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { cn, formatLinhaName, getLinhaColors } from '../src/lib/utils';
@@ -236,85 +236,111 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
       >
         <div className={cn("absolute top-0 left-0 w-1 h-full", openParada ? "bg-red-500" : "bg-emerald-500")} />
 
-        <div className="pl-3 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black tracking-widest text-zinc-500 dark:text-zinc-400 uppercase">
-              <span>{`OP ${op.opNumber}`}</span>
-              <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+        <div className="pl-2 flex flex-col gap-3">
+          
+          {/* Top Row: Badge & Timers */}
+          <div className="flex items-start justify-between">
+            <span className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 px-2.5 py-1 rounded-md text-[11px] font-black tracking-widest uppercase border border-border/50">
+              OP {op.opNumber}
+            </span>
+            
+            <div className="flex items-center gap-2">
+              {openParada ? (
+                <div className="shrink-0 flex items-center gap-1.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 px-2.5 py-1 rounded-full shadow-sm">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                  <span className="text-[10px] font-black tabular-nums">{paradaElapsed}</span>
+                </div>
+              ) : elapsed ? (
+                <div className="shrink-0 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 px-2.5 py-1 rounded-full shadow-sm">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[10px] font-black tabular-nums">{elapsed}</span>
+                </div>
+              ) : null}
+              
+              <button 
+                onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700"
+                title="Histórico da Linha"
+              >
+                <History className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Title & Metadata */}
+          <div className="flex flex-col mt-0.5">
+            <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2">
+              {op.produto}
+            </h3>
+            
+            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2 mt-2 text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
               <span style={{ color: getLinhaColors(formatLinhaName(op.linha)).text }}>{formatLinhaName(op.linha)}</span>
               <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
               <span>{op.turno?.startsWith('Turno') ? op.turno : `Turno ${op.turno}`}</span>
+              
               {op.litragem && (
                 <>
                   <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
                   <span>{op.litragem}</span>
                 </>
               )}
-            </div>
-            
-            {openParada ? (
-              <div className="shrink-0 flex items-center gap-1.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 px-2.5 py-1 rounded-full shadow-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                </span>
-                <span className="text-[10px] font-black tabular-nums">{paradaElapsed}</span>
+              
+              <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+              <div className="flex items-center gap-1 text-zinc-400">
+                <Clock className="w-3.5 h-3.5" />
+                <span>{op.horaInicial}</span>
               </div>
-            ) : elapsed ? (
-              <div className="shrink-0 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 px-2.5 py-1 rounded-full shadow-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span className="text-[10px] font-black tabular-nums">{elapsed}</span>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex flex-col">
-            <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2">{op.produto}</h3>
-            <div className="flex items-center gap-1.5 mt-1">
-              <Clock className="w-3.5 h-3.5 text-zinc-400" />
-              <span className="text-xs font-semibold text-zinc-400">Início {op.horaInicial}</span>
+              
+              {op.operador && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                  <div className="flex items-center gap-1 text-zinc-400">
+                    <User className="w-3.5 h-3.5" />
+                    <span className="truncate max-w-[100px]">{op.operador}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
           
-          <div className="flex items-center gap-2 mt-1">
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 gap-2.5 mt-2">
             {openParada ? (
               <Button 
                 variant="destructive" 
-                size="sm" 
                 onClick={(e) => { e.stopPropagation(); setShowParadas(true); }}
-                className="h-8 rounded-lg font-bold text-xs"
+                className="h-11 rounded-xl font-black text-xs sm:text-sm shadow-sm"
               >
                 Terminar Parada
               </Button>
             ) : (
               <Button 
                 variant="outline" 
-                size="sm" 
                 onClick={(e) => { e.stopPropagation(); setShowParadas(true); }}
-                className="h-8 rounded-lg font-bold text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:text-amber-400 dark:border-amber-800/50"
+                className="h-11 rounded-xl font-black text-xs sm:text-sm bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:text-amber-400 dark:border-amber-800/50 shadow-sm"
               >
-                <Clock className="w-3.5 h-3.5 mr-1" /> Parada
+                <Clock className="w-4 h-4 mr-1.5 opacity-80" /> Parada
               </Button>
             )}
             
             <Button 
               variant="outline" 
-              size="sm" 
               onClick={(e) => { e.stopPropagation(); setIsFinishing(true); setFinishTime(format(new Date(), 'HH:mm')); }}
-              className="h-8 rounded-lg font-bold text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 dark:border-emerald-800/50"
+              className={cn(
+                "h-11 rounded-xl font-black text-xs sm:text-sm shadow-sm",
+                openParada 
+                  ? "bg-zinc-50 text-zinc-400 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-600 dark:border-zinc-800 opacity-60" 
+                  : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 dark:border-emerald-800/50"
+              )}
+              disabled={openParada}
             >
-              <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Apontar
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}
-              className="h-8 rounded-lg font-bold text-xs ml-auto text-zinc-500 hover:text-zinc-800"
-            >
-              <History className="w-3.5 h-3.5" />
+              <CheckCircle2 className="w-4 h-4 mr-1.5 opacity-80" /> Apontar
             </Button>
           </div>
         </div>
