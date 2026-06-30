@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { motion, useAnimation, useMotionValue, useTransform } from 'motion/react';
+import { motion, useAnimation, useMotionValue, useTransform, AnimatePresence } from 'motion/react';
 import { CheckCircle2, Clock, Pencil, Trash2, Plus, Loader2, Search, History, ArrowRight, ArrowLeft, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
@@ -43,8 +43,6 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
       const [hours, minutes] = op.horaInicial.split(':').map(Number);
       if (!isNaN(hours) && !isNaN(minutes)) {
         startTime.setHours(hours, minutes, 0, 0);
-        // If the resulting time is in the future by more than a minute,
-        // it likely means the OP started before midnight of the current day.
         if (startTime.getTime() > Date.now() + 60000) {
           startTime.setDate(startTime.getDate() - 1);
         }
@@ -52,7 +50,6 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
     }
 
     const update = () => {
-      // Prevent negative times if the clock is slightly off
       const diff = Math.max(0, Date.now() - startTime.getTime());
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
@@ -66,6 +63,33 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
   }, [op.carimboInicial, op.horaInicial]);
+
+  const openParada = useMemo(() => finishParadas.find(p => !p.horaFim), [finishParadas]);
+  const [paradaElapsed, setParadaElapsed] = useState('');
+
+  useEffect(() => {
+    if (!openParada || !openParada.horaInicio) return;
+    
+    const [hours, minutes] = openParada.horaInicio.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return;
+    
+    let pStartTime = new Date();
+    pStartTime.setHours(hours, minutes, 0, 0);
+    if (pStartTime.getTime() > Date.now() + 60000) {
+      pStartTime.setDate(pStartTime.getDate() - 1);
+    }
+
+    const updateP = () => {
+      const diff = Math.max(0, Date.now() - pStartTime.getTime());
+      const m = Math.floor(diff / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setParadaElapsed(`${m}m ${s}s`);
+    };
+    
+    updateP();
+    const id = setInterval(updateP, 1000);
+    return () => clearInterval(id);
+  }, [openParada]);
 
   const allHistoryParadas = useMemo(() => {
     const result: Array<{ opNumber: string; carimbo?: string; horaInicial: string; isFinished: boolean; parada: any }> = [];
@@ -210,197 +234,92 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
         style={{ x }}
         className="relative bg-white dark:bg-zinc-950 sm:rounded-[2rem] rounded-[1.5rem] p-4 sm:p-5 border border-slate-200 dark:border-zinc-800 hover:border-slate-300 hover:shadow-lg transition-all shadow-md overflow-hidden text-left flex flex-col gap-3 sm:gap-4 touch-pan-y"
       >
-        <div className="absolute top-0 left-0 w-1 h-full bg-amber-400" />
+        <div className={cn("absolute top-0 left-0 w-1 h-full", openParada ? "bg-red-500" : "bg-emerald-500")} />
 
-        <div className="pl-3 flex items-start justify-between gap-3">
-          <div className="flex flex-col flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-              <span className={cn("text-xs font-bold tracking-widest px-2.5 py-1 rounded-lg border shadow-sm", "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50")}>
-                {`OP ${op.opNumber}`}
-              </span>
-              {(() => {
-                const lName = formatLinhaName(op.linha);
-                const colors = getLinhaColors(lName);
-                return (
-                  <span
-                    className="text-[10px] font-bold tracking-widest px-2.5 py-1 rounded-lg border shadow-sm"
-                    style={{ backgroundColor: colors.bg, color: colors.text, borderColor: colors.border }}
-                  >
-                    {lName.toUpperCase()}
-                  </span>
-                );
-              })()}
-              <span className="text-[10px] font-bold tracking-widest text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-lg border border-indigo-200/60 dark:border-indigo-800/60 shadow-sm">{op.turno?.startsWith('Turno') ? op.turno : `Turno ${op.turno}`}</span>
-              {op.litragem && <span className="text-[10px] font-semibold text-slate-400">{op.litragem}</span>}
+        <div className="pl-3 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-black tracking-widest text-zinc-500 dark:text-zinc-400 uppercase">
+              <span>{`OP ${op.opNumber}`}</span>
+              <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+              <span style={{ color: getLinhaColors(formatLinhaName(op.linha)).text }}>{formatLinhaName(op.linha)}</span>
+              <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+              <span>{op.turno?.startsWith('Turno') ? op.turno : `Turno ${op.turno}`}</span>
+              {op.litragem && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+                  <span>{op.litragem}</span>
+                </>
+              )}
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-1 mb-1">{op.produto}</h3>
-            <div className="flex items-center gap-1.5">
-              <Clock className="w-3 h-3 text-zinc-400" />
-              <span className="text-[10px] font-semibold text-zinc-400">Início {op.horaInicial}</span>
+            
+            {openParada ? (
+              <div className="shrink-0 flex items-center gap-1.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 px-2.5 py-1 rounded-full shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                <span className="text-[10px] font-black tabular-nums">{paradaElapsed}</span>
+              </div>
+            ) : elapsed ? (
+              <div className="shrink-0 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 px-2.5 py-1 rounded-full shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-[10px] font-black tabular-nums">{elapsed}</span>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex flex-col">
+            <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight line-clamp-2">{op.produto}</h3>
+            <div className="flex items-center gap-1.5 mt-1">
+              <Clock className="w-3.5 h-3.5 text-zinc-400" />
+              <span className="text-xs font-semibold text-zinc-400">Início {op.horaInicial}</span>
             </div>
           </div>
-          {elapsed && (
-            <div className="shrink-0 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl px-2.5 py-2 text-center min-w-[52px]">
-              <p className="text-[8px] font-bold uppercase tracking-widest text-amber-500 mb-0.5 leading-none">em curso</p>
-              <p className="text-sm font-bold text-amber-700 dark:text-amber-400 tabular-nums leading-none">{elapsed}</p>
-            </div>
-          )}
+          
+          <div className="flex items-center gap-2 mt-1">
+            {openParada ? (
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={(e) => { e.stopPropagation(); setShowParadas(true); }}
+                className="h-8 rounded-lg font-bold text-xs"
+              >
+                Terminar Parada
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={(e) => { e.stopPropagation(); setShowParadas(true); }}
+                className="h-8 rounded-lg font-bold text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:text-amber-400 dark:border-amber-800/50"
+              >
+                <Clock className="w-3.5 h-3.5 mr-1" /> Parada
+              </Button>
+            )}
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={(e) => { e.stopPropagation(); setIsFinishing(true); setFinishTime(format(new Date(), 'HH:mm')); }}
+              className="h-8 rounded-lg font-bold text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 dark:border-emerald-800/50"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Apontar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}
+              className="h-8 rounded-lg font-bold text-xs ml-auto text-zinc-500 hover:text-zinc-800"
+            >
+              <History className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
 
-        {showParadas && (
-          <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-            <div className="sticky top-[100px] z-10 flex items-center justify-between py-2 -mt-2 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm">
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 bg-amber-50 dark:bg-amber-950/30 px-2 py-1 rounded-lg border border-amber-200/50 dark:border-amber-800/50">Menu de Paradas</span>
-              <button 
-                type="button"
-                onClick={() => setShowParadas(false)}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            {finishParadas.length > 0 && (
-              <div className="space-y-1.5">
-                {finishParadas.map((parada, idx) => (
-                  <div key={idx} className="relative flex items-center gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl px-3 py-2.5 overflow-hidden">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400 rounded-l-xl" />
-                    <div className="flex flex-col flex-1 min-w-0 pl-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 border border-amber-200 dark:border-amber-800/50 px-1.5 py-0.5 rounded-md shrink-0">{parada.seq}</span>
-                        <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 flex-1 min-w-0 truncate">{parada.tipologia}</span>
-                      </div>
-                      {(parada.numeroOS || parada.observacao) && (
-                        <div className="mt-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 truncate flex items-center gap-2">
-                          {parada.numeroOS && <span className="bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] font-bold">OS: {parada.numeroOS}</span>}
-                          {parada.observacao && <span>{parada.observacao}</span>}
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 tabular-nums shrink-0">{parada.horaInicio}–{parada.horaFim || <span className="text-amber-500 uppercase tracking-widest text-[8px]">Pendente</span>}</span>
-                    <button
-                      type="button"
-                      onClick={() => editParada(idx)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 hover:bg-white dark:bg-zinc-950 transition-colors shrink-0"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeParada(idx)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:bg-red-950/30 transition-colors shrink-0"
-                    >
-                      <ArrowLeft className="w-3.5 h-3.5 rotate-[135deg]" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
 
-            <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/60 rounded-2xl p-3 space-y-3">
-              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">
-                {finishParadaSelectedCode ? `Motivo selecionado — ${availableParadas.find((p: any) => p.seq.toString() === finishParadaSelectedCode)?.tipologia}` : 'Selecione o motivo'}
-              </p>
-
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Buscar motivo..."
-                  value={searchParadaText}
-                  onChange={e => setSearchParadaText(e.target.value)}
-                  className="w-full h-11 pl-9 pr-4 bg-white dark:bg-zinc-950 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-zinc-950 transition-colors"
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
-                {availableParadas
-                  .filter((p: any) =>
-                    p.tipologia.toLowerCase().includes(searchParadaText.toLowerCase()) ||
-                    p.seq.toString().includes(searchParadaText)
-                  )
-                  .map((p: any) => (
-                    <button
-                      key={p.seq}
-                      type="button"
-                      onClick={() => setFinishParadaSelectedCode(p.seq.toString())}
-                      className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95",
-                        finishParadaSelectedCode === p.seq.toString()
-                          ? "bg-zinc-950 text-white border-zinc-950 shadow-md"
-                          : "bg-white dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800/80 hover:border-zinc-400"
-                      )}
-                    >
-                      <span className={cn("text-[9px] font-black tabular-nums", finishParadaSelectedCode === p.seq.toString() ? "text-zinc-400" : "text-zinc-400")}>{p.seq}</span>
-                      {p.tipologia}
-                    </button>
-                  ))}
-                {availableParadas.filter((p: any) =>
-                  p.tipologia.toLowerCase().includes(searchParadaText.toLowerCase()) ||
-                  p.seq.toString().includes(searchParadaText)
-                ).length === 0 && (
-                  <p className="text-sm text-zinc-400 font-medium py-2 w-full text-center">Nenhum motivo encontrado</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 pl-0.5">Início</label>
-                  <CustomTimePicker
-                    value={finishParadaStart}
-                    onChange={setFinishParadaStart}
-                    placeholder="00:00"
-                    clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
-                    wrapperClass="h-12 bg-white dark:bg-zinc-950 rounded-xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors shadow-sm"
-                    inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 pl-0.5">Fim (Opcional)</label>
-                  <CustomTimePicker
-                    value={finishParadaEnd}
-                    onChange={setFinishParadaEnd}
-                    placeholder="--:--"
-                    clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
-                    wrapperClass="h-12 bg-white dark:bg-zinc-950 rounded-xl border-2 border-zinc-200 dark:border-zinc-800/80 focus-within:border-zinc-950 transition-colors shadow-sm"
-                    inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 pl-0.5">Número O.S.</label>
-                  <input
-                    type="text"
-                    placeholder="Opcional"
-                    value={finishParadaOS}
-                    onChange={e => setFinishParadaOS(e.target.value)}
-                    className="w-full h-12 px-3 bg-white dark:bg-zinc-950 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-zinc-950 transition-colors shadow-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 pl-0.5">Observação</label>
-                  <input
-                    type="text"
-                    placeholder="Opcional"
-                    value={finishParadaObs}
-                    onChange={e => setFinishParadaObs(e.target.value)}
-                    className="w-full h-12 px-3 bg-white dark:bg-zinc-950 border-2 border-zinc-200 dark:border-zinc-800/80 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-zinc-950 transition-colors shadow-sm"
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="button"
-                onClick={addParada}
-                disabled={!finishParadaSelectedCode || !finishParadaStart}
-                className="w-full h-12 bg-zinc-950 hover:bg-zinc-800 disabled:bg-zinc-200 dark:bg-zinc-700 disabled:text-zinc-400 text-white font-black text-sm rounded-xl shadow-sm transition-all"
-              >
-                <Plus className="w-4 h-4 mr-1.5" /> Registrar Parada
-              </Button>
-            </div>
-          </div>
-        )}
 
         {showHistory && (
           <div className="border-t border-zinc-100 dark:border-zinc-800 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -600,6 +519,212 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
           )}
         </div>
       </motion.div>
+
+      <AnimatePresence>
+        {showParadas && (
+          <Dialog open={showParadas} onOpenChange={setShowParadas}>
+            <DialogContent className="w-full max-w-full rounded-t-[2rem] p-0 border-0 gap-0 top-auto bottom-0 translate-y-0 max-h-[92dvh] overflow-hidden flex flex-col bg-white dark:bg-zinc-950 shadow-[0_-20px_60px_-10px_rgba(0,0,0,0.25)]">
+              <div className="flex justify-center pt-3 pb-2 shrink-0 cursor-pointer bg-white dark:bg-zinc-950 sticky top-0 z-20" onClick={() => setShowParadas(false)}>
+                <div className="w-10 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-700" />
+              </div>
+
+              <div className="px-4 pb-4 bg-white dark:bg-zinc-950 sticky top-6 z-10 border-b border-zinc-100 dark:border-zinc-800">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">Registro de Paradas</h2>
+                  <button 
+                    type="button"
+                    onClick={() => setShowParadas(false)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                {finishParadas.length > 0 && (
+                  <div className="space-y-1.5 max-h-[30vh] overflow-y-auto pr-1 custom-scrollbar">
+                    {finishParadas.map((parada, idx) => (
+                      <div key={idx} className="relative flex items-center gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-xl px-3 py-2.5 overflow-hidden">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400 rounded-l-xl" />
+                        <div className="flex flex-col flex-1 min-w-0 pl-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900 border border-amber-200 dark:border-amber-800/50 px-1.5 py-0.5 rounded-md shrink-0">{parada.seq}</span>
+                            <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 flex-1 min-w-0 truncate">{parada.tipologia}</span>
+                          </div>
+                          {(parada.numeroOS || parada.observacao) && (
+                            <div className="mt-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 truncate flex items-center gap-2">
+                              {parada.numeroOS && <span className="bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-[10px] font-bold">OS: {parada.numeroOS}</span>}
+                              {parada.observacao && <span>{parada.observacao}</span>}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 tabular-nums shrink-0">{parada.horaInicio}–{parada.horaFim || <span className="text-amber-500 uppercase tracking-widest text-[8px]">Pendente</span>}</span>
+                        <button
+                          type="button"
+                          onClick={() => editParada(idx)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeParada(idx)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors shrink-0"
+                        >
+                          <ArrowLeft className="w-3.5 h-3.5 rotate-[135deg]" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-zinc-50/50 dark:bg-zinc-900/10">
+                <DialogTitle className="sr-only">Registrar Parada para OP {op.opNumber}</DialogTitle>
+                <DialogDescription className="sr-only">Menu de registro de paradas de maquina</DialogDescription>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => { setFinishParadaStart(format(new Date(), 'HH:mm')); }}
+                    className="h-10 bg-white dark:bg-zinc-950 border-2 rounded-xl text-xs font-bold shadow-sm"
+                  >
+                    <Clock className="w-3.5 h-3.5 mr-1.5" /> Agora
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => { 
+                      const d = new Date(); 
+                      d.setMinutes(d.getMinutes() - 10); 
+                      setFinishParadaStart(format(d, 'HH:mm')); 
+                    }}
+                    className="h-10 bg-white dark:bg-zinc-950 border-2 rounded-xl text-xs font-bold shadow-sm"
+                  >
+                    -10 Minutos
+                  </Button>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Motivo Rápido</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {availableParadas.slice(0, 3).map((p: any) => (
+                      <Button
+                        key={p.seq}
+                        variant={finishParadaSelectedCode === p.seq.toString() ? "default" : "outline"}
+                        onClick={() => setFinishParadaSelectedCode(p.seq.toString())}
+                        className={cn("h-12 justify-start px-3 rounded-xl border-2 text-xs", 
+                          finishParadaSelectedCode === p.seq.toString() 
+                            ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-md"
+                            : "bg-white dark:bg-zinc-950"
+                        )}
+                      >
+                        <span className="truncate">{p.tipologia}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 space-y-4 shadow-sm">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Buscar outros motivos..."
+                      value={searchParadaText}
+                      onChange={e => setSearchParadaText(e.target.value)}
+                      className="w-full h-11 pl-9 pr-4 bg-zinc-50 dark:bg-zinc-900 border-2 border-transparent focus:border-zinc-200 dark:focus:border-zinc-700 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none transition-colors"
+                    />
+                  </div>
+
+                  {searchParadaText && (
+                    <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto custom-scrollbar">
+                      {availableParadas
+                        .filter((p: any) =>
+                          p.tipologia.toLowerCase().includes(searchParadaText.toLowerCase()) ||
+                          p.seq.toString().includes(searchParadaText)
+                        )
+                        .map((p: any) => (
+                          <button
+                            key={p.seq}
+                            type="button"
+                            onClick={() => setFinishParadaSelectedCode(p.seq.toString())}
+                            className={cn(
+                              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all active:scale-95",
+                              finishParadaSelectedCode === p.seq.toString()
+                                ? "bg-zinc-950 text-white border-zinc-950 shadow-md"
+                                : "bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800/80 hover:border-zinc-400"
+                            )}
+                          >
+                            <span className={cn("text-[9px] font-black tabular-nums", finishParadaSelectedCode === p.seq.toString() ? "text-zinc-400" : "text-zinc-500")}>{p.seq}</span>
+                            {p.tipologia}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Início</label>
+                      <CustomTimePicker
+                        value={finishParadaStart}
+                        onChange={setFinishParadaStart}
+                        placeholder="00:00"
+                        clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
+                        wrapperClass="h-12 bg-zinc-50 dark:bg-zinc-900 rounded-xl border-2 border-transparent focus-within:border-zinc-200 dark:focus-within:border-zinc-700 transition-colors shadow-none"
+                        inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Fim (Opcional)</label>
+                      <CustomTimePicker
+                        value={finishParadaEnd}
+                        onChange={setFinishParadaEnd}
+                        placeholder="--:--"
+                        clockIconClass="absolute left-3 w-4 h-4 text-zinc-400 pointer-events-none"
+                        wrapperClass="h-12 bg-zinc-50 dark:bg-zinc-900 rounded-xl border-2 border-transparent focus-within:border-zinc-200 dark:focus-within:border-zinc-700 transition-colors shadow-none"
+                        inputClass="pl-9 pr-2 text-sm text-center font-bold text-zinc-800 dark:text-zinc-200 bg-transparent focus:ring-0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Nº O.S.</label>
+                      <input
+                        type="text"
+                        placeholder="Opcional"
+                        value={finishParadaOS}
+                        onChange={e => setFinishParadaOS(e.target.value)}
+                        className="w-full h-12 px-3 bg-zinc-50 dark:bg-zinc-900 border-2 border-transparent focus:border-zinc-200 dark:focus:border-zinc-700 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Obs.</label>
+                      <input
+                        type="text"
+                        placeholder="Opcional"
+                        value={finishParadaObs}
+                        onChange={e => setFinishParadaObs(e.target.value)}
+                        className="w-full h-12 px-3 bg-zinc-50 dark:bg-zinc-900 border-2 border-transparent focus:border-zinc-200 dark:focus:border-zinc-700 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 sticky bottom-0 z-10 shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.05)]">
+                <Button
+                  type="button"
+                  onClick={addParada}
+                  disabled={!finishParadaSelectedCode || !finishParadaStart}
+                  className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-100 dark:disabled:bg-zinc-900 disabled:text-zinc-400 text-white font-black text-base rounded-2xl shadow-lg shadow-emerald-500/20 transition-all"
+                >
+                  <Plus className="w-5 h-5 mr-2" /> Salvar Parada
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </AnimatePresence>
     </div>
   );
 });

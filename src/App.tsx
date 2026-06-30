@@ -1190,17 +1190,17 @@ export default function App() {
 
         {/* Mobile Bottom Bar — Floating Pill */}
         <div className="lg:hidden fixed bottom-0 left-0 w-full z-50 px-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] pointer-events-none tour-tab-bar">
-          <div className="pointer-events-auto bg-zinc-950/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-full ring-1 ring-white/10 dark:ring-white/5 shadow-[0_8px_40px_rgba(0,0,0,0.45)] flex items-center justify-between h-[60px] px-2">
+          <div className="pointer-events-auto bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-full ring-1 ring-black/5 dark:ring-white/5 shadow-[0_8px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.45)] flex items-center justify-between h-[60px] px-2 transition-colors">
             
             {/* Izquierda: Solo texto de Turno */}
             <div className="flex items-center pl-4">
-              <span className="text-[14px] font-black text-white leading-none">Turno {currentTurnForView?.slice(-1)}</span>
+              <span className="text-[14px] font-black text-zinc-900 dark:text-white leading-none">Turno {currentTurnForView?.slice(-1)}</span>
             </div>
             
             {/* Centro: Botón Nova OP */}
             <button
               onClick={() => setIsNovaSheetOpen(true)}
-              className="flex items-center gap-2 bg-white text-black hover:bg-zinc-200 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
+              className="flex items-center gap-2 bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 font-black text-[14px] tracking-tight px-6 h-11 rounded-full shadow-lg active:scale-[0.97] transition-all shrink-0"
             >
               <Plus className="w-[18px] h-[18px] stroke-[3]" />
               Nova OP
@@ -1210,7 +1210,7 @@ export default function App() {
             <div className="flex items-center pr-1">
               <button 
                 onClick={() => setSettingsModalOpen(true)}
-                className="w-11 h-11 flex items-center justify-center rounded-full text-zinc-400 dark:text-zinc-300 hover:bg-zinc-800 dark:hover:bg-zinc-800 hover:text-white dark:hover:text-white transition-colors"
+                className="w-11 h-11 flex items-center justify-center rounded-full text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white transition-colors"
               >
                 <Settings className="w-[22px] h-[22px]" />
               </button>

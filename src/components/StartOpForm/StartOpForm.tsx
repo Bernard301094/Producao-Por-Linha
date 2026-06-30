@@ -192,35 +192,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
 
               <div className="space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2">
                 <Label className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Linha de Produção</Label>
-                {operatingMode === 'dedicated' ? (
-                  <>
-                    <input type="hidden" {...register('linha')} />
-                    {watch('linha') && watch('linha') !== 'Todas' ? (
-                      <div className="flex items-center justify-between p-4 bg-slate-900 text-white rounded-2xl shadow-md border border-slate-800 animate-in fade-in duration-300">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-card flex items-center justify-center font-black text-base">
-                            {watch('linha').replace(/\D/g, '') || watch('linha')}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="font-black text-sm tracking-tight">Linha Dedicada</span>
-                            <span className="text-xs text-zinc-400 font-bold">
-                              {(() => {
-                                const numStr = watch('linha').replace(/\D/g, '');
-                                if (!numStr) return watch('linha');
-                                const num = parseInt(numStr, 10);
-                                return `Linha ${num < 10 ? '0' + num : num}`;
-                              })()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center p-4 bg-zinc-100 dark:bg-zinc-800 rounded-2xl border border-border">
-                        <span className="text-sm font-bold text-muted-foreground">Configure a linha do tablet nas configurações (⚙️).</span>
-                      </div>
-                    )}
-                  </>
-                ) : (
                   <div className="relative">
                     <Select value={watch('linha') || ''} onValueChange={(val) => {
                       if (val === 'custom_new_line') {
@@ -295,7 +266,6 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                        </PopoverContent>
                      </Popover>
                   </div>
-                )}
                 {errors.linha && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.linha.message as string}</p>}
               </div>
 
