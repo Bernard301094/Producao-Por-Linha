@@ -244,49 +244,49 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               OP {op.opNumber}
             </span>
             
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <button 
                 onClick={(e) => { e.stopPropagation(); openEdit(op); }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors shadow-sm"
                 title="Editar OP"
               >
-                <Pencil className="w-4 h-4" />
+                <Pencil className="w-5 h-5" />
               </button>
               
               <button 
                 onClick={(e) => { e.stopPropagation(); setDeletingOp(op); }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-red-50 dark:bg-zinc-900 dark:hover:bg-red-950/30 text-zinc-400 hover:text-red-500 transition-colors"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-red-50 dark:bg-zinc-900 dark:hover:bg-red-950/30 text-zinc-400 hover:text-red-500 transition-colors shadow-sm"
                 title="Excluir OP"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-5 h-5" />
               </button>
 
-              <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-800 mx-1" />
+              <div className="w-px h-6 bg-zinc-200 dark:bg-zinc-800 mx-1.5" />
 
               {openParada ? (
-                <div className="shrink-0 flex items-center gap-1.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 px-2.5 py-1 rounded-full shadow-sm">
-                  <span className="relative flex h-2 w-2">
+                <div className="shrink-0 flex items-center gap-1.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/50 px-3 py-1.5 rounded-full shadow-sm">
+                  <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
                   </span>
-                  <span className="text-[10px] font-black tabular-nums">{paradaElapsed}</span>
+                  <span className="text-xs font-black tabular-nums">{paradaElapsed}</span>
                 </div>
               ) : elapsed ? (
-                <div className="shrink-0 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 px-2.5 py-1 rounded-full shadow-sm">
-                  <span className="relative flex h-2 w-2">
+                <div className="shrink-0 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 px-3 py-1.5 rounded-full shadow-sm">
+                  <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                   </span>
-                  <span className="text-[10px] font-black tabular-nums">{elapsed}</span>
+                  <span className="text-xs font-black tabular-nums">{elapsed}</span>
                 </div>
               ) : null}
               
               <button 
                 onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 ml-0.5"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 ml-1 shadow-sm"
                 title="Histórico da Linha"
               >
-                <History className="w-4 h-4" />
+                <History className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -310,30 +310,20 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               )}
               
               <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-              <div className="flex items-center gap-1 text-zinc-400">
-                <Clock className="w-3.5 h-3.5" />
+              <div className="flex items-center gap-1.5 text-zinc-400">
+                <Clock className="w-4 h-4" />
                 <span>{op.horaInicial}</span>
               </div>
-              
-              {op.operador && (
-                <>
-                  <span className="w-1 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-                  <div className="flex items-center gap-1 text-zinc-400">
-                    <User className="w-3.5 h-3.5" />
-                    <span className="truncate max-w-[100px]">{op.operador}</span>
-                  </div>
-                </>
-              )}
             </div>
           </div>
           
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-3 mt-3">
+          <div className="grid grid-cols-2 gap-3 mt-4 mb-1">
             {openParada ? (
               <Button 
                 variant="destructive" 
                 onClick={(e) => { e.stopPropagation(); setShowParadas(true); }}
-                className="h-14 rounded-xl font-black text-sm shadow-sm"
+                className="h-16 rounded-xl font-black text-base shadow-sm"
               >
                 Terminar Parada
               </Button>
@@ -341,9 +331,9 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               <Button 
                 variant="outline" 
                 onClick={(e) => { e.stopPropagation(); setShowParadas(true); }}
-                className="h-14 rounded-xl font-black text-sm bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:text-amber-400 dark:border-amber-800/50 shadow-sm"
+                className="h-16 rounded-xl font-black text-base bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:hover:bg-amber-900/50 dark:text-amber-400 dark:border-amber-800/50 shadow-sm"
               >
-                <Clock className="w-5 h-5 mr-2 opacity-80" /> Parada
+                <Clock className="w-6 h-6 mr-2 opacity-80" /> Parada
               </Button>
             )}
             
@@ -351,14 +341,14 @@ export const PendingOpItem = React.memo(({ op, handleFinish, openEdit, setDeleti
               variant="outline" 
               onClick={(e) => { e.stopPropagation(); setIsFinishing(true); setFinishTime(format(new Date(), 'HH:mm')); }}
               className={cn(
-                "h-14 rounded-xl font-black text-sm shadow-sm",
+                "h-16 rounded-xl font-black text-base shadow-sm",
                 openParada 
                   ? "bg-zinc-50 text-zinc-400 border-zinc-200 dark:bg-zinc-900 dark:text-zinc-600 dark:border-zinc-800 opacity-60" 
                   : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 dark:border-emerald-800/50"
               )}
               disabled={openParada}
             >
-              <CheckCircle2 className="w-5 h-5 mr-2 opacity-80" /> Apontar
+              <CheckCircle2 className="w-6 h-6 mr-2 opacity-80" /> Apontar
             </Button>
           </div>
         </div>
