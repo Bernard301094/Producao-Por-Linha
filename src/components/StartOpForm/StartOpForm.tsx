@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Popover, PopoverContent, PopoverTrigger } from '../../../components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../components/ui/command';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
-import { Package, ChevronsUpDown, Check, CheckCircle2, Loader2, Search, Play, Plus, Clock, History, Pencil, Trash2, X } from 'lucide-react';
+import { Package, ChevronsUpDown, Check, CheckCircle2, Loader2, Search, Play, Plus, Clock, History, Pencil, Trash2, X, User, Tags } from 'lucide-react';
 import { motion } from 'motion/react';
 import { CustomTimePicker } from '../../../components/CustomTimePicker';
 import { cn } from '../../lib/utils';
@@ -76,7 +76,26 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
   setAvailableParadas
 }) => {
 
+  const [recentOperators, setRecentOperators] = useState<string[]>([]);
+  const [openLineDialog, setOpenLineDialog] = useState(false);
 
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem('recent_operators');
+      if (stored) setRecentOperators(JSON.parse(stored));
+    } catch (e) {}
+  }, []);
+
+  const saveRecentOperator = (name: string) => {
+    if (!name || !name.trim()) return;
+    const cleanName = name.trim();
+    setRecentOperators(prev => {
+      const filtered = prev.filter(p => p.toLowerCase() !== cleanName.toLowerCase());
+      const newRecent = [cleanName, ...filtered].slice(0, 3);
+      localStorage.setItem('recent_operators', JSON.stringify(newRecent));
+      return newRecent;
+    });
+  };
 
   return (
     <Card className="bg-card sm:rounded-3xl shadow-lg sm:ring-1 ring-border flex flex-col overflow-hidden border-none sm:border-y-0 w-full min-h-full lg:h-full relative">
@@ -101,174 +120,189 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
       )}
       
       <CardContent className="p-0 flex flex-col flex-1 min-h-0 bg-zinc-50 dark:bg-zinc-900/50">
-        <form onSubmit={handleSubmit(handlePreStartOp, (errors: any) => {
+        <form onSubmit={handleSubmit((data: any) => {
+          saveRecentOperator(data.operador);
+          handlePreStartOp(data);
+        }, (errors: any) => {
           const errorMsg = Object.values(errors).map((e: any) => e.message).join(', ');
           if (errorMsg) toast.error('Faltam dados: ' + Object.keys(errors).join(', '));
         })} className="flex flex-col flex-1 min-h-0 tour-nova-op-form">
           
-          <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6 pb-28 lg:pb-7">
-
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2 gap-5 sm:gap-6">
-
-              <div className="space-y-2.5 relative">
-                <Label htmlFor="opNumber" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Número da OP</Label>
-                <div className="relative">
-                  <Input id="opNumber" {...register('opNumber', { onChange: (e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }} onPaste={(e: React.ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, ''); const el = e.currentTarget; const s = el.selectionStart ?? 0; const en = el.selectionEnd ?? 0; const newVal = el.value.slice(0, s) + pasted + el.value.slice(en); setValue('opNumber', newVal, { shouldValidate: true }); }} className="w-full h-16 px-5 bg-card border border-border rounded-2xl text-lg sm:text-xl font-mono font-bold text-slate-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
-                  <div className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-300 font-black pointer-events-none text-2xl select-none">#</div>
-                </div>
-                {errors.opNumber && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.opNumber.message as string}</p>}
-              </div>
-
-              <div className="space-y-2.5 relative">
-                <Label htmlFor="operador" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Operador</Label>
-                <Input id="operador" {...register('operador')} type="text" placeholder="Nome do operador" className="w-full h-16 px-5 bg-card border border-border rounded-2xl text-lg sm:text-xl font-bold text-slate-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
-                {errors.operador && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.operador.message as string}</p>}
-              </div>
-
-              <div className="space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2 animate-in fade-in zoom-in-95 duration-200">
-                <Label htmlFor="horaInicial" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Hora de Início</Label>
-                <input type="hidden" {...register('turno')} />
-                <CustomTimePicker
-                  id="horaInicial"
-                  value={watch('horaInicial')}
-                  onChange={(v: string) => setValue('horaInicial', v, { shouldValidate: true })}
-                  clockIconClass="absolute left-4 w-6 h-6 text-slate-400 pointer-events-none"
-                  wrapperClass="bg-card rounded-2xl h-16 border border-border focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all shadow-sm"
-                  inputClass="pl-12 pr-4 w-full text-lg sm:text-xl font-bold text-slate-900 dark:text-zinc-50 bg-transparent focus:ring-0 placeholder:font-medium placeholder:text-slate-300"
-                />
-                {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.horaInicial.message as string}</p>}
-              </div>
-
-              <div className="relative space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2">
-                <Label htmlFor="produto" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Produto Fabricado</Label>
-                <button 
-                  type="button" 
-                  onClick={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} 
-                  className="flex h-16 w-full items-center justify-between rounded-2xl border border-border bg-card px-5 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-sm"
-                >
-                  <span className={watch('produto') ? "truncate" : "text-slate-400 font-medium truncate"}>
-                    {watch('produto') || "Selecione o produto..."}
-                  </span>
-                  <Search className="w-5 h-5 text-slate-400 shrink-0 ml-2" />
-                </button>
-
-                <Dialog open={showProductSuggestions} onOpenChange={setShowProductSuggestions}>
-                  <DialogContent className="w-[95vw] max-w-lg p-0 gap-0 overflow-hidden rounded-[1.5rem] bg-card border border-border shadow-2xl flex flex-col max-h-[85vh] z-[9999]">
-                    <div className="p-4 border-b border-border bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-col gap-3 shrink-0">
-                      <DialogTitle className="text-lg font-black text-slate-900 dark:text-zinc-50 uppercase tracking-widest pl-1">
-                        Selecionar Produto
-                      </DialogTitle>
-                      <div className="relative">
-                        <input 
-                          {...register('produto')} 
-                          autoComplete="off" 
-                          placeholder="Digite para buscar..." 
-                          className="flex h-14 w-full rounded-xl border border-border bg-card pl-11 pr-4 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 shadow-sm" 
-                        />
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-                      </div>
+          <div className="flex-1 overflow-y-auto p-4 sm:p-7 space-y-6 pb-28 lg:pb-7">
+            <div className="space-y-6">
+              
+              {/* Bloco 1: O Que Vamos Fazer */}
+              <div className="bg-white dark:bg-zinc-950 p-5 rounded-[1.5rem] border border-border shadow-sm space-y-5">
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                  <Package className="w-3.5 h-3.5" /> O Que Produzir?
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-2.5 relative">
+                    <Label htmlFor="opNumber" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Número da OP</Label>
+                    <div className="relative">
+                      <Input id="opNumber" {...register('opNumber', { onChange: (e: any) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); } })} type="text" inputMode="numeric" pattern="[0-9]*" placeholder="Ex: 48370" onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }} onPaste={(e: React.ClipboardEvent<HTMLInputElement>) => { e.preventDefault(); const pasted = e.clipboardData.getData('text').replace(/[^0-9]/g, ''); const el = e.currentTarget; const s = el.selectionStart ?? 0; const en = el.selectionEnd ?? 0; const newVal = el.value.slice(0, s) + pasted + el.value.slice(en); setValue('opNumber', newVal, { shouldValidate: true }); }} className="w-full h-16 px-5 bg-zinc-50 dark:bg-zinc-900 border border-border rounded-2xl text-lg sm:text-xl font-mono font-bold text-slate-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
+                      <div className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-300 font-black pointer-events-none text-2xl select-none">#</div>
                     </div>
-                    <div className="overflow-y-auto p-2 scrollbar-none touch-pan-y flex-1 min-h-[40vh] bg-card">
-                      {filteredProducts.length > 0 ? filteredProducts.map(p => (
-                        <div key={`${p.produto}-${p.litragem}`} onPointerDown={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); setIsTypingProduct(false); }} className="group/item cursor-pointer px-5 py-4 mb-1 last:mb-0 text-base text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] dark:hover:bg-zinc-900 hover:text-foreground rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800/80">
-                          <span className="truncate group-hover/item:text-black dark:group-hover/item:text-white">{p.produto}</span>
-                          {p.litragem && <span className="text-[10px] sm:text-xs text-muted-foreground font-mono font-black tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 border border-border px-2 py-1 rounded-md">{p.litragem}</span>}
-                        </div>
-                      )) : watch('produto') ? (
-                         <div className="px-5 py-4 text-base text-blue-600 font-bold cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-[1.25rem] transition-colors flex items-center border border-transparent hover:border-blue-100" onPointerDown={() => { setShowProductSuggestions(false); setIsTypingProduct(false); }}>
-                            <Plus className="w-5 h-5 mr-2" />
-                            Cadastrar: "{watch('produto')}"
-                         </div>
-                      ) : (
-                         <div className="px-5 text-base text-zinc-400 font-medium text-center py-10 flex items-center justify-center">
-                            Nenhum produto encontrado.
-                         </div>
-                      )}
-                    </div>
-                  </DialogContent>
-                </Dialog>
-                {errors.produto && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.produto.message as string}</p>}
-              </div>
-
-              <div className="space-y-2.5 md:col-span-2 lg:col-span-1 2xl:col-span-2">
-                <Label className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Linha de Produção</Label>
-                  <div className="relative">
-                    <Select value={watch('linha') || ''} onValueChange={(val) => {
-                      if (val === 'custom_new_line') {
-                         setOpenLineSelect(true);
-                      } else {
-                         setValue('linha', val, { shouldValidate: true });
-                      }
-                    }}>
-                      <SelectTrigger className="w-full h-16 bg-card border border-border rounded-2xl text-lg sm:text-xl font-bold text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all shadow-sm">
-                        <SelectValue placeholder="Selecione a linha..." />
-                      </SelectTrigger>
-                      <SelectContent alignItemWithTrigger={false} sideOffset={8} className="max-h-[300px] rounded-[1.25rem] z-[100] min-w-[var(--anchor-width,100%)] w-[var(--anchor-width)]">
-                        {allLinhas.map((linhaFull: string) => {
-                          const lineVal = linhaFull.replace('Linha ', '');
-                          return (
-                            <SelectItem key={lineVal} value={lineVal} className="font-bold text-base py-3">
-                              {linhaFull}
-                            </SelectItem>
-                          );
-                        })}
-                        <div className="h-px bg-slate-200 my-1"></div>
-                        <SelectItem value="custom_new_line" className="font-bold text-base py-3 text-blue-600 focus:text-blue-700 dark:text-blue-400 focus:bg-blue-50 dark:bg-blue-950/30">
-                          + Adicionar outra linha...
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    <Popover open={openLineSelect} onOpenChange={setOpenLineSelect}>
-                       <PopoverTrigger className="hidden" />
-                       <PopoverContent className="w-[min(16rem,calc(100vw-1.5rem))] p-0.5 shadow-2xl border-border rounded-[1.25rem] z-[105]" align="start">
-                         <div className="flex flex-col gap-1.5 p-2">
-                           <input 
-                             type="text"
-                             placeholder="Nome da linha..."
-                             className="bg-[#F9FAFB] text-base sm:text-sm h-10 rounded-lg px-3 border border-border font-medium w-full focus:outline-none focus:border-zinc-400"
-                             value={searchLine}
-                             onChange={(e) => setSearchLine(e.target.value)}
-                             onKeyDown={(e) => {
-                               if (e.key === 'Enter' && searchLine.trim()) {
-                                 e.preventDefault();
-                                 const newLine = searchLine.trim().startsWith('Linha') ? searchLine.trim() : `Linha ${searchLine.trim()}`;
-                                 const val = newLine.replace('Linha ', '');
-                                 if (!allLinhas.includes(newLine)) {
-                                   setCustomLinhas((prev: string[]) => [...prev, newLine]);
-                                 }
-                                 setValue('linha', val, { shouldValidate: true });
-                                 setOpenLineSelect(false);
-                                 setSearchLine('');
-                               }
-                             }}
-                           />
-                           <Button
-                             type="button"
-                             variant="ghost"
-                             disabled={!searchLine.trim()}
-                             className="w-full justify-start font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-950/30 h-10 rounded-lg disabled:opacity-50"
-                             onClick={() => {
-                               if (!searchLine.trim()) return;
-                               const newLine = searchLine.trim().startsWith('Linha') ? searchLine.trim() : `Linha ${searchLine.trim()}`;
-                               const val = newLine.replace('Linha ', '');
-                               if (!allLinhas.includes(newLine)) {
-                                 setCustomLinhas((prev: string[]) => [...prev, newLine]);
-                               }
-                               setValue('linha', val, { shouldValidate: true });
-                               setOpenLineSelect(false);
-                               setSearchLine('');
-                             }}
-                           >
-                             <Plus className="w-4 h-4 mr-2" /> Adicionar
-                           </Button>
-                         </div>
-                       </PopoverContent>
-                     </Popover>
+                    {errors.opNumber && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.opNumber.message as string}</p>}
                   </div>
-                {errors.linha && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.linha.message as string}</p>}
+
+                  <div className="relative space-y-2.5">
+                    <Label htmlFor="produto" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Produto Fabricado</Label>
+                    <button type="button" onClick={() => { setShowProductSuggestions(true); setIsTypingProduct(true); }} className="flex h-16 w-full items-center justify-between rounded-2xl border border-border bg-zinc-50 dark:bg-zinc-900 px-5 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-sm">
+                      <div className="flex items-center gap-3 w-full min-w-0">
+                        <Package className="w-5 h-5 text-slate-400 shrink-0" />
+                        <span className={watch('produto') ? "truncate text-left" : "text-slate-400 font-medium truncate text-left"}>
+                          {watch('produto') || "Selecione o produto..."}
+                        </span>
+                      </div>
+                      <Search className="w-5 h-5 text-slate-400 shrink-0 ml-2" />
+                    </button>
+
+                    <Dialog open={showProductSuggestions} onOpenChange={setShowProductSuggestions}>
+                      <DialogContent className="w-[95vw] max-w-lg p-0 gap-0 overflow-hidden rounded-[1.5rem] bg-card border border-border shadow-2xl flex flex-col max-h-[85vh] z-[9999]">
+                        <div className="p-4 border-b border-border bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-col gap-3 shrink-0">
+                          <DialogTitle className="text-lg font-black text-slate-900 dark:text-zinc-50 uppercase tracking-widest pl-1">
+                            Selecionar Produto
+                          </DialogTitle>
+                          <div className="relative">
+                            <input 
+                              {...register('produto')} 
+                              autoComplete="off" 
+                              placeholder="Digite para buscar..." 
+                              className="flex h-14 w-full rounded-xl border border-border bg-card pl-11 pr-4 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 shadow-sm" 
+                            />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                          </div>
+                        </div>
+                        <div className="overflow-y-auto p-2 scrollbar-none touch-pan-y flex-1 min-h-[40vh] bg-card">
+                          {filteredProducts.length > 0 ? filteredProducts.map(p => (
+                            <div key={`${p.produto}-${p.litragem}`} onPointerDown={(e) => { e.preventDefault(); setValue('produto', p.produto); setShowProductSuggestions(false); setIsTypingProduct(false); }} className="group/item cursor-pointer px-5 py-4 mb-1 last:mb-0 text-base text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] dark:hover:bg-zinc-900 hover:text-foreground rounded-[1.25rem] flex items-center justify-between gap-4 font-bold transition-all border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800/80">
+                              <span className="truncate group-hover/item:text-black dark:group-hover/item:text-white">{p.produto}</span>
+                              {p.litragem && <span className="text-[10px] sm:text-xs text-muted-foreground font-mono font-black tracking-widest shrink-0 uppercase bg-zinc-100 dark:bg-zinc-800 border border-border px-2 py-1 rounded-md">{p.litragem}</span>}
+                            </div>
+                          )) : watch('produto') ? (
+                            <div className="px-5 py-4 text-base text-blue-600 font-bold cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-[1.25rem] transition-colors flex items-center border border-transparent hover:border-blue-100" onPointerDown={() => { setShowProductSuggestions(false); setIsTypingProduct(false); }}>
+                              <Plus className="w-5 h-5 mr-2" />
+                              Cadastrar: "{watch('produto')}"
+                            </div>
+                          ) : (
+                            <div className="px-5 text-base text-zinc-400 font-medium text-center py-10 flex items-center justify-center">
+                              Nenhum produto encontrado.
+                            </div>
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    {errors.produto && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.produto.message as string}</p>}
+                  </div>
+                </div>
               </div>
 
+              {/* Bloco 2: Quem e Onde */}
+              <div className="bg-white dark:bg-zinc-950 p-5 rounded-[1.5rem] border border-border shadow-sm space-y-5">
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-zinc-400 flex items-center gap-2">
+                  <User className="w-3.5 h-3.5" /> Detalhes de Execução
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-2.5 relative">
+                    <Label htmlFor="operador" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Operador</Label>
+                    <div className="relative">
+                      <Input id="operador" {...register('operador')} type="text" placeholder="Nome do operador" className="w-full h-16 pl-12 pr-5 bg-zinc-50 dark:bg-zinc-900 border border-border rounded-2xl text-lg sm:text-xl font-bold text-slate-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 transition-all shadow-sm placeholder:font-medium placeholder:text-slate-300" />
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+                    </div>
+                    
+                    {recentOperators.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2 pl-1">
+                        {recentOperators.map(op => (
+                          <button type="button" key={op} onClick={() => setValue('operador', op, { shouldValidate: true })} className="px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-[10px] font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest transition-colors shadow-sm">
+                            {op}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {errors.operador && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.operador.message as string}</p>}
+                  </div>
+
+                  <div className="space-y-2.5 relative">
+                    <Label className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Linha de Produção</Label>
+                    <button type="button" onClick={() => { setOpenLineDialog(true); setSearchLine(''); }} className="flex h-16 w-full items-center justify-between rounded-2xl border border-border bg-zinc-50 dark:bg-zinc-900 px-5 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 shadow-sm">
+                      <div className="flex items-center gap-3 w-full min-w-0">
+                        <Tags className="w-5 h-5 text-slate-400 shrink-0" />
+                        <span className={watch('linha') ? "truncate text-left" : "text-slate-400 font-medium truncate text-left"}>
+                          {watch('linha') ? `Linha ${watch('linha')}` : "Selecione a linha..."}
+                        </span>
+                      </div>
+                      <Search className="w-5 h-5 text-slate-400 shrink-0 ml-2" />
+                    </button>
+
+                    <Dialog open={openLineDialog} onOpenChange={setOpenLineDialog}>
+                      <DialogContent className="w-[95vw] max-w-lg p-0 gap-0 overflow-hidden rounded-[1.5rem] bg-card border border-border shadow-2xl flex flex-col max-h-[85vh] z-[9999]">
+                        <div className="p-4 border-b border-border bg-zinc-50/50 dark:bg-zinc-900/50 flex flex-col gap-3 shrink-0">
+                          <DialogTitle className="text-lg font-black text-slate-900 dark:text-zinc-50 uppercase tracking-widest pl-1">
+                            Selecionar Linha
+                          </DialogTitle>
+                          <div className="relative">
+                            <input 
+                              value={searchLine}
+                              onChange={(e) => setSearchLine(e.target.value)}
+                              placeholder="Buscar ou criar linha..." 
+                              className="flex h-14 w-full rounded-xl border border-border bg-card pl-11 pr-4 py-3 text-lg font-bold text-slate-900 dark:text-zinc-50 transition-all placeholder:text-slate-400 placeholder:font-medium focus-visible:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500/20 shadow-sm" 
+                            />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                          </div>
+                        </div>
+                        <div className="overflow-y-auto p-2 scrollbar-none touch-pan-y flex-1 min-h-[40vh] bg-card">
+                          {allLinhas.filter(l => l.toLowerCase().includes(searchLine.toLowerCase())).length > 0 ? 
+                            allLinhas.filter(l => l.toLowerCase().includes(searchLine.toLowerCase())).map(linhaFull => {
+                              const lineVal = linhaFull.replace('Linha ', '');
+                              return (
+                                <div key={lineVal} onPointerDown={(e) => { e.preventDefault(); setValue('linha', lineVal, { shouldValidate: true }); setOpenLineDialog(false); }} className="group/item cursor-pointer px-5 py-4 mb-1 last:mb-0 text-base text-zinc-700 dark:text-zinc-300 hover:bg-[#F9FAFB] dark:hover:bg-zinc-900 hover:text-foreground rounded-[1.25rem] flex items-center gap-4 font-bold transition-all border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800/80">
+                                  <Tags className="w-5 h-5 text-zinc-400 group-hover/item:text-blue-500" />
+                                  <span className="truncate group-hover/item:text-black dark:group-hover/item:text-white">{linhaFull}</span>
+                                </div>
+                              );
+                            })
+                          : searchLine.trim() ? (
+                            <div className="px-5 py-4 text-base text-blue-600 font-bold cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-[1.25rem] transition-colors flex items-center border border-transparent hover:border-blue-100" onPointerDown={() => { 
+                              const newLine = searchLine.trim().startsWith('Linha') ? searchLine.trim() : `Linha ${searchLine.trim()}`;
+                              const val = newLine.replace('Linha ', '');
+                              if (!allLinhas.includes(newLine)) {
+                                setCustomLinhas((prev: string[]) => [...prev, newLine]);
+                              }
+                              setValue('linha', val, { shouldValidate: true });
+                              setOpenLineDialog(false);
+                            }}>
+                              <Plus className="w-5 h-5 mr-2" />
+                              Criar nova linha: "{searchLine.trim()}"
+                            </div>
+                          ) : (
+                            <div className="px-5 text-base text-zinc-400 font-medium text-center py-10 flex items-center justify-center">
+                              Nenhuma linha encontrada.
+                            </div>
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    {errors.linha && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.linha.message as string}</p>}
+                  </div>
+
+                  <div className="space-y-2.5 md:col-span-2">
+                    <Label htmlFor="horaInicial" className="block text-sm font-bold text-slate-600 uppercase tracking-widest pl-2">Hora de Início</Label>
+                    <input type="hidden" {...register('turno')} />
+                    <CustomTimePicker
+                      id="horaInicial"
+                      value={watch('horaInicial')}
+                      onChange={(v: string) => setValue('horaInicial', v, { shouldValidate: true })}
+                      clockIconClass="absolute left-4 w-6 h-6 text-slate-400 pointer-events-none"
+                      wrapperClass="bg-zinc-50 dark:bg-zinc-900 rounded-2xl h-16 border border-border focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all shadow-sm"
+                      inputClass="pl-12 pr-4 w-full text-lg sm:text-xl font-bold text-slate-900 dark:text-zinc-50 bg-transparent focus:ring-0 placeholder:font-medium placeholder:text-slate-300"
+                    />
+                    {errors.horaInicial && <p className="text-[10px] text-red-500 mt-1.5 pl-1 font-bold">{errors.horaInicial.message as string}</p>}
+                  </div>
+                </div>
+              </div>
             </div>
 
             
@@ -293,14 +327,19 @@ export const StartOpForm: React.FC<StartOpFormProps> = ({
                   </DialogDescription>
                 </DialogHeader>
 
+                <div className="bg-muted border-2 border-border rounded-[1.5rem] shadow-inner p-4 sm:p-5 text-center mb-3">
+                  <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center justify-center gap-1.5 mb-2"><Package className="w-3.5 h-3.5" /> Produto Fabricado</span>
+                  <span className="text-2xl sm:text-3xl font-black text-foreground tracking-tighter w-full line-clamp-2 leading-tight" title={startFormData?.produto}>{startFormData?.produto}</span>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div className="flex flex-col items-center justify-center min-w-0 h-28 sm:h-32 bg-muted border-2 border-border rounded-[1.5rem] shadow-inner p-3 sm:p-4 text-center">
-                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">OP Selecionada</span>
-                    <span className="text-3xl font-black text-foreground tracking-tighter w-full truncate" title={startFormData?.opNumber}>{startFormData?.opNumber}</span>
+                  <div className="flex flex-col items-center justify-center min-w-0 h-24 bg-muted/50 border border-border rounded-2xl p-3 text-center">
+                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">OP</span>
+                    <span className="text-2xl font-black text-foreground tracking-tighter w-full truncate" title={startFormData?.opNumber}>{startFormData?.opNumber}</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center min-w-0 h-28 sm:h-32 bg-muted border-2 border-border rounded-[1.5rem] shadow-inner p-3 sm:p-4 text-center">
-                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Linha Atribuída</span>
-                    <span className="text-3xl font-black text-foreground tracking-tighter w-full truncate" title={startFormData?.linha}>
+                  <div className="flex flex-col items-center justify-center min-w-0 h-24 bg-muted/50 border border-border rounded-2xl p-3 text-center">
+                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1.5">Linha</span>
+                    <span className="text-2xl font-black text-foreground tracking-tighter w-full truncate" title={startFormData?.linha}>
                       {startFormData?.linha?.replace('Linha ', '')?.trim()}
                     </span>
                   </div>
